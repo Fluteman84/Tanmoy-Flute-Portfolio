@@ -63,6 +63,14 @@
     padding: 7rem 0 5rem;
   }
 
+  .hero-copy h1 {
+    font-size: clamp(2.6rem, 12vw, 4.4rem);
+  }
+
+  .hero-text {
+    font-size: 0.98rem;
+  }
+
   .carousel-card {
     flex-basis: calc(85% - 0.5rem);
   }
@@ -74,6 +82,11 @@
   .carousel-arrow,
   .scroll-indicator {
     display: none;
+  }
+
+  .about-image img {
+    aspect-ratio: 3 / 4;
+    object-position: center 34%;
   }
 
   .footer-shell,
@@ -122,6 +135,50 @@
 
   .filter-row {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr;
+  }
+
+  .filter-chip {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .floating-socials {
+    right: 0.65rem;
+    bottom: 0.75rem;
+  }
+
+  .floating-socials a {
+    width: 42px;
+    height: 42px;
+  }
+
+  .modal-panel,
+  .lightbox-panel {
+    width: calc(100% - 1rem);
+    margin: 4vh auto;
+  }
+
+  .modal-close {
+    top: 0.5rem;
+    right: 0.5rem;
+    z-index: 2;
+  }
+
+  .stats-grid {
+    gap: 1rem;
+  }
+
+  .hero-layout {
+    gap: 1.4rem;
+    padding: 6.6rem 0 4.2rem;
+  }
+
+  .section-heading h2 {
+    line-height: 1.05;
+  }
+
+  .booking-section::before {
+    background-position: center 82%;
   }
 }

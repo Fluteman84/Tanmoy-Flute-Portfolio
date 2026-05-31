@@ -1,30 +1,30 @@
 const youtubeVideos = [
   {
-    title: "Featured Performance",
-    description: "A flagship performance card designed for Tanmoy Flute's cinematic channel identity.",
-    thumbnail: "assets/images/yt-1.svg",
-    youtubeId: "M7lc1UVf-VE",
-    link: "https://www.youtube.com/@Tanmoyflute"
+    title: "TRIMAD",
+    description: "A band with Beatboxers, Guitars and Keys & last but not the least THE FLUTE",
+    thumbnail: "assets/images/yt-1.png",
+    youtubeId: "iCSq48zSFso",
+    link: "https://youtu.be/iCSq48zSFso?si=fix_aR8IXphae9iX"
   },
   {
-    title: "Latest Uploads",
-    description: "A polished showcase slot for newly released bansuri covers, originals, and visual edits.",
-    thumbnail: "assets/images/yt-2.svg",
-    youtubeId: "DWcJFNfaw9c",
-    link: "https://www.youtube.com/@Tanmoyflute"
+    title: "Popular Uploads",
+    description: "Bengali Cover | Avijog",
+    thumbnail: "assets/images/yt-2.png",
+    youtubeId: "y5qeh88xums",
+    link: "https://youtu.be/y5qeh88xums?si=0itlw3FW_jH1Wn3J"
   },
   {
     title: "Fan Favorites",
-    description: "Reserved for the performances listeners return to for melody, warmth, and emotional tone.",
-    thumbnail: "assets/images/yt-3.svg",
-    youtubeId: "5qap5aO4i9A",
-    link: "https://www.youtube.com/@Tanmoyflute"
+    description: "Revolving around the tunes of Chaand Baliyaan",
+    thumbnail: "assets/images/yt-3.png",
+    youtubeId: "9Ts5p-qHdag",
+    link: "https://youtu.be/9Ts5p-qHdag?si=aRbCRqUalVmD-X1G"
   },
   {
-    title: "Classical Fusion",
-    description: "A cinematic frame for Indian classical influence meeting contemporary instrumental production.",
-    thumbnail: "assets/images/yt-4.svg",
-    youtubeId: "jfKfPfyJRdk",
-    link: "https://www.youtube.com/@Tanmoyflute"
+    title: "Bollywood Fusion",
+    description: "Looking into Bollywood Melodies fusing with Modern Music",
+    thumbnail: "assets/images/yt-4.png",
+    youtubeId: "Vq_ZEM2rnPs",
+    link: "https://youtube.com/shorts/Vq_ZEM2rnPs?si=Ya9YD0eTxRW10WHS"
   }
 ];

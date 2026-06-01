@@ -3,6 +3,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const navLinks = document.getElementById("navLinks");
   const scrollProgress = document.getElementById("scrollProgress");
   const contactForm = document.getElementById("contactForm");
+  const connectButton = document.getElementById("connectButton");
   const videoModal = document.getElementById("videoModal");
   const modalVideoShell = document.getElementById("modalVideoShell");
   const closeVideoModal = document.getElementById("closeVideoModal");
@@ -230,17 +231,12 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  if (contactForm) {
-    contactForm.addEventListener("submit", (event) => {
-      event.preventDefault();
-
-      const formData = new FormData(contactForm);
-      const name = formData.get("name");
-      const email = formData.get("email");
-      const message = formData.get("message");
-      const subject = encodeURIComponent(`Booking Inquiry from ${name}`);
-      const body = encodeURIComponent(`Name: ${name}\nEmail: ${email}\n\nMessage:\n${message}`);
-      window.location.href = `mailto:tanmoyflute@gmail.com?subject=${subject}&body=${body}`;
+  if (contactForm && connectButton) {
+    connectButton.addEventListener("click", () => {
+      const connectUrl = contactForm.dataset.connectUrl;
+      if (connectUrl) {
+        window.open(connectUrl, "_blank", "noopener,noreferrer");
+      }
     });
   }
 

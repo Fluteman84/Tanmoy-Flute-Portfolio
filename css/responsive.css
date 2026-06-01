@@ -181,4 +181,23 @@
   .booking-section::before {
     background-position: center 82%;
   }
+
+  .mail-cloud {
+    left: 0;
+    bottom: calc(100% + 10px);
+    transform: translate(0, 8px) scale(0.94);
+    min-width: 210px;
+  }
+
+  .mail-me-link:hover .mail-cloud,
+  .mail-me-link:focus-within .mail-cloud,
+  .mail-cloud.is-visible {
+    transform: translate(0, 0) scale(1);
+  }
+
+  .mail-copy-toast {
+    right: 0.7rem;
+    bottom: 0.7rem;
+    font-size: 0.9rem;
+  }
 }

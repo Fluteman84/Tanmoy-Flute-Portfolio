@@ -323,7 +323,7 @@ button {
 .hero-tagline {
   margin: 1rem 0 0;
   color: var(--accent-bright);
-  font-size: clamp(1.12rem, 2vw, 1.58rem);
+  font-size: clamp(1rem, 2vw, 1.58rem);
   letter-spacing: 0.04em;
 }
 
@@ -895,6 +895,93 @@ button {
   display: flex;
   flex-wrap: wrap;
   gap: 1rem;
+}
+
+.mail-me-link {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.mail-cloud {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 14px);
+  transform: translate(-50%, 8px) scale(0.94);
+  min-width: 230px;
+  text-align: center;
+  padding: 0.7rem 0.9rem;
+  border-radius: 18px;
+  border: 1px solid rgba(216, 168, 93, 0.35);
+  background: linear-gradient(140deg, rgba(13, 21, 28, 0.95), rgba(20, 32, 40, 0.9));
+  color: var(--accent-bright);
+  font-size: 0.82rem;
+  letter-spacing: 0.03em;
+  box-shadow: 0 16px 30px rgba(0, 0, 0, 0.34), 0 0 0 1px rgba(130, 187, 204, 0.15) inset;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--transition), transform var(--transition);
+  z-index: 6;
+}
+
+.mail-cloud::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: -7px;
+  width: 14px;
+  height: 14px;
+  border-right: 1px solid rgba(216, 168, 93, 0.35);
+  border-bottom: 1px solid rgba(216, 168, 93, 0.35);
+  background: rgba(16, 26, 33, 0.96);
+  transform: translateX(-50%) rotate(45deg);
+}
+
+.mail-cloud::after {
+  content: "Click to copy";
+  display: block;
+  margin-top: 0.28rem;
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.mail-me-link:hover .mail-cloud,
+.mail-me-link:focus-within .mail-cloud,
+.mail-cloud.is-visible {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translate(-50%, 0) scale(1);
+}
+
+.mail-cloud:focus-visible {
+  outline: 2px solid rgba(216, 168, 93, 0.6);
+  outline-offset: 2px;
+}
+
+.mail-copy-toast {
+  position: fixed;
+  right: 1.2rem;
+  bottom: 1.2rem;
+  z-index: 140;
+  max-width: min(92vw, 360px);
+  padding: 0.85rem 1rem;
+  border-radius: 14px;
+  border: 1px solid rgba(216, 168, 93, 0.34);
+  background: linear-gradient(130deg, rgba(12, 20, 28, 0.96), rgba(19, 30, 36, 0.92));
+  color: var(--text-primary);
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.35);
+  opacity: 0;
+  transform: translate3d(0, 14px, 0);
+  pointer-events: none;
+  transition: opacity 260ms ease, transform 260ms ease;
+}
+
+.mail-copy-toast.is-visible {
+  opacity: 1;
+  transform: translate3d(0, 0, 0);
 }
 
 .form-note {

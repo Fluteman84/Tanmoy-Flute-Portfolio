@@ -10,6 +10,11 @@ document.addEventListener("DOMContentLoaded", () => {
   const imageLightbox = document.getElementById("imageLightbox");
   const lightboxImage = document.getElementById("lightboxImage");
   const closeLightbox = document.getElementById("closeLightbox");
+  const mailLink = document.querySelector(".mail-me-link");
+  const mailCloud = document.querySelector(".mail-cloud");
+  const mailCopyToast = document.getElementById("mailCopyToast");
+  let mailToastTimer = null;
+  let mailCloudHideTimer = null;
 
   function createInstagramCard(post) {
     const article = document.createElement("article");
@@ -238,6 +243,96 @@ document.addEventListener("DOMContentLoaded", () => {
         window.open(connectUrl, "_blank", "noopener,noreferrer");
       }
     });
+  }
+
+  async function copyTextToClipboard(value) {
+    if (!value) {
+      return false;
+    }
+
+    if (navigator.clipboard && window.isSecureContext) {
+      try {
+        await navigator.clipboard.writeText(value);
+        return true;
+      } catch (error) {
+        return false;
+      }
+    }
+
+    const helper = document.createElement("textarea");
+    helper.value = value;
+    helper.setAttribute("readonly", "");
+    helper.style.position = "absolute";
+    helper.style.left = "-9999px";
+    document.body.appendChild(helper);
+    helper.select();
+
+    let didCopy = false;
+    try {
+      didCopy = document.execCommand("copy");
+    } catch (error) {
+      didCopy = false;
+    }
+
+    document.body.removeChild(helper);
+    return didCopy;
+  }
+
+  function showMailCopiedToast() {
+    if (!mailCopyToast) {
+      return;
+    }
+
+    mailCopyToast.classList.add("is-visible");
+    window.clearTimeout(mailToastTimer);
+    mailToastTimer = window.setTimeout(() => {
+      mailCopyToast.classList.remove("is-visible");
+    }, 2400);
+  }
+
+  if (mailLink && mailCloud) {
+    const mailId = mailLink.dataset.mailId || "";
+    const hideDelayMs = 500;
+
+    const showMailCloud = () => {
+      window.clearTimeout(mailCloudHideTimer);
+      mailCloud.classList.add("is-visible");
+    };
+
+    const hideMailCloudWithDelay = () => {
+      window.clearTimeout(mailCloudHideTimer);
+      mailCloudHideTimer = window.setTimeout(() => {
+        mailCloud.classList.remove("is-visible");
+      }, hideDelayMs);
+    };
+
+    const hideMailCloudNow = () => {
+      window.clearTimeout(mailCloudHideTimer);
+      mailCloud.classList.remove("is-visible");
+    };
+
+    const handleCopy = async (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      const copied = await copyTextToClipboard(mailId);
+      if (copied) {
+        showMailCopiedToast();
+        hideMailCloudWithDelay();
+      }
+    };
+
+    mailCloud.addEventListener("click", handleCopy);
+
+    mailCloud.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" || event.key === " ") {
+        handleCopy(event);
+      }
+    });
+
+    mailLink.addEventListener("mouseenter", showMailCloud);
+    mailLink.addEventListener("mouseleave", hideMailCloudWithDelay);
+    mailCloud.addEventListener("mouseenter", showMailCloud);
+    mailCloud.addEventListener("mouseleave", hideMailCloudWithDelay);
   }
 
   const testimonialCards = Array.from(document.querySelectorAll(".testimonial-card"));

@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Hindustani Classical Palta Generator by Tanmoy Flute." />
+    <title>Palta Generator | Tanmoy Flute</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="css/style.css" />
+    <link rel="stylesheet" href="css/responsive.css" />
+    <link rel="stylesheet" href="css/notes.css" />
+  </head>
+  <body class="notes-page">
+    <header class="site-header">
+      <div class="container nav-shell">
+        <a class="brand" href="index.html"><span class="brand-mark">TANMOY</span><span class="brand-sub">Flute</span></a>
+        <a class="notes-back-link" href="index.html">Back to Stage</a>
+      </div>
+    </header>
+
+    <main class="notes-main">
+      <section class="notes-hero">
+        <div class="container">
+          <p class="eyebrow">Tools / Notes Reading</p>
+          <h1>Hindustani Classical <span>Palta Generator</span></h1>
+          <p class="notes-subtitle">Practice. Progress. Perfect your Sargam.</p>
+        </div>
+      </section>
+
+      <section class="container palta-workspace" aria-labelledby="paltaControlsTitle">
+        <div class="formula-area">
+          <div class="control-heading">
+            <p class="eyebrow">Formula Studio</p>
+            <h2 id="paltaControlsTitle">Enter the Palta Formula</h2>
+          </div>
+          <div class="formula-controls">
+            <label class="sr-only" for="paltaSelect">Choose predefined Palta</label>
+            <select id="paltaSelect" class="palta-select">
+              <option value="0">Palta 1</option><option value="1">Palta 2</option><option value="2">Palta 3</option><option value="3">Palta 4</option><option value="4">Palta 5</option><option value="5">Palta 6</option><option value="6">Palta 7</option><option value="7">Palta 8</option>
+            </select>
+            <input id="paltaFormula" class="formula-input" type="text" autocomplete="off" spellcheck="false" aria-describedby="formulaHelp formulaError" />
+          </div>
+          <p class="formula-help" id="formulaHelp">Use digits 1-8, spaces between groups, and hyphens for pauses. Example: <code>123 123 12 1234 4321</code></p>
+          <p class="formula-error" id="formulaError" role="alert"></p>
+
+        </div>
+
+        <div class="output-grid">
+          <section class="notation-panel" aria-labelledby="ascendingTitle">
+            <div class="notation-heading"><div><p class="panel-kicker">Ascending</p><h2 id="ascendingTitle">Aroha</h2></div><button class="panel-copy" type="button" data-copy="ascending">Copy Aroha</button></div>
+            <div id="ascendingOutput" class="notation-output" aria-live="polite"><p class="empty-output">Choose a Palta and generate its ascending notes.</p></div>
+          </section>
+          <section class="notation-panel" aria-labelledby="descendingTitle">
+            <div class="notation-heading"><div><p class="panel-kicker">Descending</p><h2 id="descendingTitle">Avaroha</h2></div><button class="panel-copy" type="button" data-copy="descending">Copy Avaroha</button></div>
+            <div id="descendingOutput" class="notation-output" aria-live="polite"><p class="empty-output">Choose a Palta and generate its descending notes.</p></div>
+          </section>
+        </div>
+
+        <div class="utility-row"><button class="utility-button" type="button" data-copy="both">Copy Both</button><button class="utility-button" id="downloadButton" type="button">Download TXT</button><button class="utility-button utility-reset" id="resetButton" type="button">Reset</button></div>
+      </section>
+    </main>
+
+    <div class="palta-toast" id="paltaToast" role="status" aria-live="polite"></div>
+    <script src="js/palta-generator.js"></script>
+    <script src="js/palta-tests.js"></script>
+    <script src="js/notes.js"></script>
+  </body>
+</html>

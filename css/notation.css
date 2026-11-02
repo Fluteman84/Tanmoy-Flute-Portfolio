@@ -8,6 +8,7 @@
    Page Structure
    ----------------------------------------------- */
 .swaralipi-app {
+  position: relative;
   max-width: var(--container);
   margin: 0 auto;
   padding: 0 1.5rem 4rem;

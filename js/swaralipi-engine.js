@@ -346,7 +346,6 @@
             for (var pi = 0; pi < measure.positions.length; pi++) {
               posTexts.push(S.positionToText(measure.positions[pi]));
             }
-            while (posTexts.length < ppm) posTexts.push("-");
             parts.push(posTexts.join(" "));
           }
           lines.push(parts.join(" | "));

@@ -16,7 +16,24 @@
     <header class="site-header">
       <div class="container nav-shell">
         <a class="brand" href="index.html"><span class="brand-mark">TANMOY</span><span class="brand-sub">Flute</span></a>
-        <a class="notes-back-link" href="index.html">Back to Stage</a>
+        <div style="display:flex; align-items:center; gap:1rem;">
+          <div class="nav-dropdown" id="toolsDropdown">
+            <button class="nav-dropdown-toggle" aria-haspopup="true" aria-expanded="false" id="toolsToggle">
+              Tools <span class="dropdown-arrow" aria-hidden="true">▾</span>
+            </button>
+            <div class="nav-dropdown-menu" role="menu">
+              <a href="notes.html" role="menuitem">
+                <span class="dropdown-item-label">Palta Generator</span>
+                <span class="dropdown-item-desc">Aroha &amp; Avaroha practice sheets</span>
+              </a>
+              <a href="notation.html" role="menuitem">
+                <span class="dropdown-item-label">Notation Generator</span>
+                <span class="dropdown-item-desc">Hindustani Classical Notation Editor</span>
+              </a>
+            </div>
+          </div>
+          <a class="notes-back-link" href="index.html">Back to Stage</a>
+        </div>
       </div>
     </header>
 
@@ -66,5 +83,30 @@
     <script src="js/palta-generator.js"></script>
     <script src="js/palta-tests.js"></script>
     <script src="js/notes.js"></script>
+    <script>
+      (function () {
+        var toolsDropdown = document.getElementById("toolsDropdown");
+        var toolsToggle = document.getElementById("toolsToggle");
+        if (toolsDropdown && toolsToggle) {
+          toolsToggle.addEventListener("click", function (e) {
+            e.stopPropagation();
+            var isOpen = toolsDropdown.classList.toggle("is-open");
+            toolsToggle.setAttribute("aria-expanded", String(isOpen));
+          });
+          document.addEventListener("click", function (e) {
+            if (!toolsDropdown.contains(e.target)) {
+              toolsDropdown.classList.remove("is-open");
+              toolsToggle.setAttribute("aria-expanded", "false");
+            }
+          });
+          document.addEventListener("keydown", function (e) {
+            if (e.key === "Escape") {
+              toolsDropdown.classList.remove("is-open");
+              toolsToggle.setAttribute("aria-expanded", "false");
+            }
+          });
+        }
+      })();
+    </script>
   </body>
 </html>

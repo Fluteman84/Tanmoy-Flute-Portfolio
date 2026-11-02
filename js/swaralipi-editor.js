@@ -1,15 +1,15 @@
 /* ================================================================
-   Swaralipi — Editor Controller
-   Cursor, input handling, rendering, selection, undo / redo,
-   section management, copy / paste, and the main app bootstrap.
+   Swaralipi — Hindustani Classical Music Notation Editor
+   Controller, input handling, proxy caret trap for desktop & mobile,
+   rendering, selection, undo / redo, section management, and exports.
    ================================================================ */
 (function (S) {
   "use strict";
   if (!S) throw new Error("Swaralipi engine must be loaded first.");
 
-  /* ──────────────────────────────────────────────── *
+  /* ──────────────────────────────────────────────────────────── *
    *  UNDO MANAGER
-   * ──────────────────────────────────────────────── */
+   * ──────────────────────────────────────────────────────────── */
   function UndoManager(maxSize) {
     this._undo = [];
     this._redo = [];
@@ -38,9 +38,9 @@
   UndoManager.prototype.canUndo = function () { return this._undo.length > 1; };
   UndoManager.prototype.canRedo = function () { return this._redo.length > 0; };
 
-  /* ──────────────────────────────────────────────── *
+  /* ──────────────────────────────────────────────────────────── *
    *  MAIN EDITOR CLASS
-   * ──────────────────────────────────────────────── */
+   * ──────────────────────────────────────────────────────────── */
   function SwaralipiEditor(rootEl) {
     this.root = rootEl;
     this.song = S.createSong();
@@ -49,9 +49,16 @@
     this.groupMode = false;
     this.inputBuffer = "";
     this.undoMgr = new UndoManager();
-    this.selection = null;         // {startPos, startOff, endPos, endOff}
+    this.selection = null;         // {anchorPos, anchorOff, focusPos, focusOff}
     this.clipboard = null;         // {positions: [...]}
     this.savedSong = null;         // for dirty check
+    this._pdfBarsPerRow = 4;       // 4 or 2
+
+    // DOM caches
+    this._songNameEl = null;
+    this._scaleEl = null;
+    this._timeEl = null;
+    this._sectionsEl = null;
     this._cursorEl = null;
     this._bufferEl = null;
     this._popupEl = null;
@@ -60,11 +67,12 @@
     this._modalEl = null;
     this._printEl = null;
     this._groupToggle = null;
-    this._sectionEls = [];
+    this._fileInput = null;
+    this._proxyInput = null;
     this._typingTimer = null;
 
     this._build();
-    this._bindGlobal();
+    this._bindEvents();
     this.savedSong = S.cloneSong(this.song);
     this._saveSnapshot();
     this.render();
@@ -72,39 +80,53 @@
 
   var P = SwaralipiEditor.prototype;
 
-  /* ═══════════════ UI BUILD ═══════════════ */
+  /* ════════════════════════════════════════════════════════════ *
+   *  DOM SHELL GENERATION
+   * ════════════════════════════════════════════════════════════ */
   P._build = function () {
-    var self = this;
     var h = "";
-    // Hero
-    h += '<section class="swaralipi-hero"><div class="container">';
-    h += '<p class="eyebrow">Tools / Notation</p>';
-    h += '<h1>Swar<span>alipi</span></h1>';
-    h += '<p class="notes-subtitle">Compose · Edit · Export — Hindustani Classical Notation</p>';
-    h += '</div></section>';
 
-    // Song info
-    h += '<div class="container"><div class="song-info-bar">';
-    h += '<div class="song-info-field"><label for="swSongName">Song Name</label>';
-    h += '<input id="swSongName" type="text" placeholder="Untitled Composition" autocomplete="off" spellcheck="false" /></div>';
-    h += '<div class="song-info-field"><label for="swScale">Scale (Sa)</label>';
-    h += '<select id="swScale">';
-    S.SCALES.forEach(function (s) { h += '<option value="' + s + '">' + s + '</option>'; });
-    h += '</select></div>';
-    h += '<div class="song-info-field"><label for="swTime">Music Bars</label>';
-    h += '<select id="swTime">';
-    S.TIME_SIGNATURES.forEach(function (t) { h += '<option value="' + t + '"' + (t === "4/4" ? ' selected' : '') + '>' + t + '</option>'; });
-    h += '</select></div>';
+    // Hero title
+    h += '<section class="swaralipi-hero">';
+    h += '<p class="eyebrow">Tools / Notation Editor</p>';
+    h += '<h1>Swar<span>alipi</span></h1>';
+    h += '<p class="notes-subtitle">Hindustani Classical Music Notation Editor</p>';
+    h += '</section>';
+
+    // Song info header
+    h += '<div class="song-info-bar">';
+    h += '<div class="song-info-field">';
+    h += '<label for="swSongName">Song Name</label>';
+    h += '<input id="swSongName" type="text" placeholder="Raag Yaman - Bandish" autocomplete="off" spellcheck="false" />';
     h += '</div>';
 
-    // Controls
+    h += '<div class="song-info-field">';
+    h += '<label for="swScale">Scale (Sa)</label>';
+    h += '<select id="swScale">';
+    S.SCALES.forEach(function (s) {
+      h += '<option value="' + s + '">' + s + '</option>';
+    });
+    h += '</select>';
+    h += '</div>';
+
+    h += '<div class="song-info-field">';
+    h += '<label for="swTime">Music Bars</label>';
+    h += '<select id="swTime">';
+    S.TIME_SIGNATURES.forEach(function (t) {
+      h += '<option value="' + t + '"' + (t === "4/4" ? ' selected' : '') + '>' + t + '</option>';
+    });
+    h += '</select>';
+    h += '</div>';
+    h += '</div>';
+
+    // Project controls bar
     h += '<div class="project-controls-bar">';
     h += '<button class="sw-btn" data-action="undo" title="Undo (Ctrl+Z)">↶ Undo</button>';
     h += '<button class="sw-btn" data-action="redo" title="Redo (Ctrl+Y)">↷ Redo</button>';
-    h += '<button class="sw-btn sw-btn--accent" data-action="export-swar" title="Export .swar project file">⬇ Export Project</button>';
+    h += '<button class="sw-btn sw-btn--accent" data-action="export-swar" title="Export .swar project file">⬇ Export Project (.swar)</button>';
     h += '<button class="sw-btn" data-action="import-swar" title="Import .swar project file">⬆ Import Project</button>';
     h += '<button class="sw-btn" data-action="export-txt" title="Export plain text">📄 Export TXT</button>';
-    h += '<button class="sw-btn" data-action="export-pdf" title="Preview / print PDF">🖨 PDF Preview</button>';
+    h += '<button class="sw-btn" data-action="export-pdf" title="Print or preview PDF">🖨 PDF Preview</button>';
     h += '<button class="sw-btn sw-btn--danger" data-action="reset" title="Reset composition">⟲ Reset</button>';
     h += '<input type="file" id="swFileInput" accept=".swar" style="display:none" />';
     h += '</div>';
@@ -112,17 +134,18 @@
     // Sections container
     h += '<div class="swaralipi-sections" id="swSections"></div>';
 
-    // Add section button
-    h += '<button class="add-section-btn" data-action="add-section">+ Add Section</button>';
+    // Add Section button
+    h += '<button class="add-section-btn" data-action="add-section" style="margin-top:1.5rem;">+ Add Section</button>';
 
-    h += '</div>'; // end container
+    // Hidden proxy caret trap for desktop & mobile virtual keyboard
+    h += '<input type="text" id="swProxyInput" class="sw-proxy-input" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" aria-hidden="true" style="position:fixed; opacity:0; width:1px; height:1px; top:0; left:0; border:0; padding:0; pointer-events:none; z-index:-1;" />';
 
-    // Floating elements
+    // Floating UI Elements
     h += '<div class="sw-cursor" id="swCursor"></div>';
     h += '<div class="input-buffer" id="swBuffer"></div>';
     h += '<div class="selection-popup is-hidden" id="swPopup"></div>';
     h += '<div class="sw-context-menu is-hidden" id="swContext"></div>';
-    h += '<button class="group-mode-toggle" id="swGroupToggle" title="Group Mode (CapsLock)">GRP</button>';
+    h += '<button class="group-mode-toggle" id="swGroupToggle" title="Group Mode (Caps Lock / Tap)">GRP</button>';
     h += '<div class="sw-toast" id="swToast"></div>';
     h += '<div class="sw-modal-overlay is-hidden" id="swModal"><div class="sw-modal"></div></div>';
     h += '<div class="sw-print-overlay is-hidden" id="swPrint"></div>';
@@ -143,13 +166,16 @@
     this._modalEl = document.getElementById("swModal");
     this._printEl = document.getElementById("swPrint");
     this._fileInput = document.getElementById("swFileInput");
+    this._proxyInput = document.getElementById("swProxyInput");
   };
 
-  /* ═══════════════ EVENT BINDING ═══════════════ */
-  P._bindGlobal = function () {
+  /* ════════════════════════════════════════════════════════════ *
+   *  EVENT ATTACHMENTS
+   * ════════════════════════════════════════════════════════════ */
+  P._bindEvents = function () {
     var self = this;
 
-    // Song info fields
+    // Song info changes
     this._songNameEl.addEventListener("input", function () {
       self.song.name = this.value;
       self._saveSnapshotDebounced();
@@ -164,14 +190,13 @@
       self.render();
     });
 
-    // Button actions
+    // Button clicks inside root
     this.root.addEventListener("click", function (e) {
       var btn = e.target.closest("[data-action]");
       if (btn) {
         self._handleAction(btn.dataset.action, e);
         return;
       }
-      // Section ctrl buttons
       var ctrl = e.target.closest("[data-section-action]");
       if (ctrl) {
         var idx = Number(ctrl.dataset.sectionIndex);
@@ -180,25 +205,48 @@
       }
     });
 
-    // Keyboard events on document (capture notation input when a notation-area is focused)
-    document.addEventListener("keydown", function (e) { self._onKeyDown(e); });
-    document.addEventListener("keyup", function (e) { self._onKeyUp(e); });
+    // Mobile / Desktop floating Group Mode toggle
+    this._groupToggle.addEventListener("click", function (e) {
+      e.stopPropagation();
+      self._setGroupMode(!self.groupMode);
+      self._focusProxy();
+    });
 
-    // CapsLock sync via keyup
-    document.addEventListener("keyup", function (e) {
-      if (e.key === "CapsLock") {
-        self._setGroupMode(e.getModifierState("CapsLock"));
+    // Proxy Input keyboard events
+    this._proxyInput.addEventListener("keydown", function (e) {
+      self._onKeyDown(e);
+    });
+    this._proxyInput.addEventListener("keyup", function (e) {
+      self._onKeyUp(e);
+    });
+    this._proxyInput.addEventListener("input", function (e) {
+      if (self._proxyInput.value) {
+        var val = self._proxyInput.value;
+        self._proxyInput.value = "";
+        for (var ci = 0; ci < val.length; ci++) {
+          self._handleCharInput(val[ci]);
+        }
       }
     });
 
-    // Group toggle button
-    this._groupToggle.addEventListener("click", function () {
-      self._setGroupMode(!self.groupMode);
+    // Global keyboard listener for CapsLock and shortcut fallback
+    document.addEventListener("keydown", function (e) {
+      var active = document.activeElement;
+      if (active && (active.tagName === "INPUT" || active.tagName === "SELECT" || active.tagName === "TEXTAREA")) {
+        if (active !== self._proxyInput) return;
+      }
+      if (active !== self._proxyInput) {
+        self._onKeyDown(e);
+      }
+    });
+    document.addEventListener("keyup", function (e) {
+      self._onKeyUp(e);
     });
 
-    // Click on notation area
+    // Notation area clicks & selection
     document.addEventListener("click", function (e) {
       self._hideContextMenu();
+
       var posEl = e.target.closest(".sw-position");
       if (posEl) {
         var area = posEl.closest(".notation-area");
@@ -208,13 +256,14 @@
           return;
         }
       }
+
       var area = e.target.closest(".notation-area");
       if (area) {
         self._setActiveSectionByArea(area);
         self._clickedEmptyArea(area, e);
         return;
       }
-      // Click outside notation areas
+
       if (!e.target.closest(".selection-popup") && !e.target.closest(".sw-context-menu")) {
         self._hidePopup();
       }
@@ -230,25 +279,50 @@
       }
     });
 
-    // File import
+    // File input change
     this._fileInput.addEventListener("change", function () {
       if (this.files.length) self._importFile(this.files[0]);
       this.value = "";
     });
 
-    // Hide context/popup on scroll
+    // Drag and drop for .swar files
+    window.addEventListener("dragover", function (e) { e.preventDefault(); });
+    window.addEventListener("drop", function (e) {
+      e.preventDefault();
+      if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length) {
+        var file = e.dataTransfer.files[0];
+        if (file.name.endsWith(".swar")) {
+          self._importFile(file);
+        }
+      }
+    });
+
+    // Viewport resize & scroll
     window.addEventListener("scroll", function () {
       self._hidePopup();
       self._hideContextMenu();
       self._repositionCursor();
     }, { passive: true });
 
-    window.addEventListener("resize", function () { self._repositionCursor(); });
+    window.addEventListener("resize", function () {
+      self._repositionCursor();
+    });
   };
 
-  /* ═══════════════ ACTIONS ═══════════════ */
+  /* ════════════════════════════════════════════════════════════ *
+   *  PROXY INPUT FOCUS
+   * ════════════════════════════════════════════════════════════ */
+  P._focusProxy = function () {
+    if (this._proxyInput) {
+      this._proxyInput.value = "";
+      this._proxyInput.focus({ preventScroll: true });
+    }
+  };
+
+  /* ════════════════════════════════════════════════════════════ *
+   *  ACTIONS DISPATCHER
+   * ════════════════════════════════════════════════════════════ */
   P._handleAction = function (action) {
-    var self = this;
     switch (action) {
       case "undo": this._undo(); break;
       case "redo": this._redo(); break;
@@ -261,18 +335,22 @@
     }
   };
 
-  /* ═══════════════ SECTION MANAGEMENT ═══════════════ */
+  /* ════════════════════════════════════════════════════════════ *
+   *  SECTION MANAGEMENT
+   * ════════════════════════════════════════════════════════════ */
   P._addSection = function () {
-    var names = S.DEFAULT_SECTIONS.filter(function (n) {
-      return !this.song.sections.some(function (s) { return s.name === n; });
-    }.bind(this));
-    var name = names.length ? names[0] : "Section " + (this.song.sections.length + 1);
+    var self = this;
+    var usedNames = this.song.sections.map(function (s) { return s.name; });
+    var candidate = S.DEFAULT_SECTIONS.find(function (n) { return usedNames.indexOf(n) === -1; });
+    var name = candidate || ("Section " + (this.song.sections.length + 1));
+
     this.song.sections.push(S.createSection(name));
     this.activeSectionIdx = this.song.sections.length - 1;
     this.cursor = { posIndex: 0, charOffset: 0 };
     this.inputBuffer = "";
     this._saveSnapshot();
     this.render();
+    this._focusProxy();
   };
 
   P._handleSectionAction = function (action, idx) {
@@ -281,19 +359,28 @@
 
     switch (action) {
       case "delete":
-        if (secs.length <= 1) { this._toast("Cannot delete the last section."); return; }
+        if (secs.length <= 1) {
+          this._toast("Cannot delete the only section.");
+          return;
+        }
         secs.splice(idx, 1);
-        if (this.activeSectionIdx >= secs.length) this.activeSectionIdx = secs.length - 1;
+        if (this.activeSectionIdx >= secs.length) {
+          this.activeSectionIdx = secs.length - 1;
+        }
         break;
       case "move-up":
         if (idx === 0) return;
-        var tmp = secs[idx]; secs[idx] = secs[idx - 1]; secs[idx - 1] = tmp;
+        var tmp = secs[idx];
+        secs[idx] = secs[idx - 1];
+        secs[idx - 1] = tmp;
         if (this.activeSectionIdx === idx) this.activeSectionIdx--;
         else if (this.activeSectionIdx === idx - 1) this.activeSectionIdx++;
         break;
       case "move-down":
         if (idx >= secs.length - 1) return;
-        var tmp2 = secs[idx]; secs[idx] = secs[idx + 1]; secs[idx + 1] = tmp2;
+        var tmp2 = secs[idx];
+        secs[idx] = secs[idx + 1];
+        secs[idx + 1] = tmp2;
         if (this.activeSectionIdx === idx) this.activeSectionIdx++;
         else if (this.activeSectionIdx === idx + 1) this.activeSectionIdx--;
         break;
@@ -302,6 +389,7 @@
     this.inputBuffer = "";
     this._saveSnapshot();
     this.render();
+    this._focusProxy();
   };
 
   P._setActiveSectionByArea = function (areaEl) {
@@ -318,7 +406,9 @@
     return this.song.sections[this.activeSectionIdx] || this.song.sections[0];
   };
 
-  /* ═══════════════ RENDERING ═══════════════ */
+  /* ════════════════════════════════════════════════════════════ *
+   *  RENDERING
+   * ════════════════════════════════════════════════════════════ */
   P.render = function () {
     var self = this;
     var secs = this.song.sections;
@@ -353,22 +443,22 @@
     h += '<div class="section-header">';
     h += '<input class="section-name-input" value="' + this._escAttr(sec.name) + '" data-section-index="' + si + '" spellcheck="false" />';
     h += '<div class="section-controls">';
-    h += '<button class="section-ctrl-btn" data-section-action="move-up" data-section-index="' + si + '" title="Move up">▲</button>';
-    h += '<button class="section-ctrl-btn" data-section-action="move-down" data-section-index="' + si + '" title="Move down">▼</button>';
+    h += '<button class="section-ctrl-btn" data-section-action="move-up" data-section-index="' + si + '" title="Move section up">▲</button>';
+    h += '<button class="section-ctrl-btn" data-section-action="move-down" data-section-index="' + si + '" title="Move section down">▼</button>';
     h += '<button class="section-ctrl-btn" data-section-action="delete" data-section-index="' + si + '" title="Delete section">✕</button>';
     h += '</div></div>';
 
-    h += '<div class="notation-area" tabindex="0" data-section-index="' + si + '">';
+    h += '<div class="notation-area" tabindex="0" data-section-index="' + si + '" style="overflow-x:auto;">';
     h += this._renderNotation(sec);
     h += '</div>';
 
-    // Status bar
+    // Status footer
     var ppm = S.getPositionsPerMeasure(this.song.timeSignature);
     var measures = S.buildMeasures(sec.positions, this.song.timeSignature);
     h += '<div class="swaralipi-status">';
     h += '<span class="status-item">Positions: ' + sec.positions.length + '</span>';
     h += '<span class="status-item">Measures: ' + measures.length + '</span>';
-    h += '<span class="status-item">Time: ' + this.song.timeSignature + '</span>';
+    h += '<span class="status-item">Time: ' + this.song.timeSignature + ' (' + ppm + ' pos/bar)</span>';
     h += '</div>';
 
     h += '</div>';
@@ -377,7 +467,7 @@
 
   P._renderNotation = function (sec) {
     if (sec.positions.length === 0) {
-      return '<div class="notation-empty">Click here and start typing swaras…</div>';
+      return '<div class="notation-empty">Click here and start typing swaras (e.g. S R G M)…</div>';
     }
 
     var measures = S.buildMeasures(sec.positions, this.song.timeSignature);
@@ -419,35 +509,48 @@
     if (this._timeEl.value !== this.song.timeSignature) this._timeEl.value = this.song.timeSignature;
   };
 
-  /* ═══════════════ CURSOR ═══════════════ */
+  /* ════════════════════════════════════════════════════════════ *
+   *  CURSOR POSITIONING & DISPLAY
+   * ════════════════════════════════════════════════════════════ */
   P._repositionCursor = function () {
     var sec = this._activeSection();
     var area = this._sectionsEl.querySelector('.notation-area[data-section-index="' + this.activeSectionIdx + '"]');
-    if (!area) { this._cursorEl.style.display = "none"; return; }
+    if (!area) {
+      this._cursorEl.style.display = "none";
+      this._bufferEl.style.display = "none";
+      return;
+    }
 
-    // If no positions, place cursor at beginning of area
     if (sec.positions.length === 0) {
       var areaRect = area.getBoundingClientRect();
+      var cLeft = areaRect.left + 16 + window.scrollX;
+      var cTop = areaRect.top + 14 + window.scrollY;
       this._cursorEl.style.display = "block";
-      this._cursorEl.style.left = (areaRect.left + 16 + window.scrollX) + "px";
-      this._cursorEl.style.top = (areaRect.top + 12 + window.scrollY) + "px";
+      this._cursorEl.style.left = cLeft + "px";
+      this._cursorEl.style.top = cTop + "px";
       this._cursorEl.style.height = "1.5em";
-      this._bufferEl.style.display = this.inputBuffer ? "block" : "none";
+
       if (this.inputBuffer) {
         this._bufferEl.textContent = this.inputBuffer;
-        this._bufferEl.style.left = (areaRect.left + 18 + window.scrollX) + "px";
-        this._bufferEl.style.top = (areaRect.top + 12 + window.scrollY) + "px";
+        this._bufferEl.style.display = "block";
+        this._bufferEl.style.left = (cLeft + 3) + "px";
+        this._bufferEl.style.top = cTop + "px";
+      } else {
+        this._bufferEl.style.display = "none";
       }
       return;
     }
 
-    // Find the position element
     var posIdx = Math.min(this.cursor.posIndex, sec.positions.length);
-    var targetEl, cursorX;
+    var cursorX, cursorY, cursorH;
 
     if (posIdx < sec.positions.length) {
       var posEl = area.querySelector('.sw-position[data-pos-index="' + posIdx + '"]');
-      if (!posEl) { this._cursorEl.style.display = "none"; return; }
+      if (!posEl) {
+        this._cursorEl.style.display = "none";
+        this._bufferEl.style.display = "none";
+        return;
+      }
 
       var charEls = posEl.querySelectorAll(".pos-char");
       if (this.cursor.charOffset > 0 && this.cursor.charOffset <= charEls.length) {
@@ -459,28 +562,33 @@
         cursorX = r2.left + window.scrollX;
       }
       var posRect = posEl.getBoundingClientRect();
-      this._cursorEl.style.left = cursorX + "px";
-      this._cursorEl.style.top = (posRect.top + window.scrollY) + "px";
-      this._cursorEl.style.height = posRect.height + "px";
+      cursorY = posRect.top + window.scrollY;
+      cursorH = posRect.height;
     } else {
-      // Cursor at end
       var lastPosEl = area.querySelector('.sw-position[data-pos-index="' + (sec.positions.length - 1) + '"]');
       if (lastPosEl) {
         var lr = lastPosEl.getBoundingClientRect();
-        this._cursorEl.style.left = (lr.right + 2 + window.scrollX) + "px";
-        this._cursorEl.style.top = (lr.top + window.scrollY) + "px";
-        this._cursorEl.style.height = lr.height + "px";
+        cursorX = lr.right + 2 + window.scrollX;
+        cursorY = lr.top + window.scrollY;
+        cursorH = lr.height;
+      } else {
+        var ar = area.getBoundingClientRect();
+        cursorX = ar.left + 16 + window.scrollX;
+        cursorY = ar.top + 14 + window.scrollY;
+        cursorH = 24;
       }
     }
-    this._cursorEl.style.display = "block";
 
-    // Buffer indicator
+    this._cursorEl.style.display = "block";
+    this._cursorEl.style.left = cursorX + "px";
+    this._cursorEl.style.top = cursorY + "px";
+    this._cursorEl.style.height = cursorH + "px";
+
     if (this.inputBuffer) {
       this._bufferEl.textContent = this.inputBuffer;
       this._bufferEl.style.display = "block";
-      var cx = parseFloat(this._cursorEl.style.left) + 3;
-      this._bufferEl.style.left = cx + "px";
-      this._bufferEl.style.top = this._cursorEl.style.top;
+      this._bufferEl.style.left = (cursorX + 3) + "px";
+      this._bufferEl.style.top = cursorY + "px";
     } else {
       this._bufferEl.style.display = "none";
     }
@@ -493,7 +601,6 @@
 
     if (charEl) {
       var off = Number(charEl.dataset.charOffset);
-      // Determine if click is on left or right half of char
       var r = charEl.getBoundingClientRect();
       charOff = (e.clientX > r.left + r.width / 2) ? off + 1 : off;
     }
@@ -503,7 +610,7 @@
     this.selection = null;
     this._hidePopup();
     this._repositionCursor();
-    this._focusActiveArea();
+    this._focusProxy();
   };
 
   P._clickedEmptyArea = function (areaEl, e) {
@@ -512,29 +619,19 @@
     this.cursor = { posIndex: sec.positions.length, charOffset: 0 };
     this.selection = null;
     this._repositionCursor();
-    this._focusActiveArea();
+    this._focusProxy();
   };
 
-  P._focusActiveArea = function () {
-    var area = this._sectionsEl.querySelector('.notation-area[data-section-index="' + this.activeSectionIdx + '"]');
-    if (area) area.focus();
-  };
-
-  /* ═══════════════ KEYBOARD INPUT ═══════════════ */
+  /* ════════════════════════════════════════════════════════════ *
+   *  KEYBOARD INPUT HANDLER
+   * ════════════════════════════════════════════════════════════ */
   P._onKeyDown = function (e) {
-    // Only process if a notation area is focused (or the document, not inputs)
-    var activeEl = document.activeElement;
-    if (activeEl && (activeEl.tagName === "INPUT" || activeEl.tagName === "TEXTAREA" || activeEl.tagName === "SELECT")) {
-      if (!activeEl.classList.contains("section-name-input")) return;
-      if (activeEl.classList.contains("section-name-input")) return; // let normal input work
-    }
-
     var area = document.querySelector('.notation-area[data-section-index="' + this.activeSectionIdx + '"]');
     if (!area) return;
 
-    // Sync CapsLock state on non-CapsLock keys
-    if (e.key !== "CapsLock" && e.key.length === 1) {
-      var caps = e.getModifierState && e.getModifierState("CapsLock");
+    // Detect and sync physical Caps Lock
+    if (e.key !== "CapsLock" && e.key.length === 1 && e.getModifierState) {
+      var caps = e.getModifierState("CapsLock");
       if (caps !== undefined && caps !== this.groupMode) {
         this._setGroupMode(caps);
       }
@@ -542,14 +639,33 @@
 
     var ctrl = e.ctrlKey || e.metaKey;
 
-    // Ctrl shortcuts
     if (ctrl) {
-      switch (e.key.toLowerCase()) {
-        case "z": e.preventDefault(); this._undo(); return;
-        case "y": e.preventDefault(); this._redo(); return;
-        case "c": e.preventDefault(); this._copy(); return;
-        case "v": e.preventDefault(); this._paste(); return;
-        case "a": e.preventDefault(); this._selectAll(); return;
+      var k = e.key.toLowerCase();
+      if (k === "z") {
+        e.preventDefault();
+        if (e.shiftKey) this._redo();
+        else this._undo();
+        return;
+      }
+      if (k === "y") {
+        e.preventDefault();
+        this._redo();
+        return;
+      }
+      if (k === "c") {
+        e.preventDefault();
+        this._copy();
+        return;
+      }
+      if (k === "v") {
+        e.preventDefault();
+        this._paste();
+        return;
+      }
+      if (k === "a") {
+        e.preventDefault();
+        this._selectAll();
+        return;
       }
     }
 
@@ -557,11 +673,19 @@
       e.preventDefault();
       this._hidePopup();
       this._hideContextMenu();
-      if (this.selection) { this.selection = null; this.render(); }
+      if (this.selection) {
+        this.selection = null;
+        this.render();
+      }
       return;
     }
 
-    // Arrow keys
+    if (e.key === "Enter") {
+      e.preventDefault();
+      this._commitBuffer();
+      return;
+    }
+
     if (e.key === "ArrowLeft") {
       e.preventDefault();
       if (e.shiftKey) this._extendSelectionLeft();
@@ -586,7 +710,7 @@
       return;
     }
 
-    // Character input
+    // Printable character
     if (e.key.length === 1 && !ctrl) {
       e.preventDefault();
       this._handleCharInput(e.key);
@@ -595,13 +719,14 @@
   };
 
   P._onKeyUp = function (e) {
-    if (e.key === "CapsLock") {
-      var newState = e.getModifierState ? e.getModifierState("CapsLock") : this.groupMode;
-      this._setGroupMode(newState);
+    if (e.key === "CapsLock" && e.getModifierState) {
+      this._setGroupMode(e.getModifierState("CapsLock"));
     }
   };
 
-  /* ═══════════════ GROUP MODE ═══════════════ */
+  /* ════════════════════════════════════════════════════════════ *
+   *  GROUP MODE MANAGEMENT
+   * ════════════════════════════════════════════════════════════ */
   P._setGroupMode = function (on) {
     var wasOn = this.groupMode;
     this.groupMode = !!on;
@@ -620,49 +745,75 @@
     }
   };
 
-  /* ═══════════════ INPUT HANDLING ═══════════════ */
+  /* ════════════════════════════════════════════════════════════ *
+   *  INPUT DISPATCH & BUFFER COMMIT
+   * ════════════════════════════════════════════════════════════ */
   P._handleCharInput = function (ch) {
-    // Delete any selection first
     if (this.selection) {
       this._deleteSelection();
     }
 
+    clearTimeout(this._bufferTimer);
+
+    // Space handling
     if (ch === " ") {
-      if (this.groupMode) return; // spaces ignored in group mode
+      if (this.groupMode) return; // Spaces ignored in Group Mode (Rule 5.2.2)
       this._commitBuffer();
       return;
     }
 
+    // Base Swara Input
     if (S.isSwara(ch)) {
       if (this.groupMode) {
-        // Group mode: accumulate
+        // Accumulate into group buffer
         this.inputBuffer += ch;
         this._repositionCursor();
       } else {
-        // Normal mode: if buffer already has a swara, commit it first
+        // Normal Mode (Caps Lock OFF)
         if (S.bufferHasSwara(this.inputBuffer)) {
+          // If buffer already held a completed swara (e.g. S'), commit it first
           this._commitBuffer();
         }
         this.inputBuffer += ch;
         this._repositionCursor();
+        this._startBufferTimer();
       }
       return;
     }
 
+    // Modifier Input (-, ', ,, :)
     if (S.isModifier(ch)) {
       this.inputBuffer += ch;
       this._repositionCursor();
+      if (!this.groupMode && S.bufferHasSwara(this.inputBuffer)) {
+        this._startBufferTimer();
+      }
       return;
     }
 
     // Invalid character
-    this._toast("Invalid character: " + ch);
+    this._toast("Invalid character: " + ch + " (use S,r,R,g,G,M,m,P,d,D,n,N or - ' , :)");
+  };
+
+  P._startBufferTimer = function () {
+    var self = this;
+    clearTimeout(this._bufferTimer);
+    this._bufferTimer = setTimeout(function () {
+      if (!self.groupMode && S.bufferHasSwara(self.inputBuffer)) {
+        self._commitBuffer();
+      }
+    }, 400);
   };
 
   P._commitBuffer = function () {
+    clearTimeout(this._bufferTimer);
     if (!this.inputBuffer) return;
+
     if (!S.bufferHasSwara(this.inputBuffer)) {
-      // Buffer has only modifiers, cannot commit
+      // Standalone modifiers cannot become a position (B09/B10)
+      this._toast("Modifier requires an associated swara.");
+      this.inputBuffer = "";
+      this._repositionCursor();
       return;
     }
 
@@ -678,7 +829,7 @@
     var sec = this._activeSection();
     var insertIdx = Math.min(this.cursor.posIndex, sec.positions.length);
 
-    // If cursor is inside an existing position and group mode is OFF, insert after current position
+    // Requirement 10.5: If cursor was inside an existing group, preserve group and insert as separate position
     if (this.cursor.charOffset > 0 && insertIdx < sec.positions.length) {
       insertIdx++;
     }
@@ -690,13 +841,15 @@
     this.render();
   };
 
+  /* ════════════════════════════════════════════════════════════ *
+   *  DELETION (BACKSPACE / DELETE)
+   * ════════════════════════════════════════════════════════════ */
   P._handleBackspace = function () {
     if (this.selection) {
       this._deleteSelection();
       return;
     }
 
-    // If buffer has content, remove last char from buffer
     if (this.inputBuffer) {
       this.inputBuffer = this.inputBuffer.slice(0, -1);
       this._repositionCursor();
@@ -705,23 +858,19 @@
 
     var sec = this._activeSection();
     if (sec.positions.length === 0) return;
-
     if (this.cursor.posIndex === 0 && this.cursor.charOffset === 0) return;
 
-    // Delete character before cursor
     var posIdx, charOff;
     if (this.cursor.charOffset > 0) {
       posIdx = this.cursor.posIndex;
       charOff = this.cursor.charOffset;
     } else {
-      // Move to end of previous position
       posIdx = this.cursor.posIndex - 1;
       if (posIdx < 0) return;
       charOff = S.positionCharCount(sec.positions[posIdx]);
     }
 
     if (posIdx >= sec.positions.length) {
-      // Delete last position entirely
       posIdx = sec.positions.length - 1;
       sec.positions.splice(posIdx, 1);
       this.cursor = { posIndex: posIdx, charOffset: 0 };
@@ -734,7 +883,6 @@
     var text = S.positionToText(pos);
 
     if (text.length <= 1) {
-      // Delete entire position
       sec.positions.splice(posIdx, 1);
       this.cursor = { posIndex: posIdx, charOffset: 0 };
       this._saveSnapshot();
@@ -742,14 +890,12 @@
       return;
     }
 
-    // Remove the character at charOff - 1
     var newText = text.slice(0, charOff - 1) + text.slice(charOff);
     var reparsed = S.parsePositionText(newText);
     if (reparsed.valid) {
       pos.tokens = reparsed.tokens;
       this.cursor = { posIndex: posIdx, charOffset: charOff - 1 };
     } else {
-      // The deletion made it invalid — remove the entire position
       sec.positions.splice(posIdx, 1);
       this.cursor = { posIndex: posIdx, charOffset: 0 };
     }
@@ -768,16 +914,11 @@
 
     var posIdx = this.cursor.posIndex;
     var charOff = this.cursor.charOffset;
-
     if (posIdx >= sec.positions.length) return;
 
     var pos = sec.positions[posIdx];
     var text = S.positionToText(pos);
-
-    if (charOff >= text.length) {
-      // At end of position — nothing, or merge with next? For now, nothing.
-      return;
-    }
+    if (charOff >= text.length) return;
 
     if (text.length <= 1) {
       sec.positions.splice(posIdx, 1);
@@ -799,7 +940,9 @@
     this.render();
   };
 
-  /* ═══════════════ CURSOR MOVEMENT ═══════════════ */
+  /* ════════════════════════════════════════════════════════════ *
+   *  ARROW NAVIGATION
+   * ════════════════════════════════════════════════════════════ */
   P._moveCursorLeft = function () {
     this._commitBuffer();
     this.selection = null;
@@ -836,7 +979,9 @@
     this._repositionCursor();
   };
 
-  /* ═══════════════ SELECTION ═══════════════ */
+  /* ════════════════════════════════════════════════════════════ *
+   *  SELECTION SYSTEM
+   * ════════════════════════════════════════════════════════════ */
   P._extendSelectionLeft = function () {
     this._commitBuffer();
     if (!this.selection) {
@@ -847,7 +992,6 @@
         focusOff: this.cursor.charOffset
       };
     }
-    // Move focus left
     var sec = this._activeSection();
     if (this.selection.focusOff > 0) {
       this.selection.focusOff--;
@@ -858,6 +1002,7 @@
     this.cursor.posIndex = this.selection.focusPos;
     this.cursor.charOffset = this.selection.focusOff;
     this.render();
+    this._showSelectionPopup();
   };
 
   P._extendSelectionRight = function () {
@@ -883,6 +1028,7 @@
     this.cursor.posIndex = this.selection.focusPos;
     this.cursor.charOffset = this.selection.focusOff;
     this.render();
+    this._showSelectionPopup();
   };
 
   P._getSelectionRange = function () {
@@ -890,11 +1036,15 @@
     var a = this.selection.anchorPos * 10000 + this.selection.anchorOff;
     var f = this.selection.focusPos * 10000 + this.selection.focusOff;
     if (a <= f) {
-      return { startPos: this.selection.anchorPos, startOff: this.selection.anchorOff,
-               endPos: this.selection.focusPos, endOff: this.selection.focusOff };
+      return {
+        startPos: this.selection.anchorPos, startOff: this.selection.anchorOff,
+        endPos: this.selection.focusPos, endOff: this.selection.focusOff
+      };
     } else {
-      return { startPos: this.selection.focusPos, startOff: this.selection.focusOff,
-               endPos: this.selection.anchorPos, endOff: this.selection.anchorOff };
+      return {
+        startPos: this.selection.focusPos, startOff: this.selection.focusOff,
+        endPos: this.selection.anchorPos, endOff: this.selection.anchorOff
+      };
     }
   };
 
@@ -955,7 +1105,6 @@
     var range = this._getSelectionRange();
     if (!range) return;
     var sec = this._activeSection();
-    // Delete positions from startPos to endPos
     var delStart = range.startPos;
     var delEnd = range.endPos;
     sec.positions.splice(delStart, delEnd - delStart + 1);
@@ -966,10 +1115,15 @@
     this.render();
   };
 
-  /* ═══════════════ COPY / PASTE ═══════════════ */
+  /* ════════════════════════════════════════════════════════════ *
+   *  COPY, PASTE & REPETITION
+   * ════════════════════════════════════════════════════════════ *
   P._copy = function () {
     var range = this._getSelectionRange();
-    if (!range) { this._toast("Nothing selected."); return; }
+    if (!range) {
+      this._toast("Nothing selected to copy.");
+      return;
+    }
     var sec = this._activeSection();
     var copied = [];
     for (var i = range.startPos; i <= range.endPos && i < sec.positions.length; i++) {
@@ -977,7 +1131,6 @@
     }
     this.clipboard = { positions: copied };
 
-    // Also copy text to system clipboard
     var text = copied.map(S.positionToText).join(" ");
     if (navigator.clipboard && window.isSecureContext) {
       navigator.clipboard.writeText(text).catch(function () {});
@@ -989,17 +1142,20 @@
     var self = this;
     if (this.selection) this._deleteSelection();
 
-    // Try internal clipboard first
-    if (this.clipboard && this.clipboard.positions.length) {
-      this._pastePositions(this.clipboard.positions.map(S.clonePosition));
-      return;
-    }
-
-    // Try system clipboard
     if (navigator.clipboard && window.isSecureContext) {
       navigator.clipboard.readText().then(function (text) {
-        if (text) self._pasteText(text);
-      }).catch(function () {});
+        if (text) {
+          self._pasteText(text);
+        } else if (self.clipboard && self.clipboard.positions.length) {
+          self._pastePositions(self.clipboard.positions.map(S.clonePosition));
+        }
+      }).catch(function () {
+        if (self.clipboard && self.clipboard.positions.length) {
+          self._pastePositions(self.clipboard.positions.map(S.clonePosition));
+        }
+      });
+    } else if (this.clipboard && this.clipboard.positions.length) {
+      this._pastePositions(this.clipboard.positions.map(S.clonePosition));
     }
   };
 
@@ -1025,80 +1181,27 @@
     this._toast("Pasted " + positions.length + " position(s).");
   };
 
-  /* ═══════════════ SELECTION POPUP ═══════════════ */
-  P._showSelectionPopup = function () {
+  // Repetition operations (Requirement 11.6)
+  P._repeatSelection = function () {
     var range = this._getSelectionRange();
-    if (!range) return;
-    var area = this._sectionsEl.querySelector('.notation-area[data-section-index="' + this.activeSectionIdx + '"]');
-    if (!area) return;
-
-    var startEl = area.querySelector('.sw-position[data-pos-index="' + range.startPos + '"]');
-    if (!startEl) return;
-
-    var rect = startEl.getBoundingClientRect();
-    var self = this;
-    this._popupEl.innerHTML =
-      '<button class="popup-btn" data-popup="copy">Copy</button>' +
-      '<button class="popup-btn" data-popup="select-bar">Select Bar</button>' +
-      '<button class="popup-btn" data-popup="select-row">Select Row</button>' +
-      '<button class="popup-btn" data-popup="select-section">Select Section</button>';
-
-    this._popupEl.classList.remove("is-hidden");
-    this._popupEl.style.left = rect.left + "px";
-    this._popupEl.style.top = (rect.top - 44) + "px";
-
-    this._popupEl.onclick = function (e) {
-      var btn = e.target.closest("[data-popup]");
-      if (!btn) return;
-      switch (btn.dataset.popup) {
-        case "copy": self._copy(); break;
-        case "select-bar": self._selectMeasure(); break;
-        case "select-row": self._selectRow(); break;
-        case "select-section": self._selectSection(); break;
-      }
-      self._hidePopup();
-    };
-  };
-
-  P._hidePopup = function () {
-    if (this._popupEl) this._popupEl.classList.add("is-hidden");
-  };
-
-  /* ═══════════════ CONTEXT MENU ═══════════════ */
-  P._showContextMenu = function (x, y) {
-    var self = this;
-    var h = '';
-    h += '<button class="context-menu-item" data-ctx="copy">Copy</button>';
-    h += '<button class="context-menu-item" data-ctx="paste">Paste</button>';
-    h += '<div class="context-menu-divider"></div>';
-    h += '<button class="context-menu-item" data-ctx="select-bar">Select Bar</button>';
-    h += '<button class="context-menu-item" data-ctx="select-row">Select Row</button>';
-    h += '<button class="context-menu-item" data-ctx="select-all">Select All</button>';
-    h += '<div class="context-menu-divider"></div>';
-    h += '<button class="context-menu-item" data-ctx="repeat-bar">Repeat Bar</button>';
-
-    this._contextEl.innerHTML = h;
-    this._contextEl.classList.remove("is-hidden");
-    this._contextEl.style.left = x + "px";
-    this._contextEl.style.top = y + "px";
-
-    this._contextEl.onclick = function (e) {
-      var btn = e.target.closest("[data-ctx]");
-      if (!btn) return;
-      switch (btn.dataset.ctx) {
-        case "copy": self._copy(); break;
-        case "paste": self._paste(); break;
-        case "select-bar": self._selectMeasure(); break;
-        case "select-row": self._selectRow(); break;
-        case "select-all": self._selectAll(); break;
-        case "repeat-bar": self._repeatMeasure(); break;
-      }
-      self._hideContextMenu();
-    };
-  };
-
-  P._hideContextMenu = function () {
-    if (this._contextEl) this._contextEl.classList.add("is-hidden");
+    if (!range) {
+      this._repeatMeasure();
+      return;
+    }
+    var sec = this._activeSection();
+    var copied = [];
+    for (var i = range.startPos; i <= range.endPos && i < sec.positions.length; i++) {
+      copied.push(S.clonePosition(sec.positions[i]));
+    }
+    var insertIdx = range.endPos + 1;
+    for (var j = 0; j < copied.length; j++) {
+      sec.positions.splice(insertIdx + j, 0, copied[j]);
+    }
+    this.cursor = { posIndex: insertIdx + copied.length, charOffset: 0 };
+    this.selection = null;
+    this._saveSnapshot();
+    this.render();
+    this._toast("Selection repeated.");
   };
 
   P._repeatMeasure = function () {
@@ -1112,7 +1215,6 @@
     for (var i = startPos; i < endPos; i++) {
       copied.push(S.clonePosition(sec.positions[i]));
     }
-    // Insert after the current measure
     for (var j = 0; j < copied.length; j++) {
       sec.positions.splice(endPos + j, 0, copied[j]);
     }
@@ -1122,7 +1224,92 @@
     this._toast("Measure repeated.");
   };
 
-  /* ═══════════════ UNDO / REDO ═══════════════ */
+  /* ════════════════════════════════════════════════════════════ *
+   *  CONTEXTUAL SELECTION POPUP & RIGHT CLICK
+   * ════════════════════════════════════════════════════════════ */
+  P._showSelectionPopup = function () {
+    var range = this._getSelectionRange();
+    if (!range) return;
+    var area = this._sectionsEl.querySelector('.notation-area[data-section-index="' + this.activeSectionIdx + '"]');
+    if (!area) return;
+
+    var startEl = area.querySelector('.sw-position[data-pos-index="' + range.startPos + '"]');
+    if (!startEl) return;
+
+    var rect = startEl.getBoundingClientRect();
+    var self = this;
+    this._popupEl.innerHTML =
+      '<button class="popup-btn" data-popup="copy">Copy</button>' +
+      '<button class="popup-btn" data-popup="repeat">Repeat</button>' +
+      '<button class="popup-btn" data-popup="select-bar">Select Bar</button>' +
+      '<button class="popup-btn" data-popup="select-row">Select Row</button>' +
+      '<button class="popup-btn" data-popup="select-section">Select Section</button>';
+
+    this._popupEl.classList.remove("is-hidden");
+    var popLeft = Math.max(10, rect.left);
+    var popTop = Math.max(10, rect.top - 46);
+    this._popupEl.style.left = popLeft + "px";
+    this._popupEl.style.top = popTop + "px";
+
+    this._popupEl.onclick = function (e) {
+      var btn = e.target.closest("[data-popup]");
+      if (!btn) return;
+      switch (btn.dataset.popup) {
+        case "copy": self._copy(); break;
+        case "repeat": self._repeatSelection(); break;
+        case "select-bar": self._selectMeasure(); break;
+        case "select-row": self._selectRow(); break;
+        case "select-section": self._selectSection(); break;
+      }
+      self._hidePopup();
+    };
+  };
+
+  P._hidePopup = function () {
+    if (this._popupEl) this._popupEl.classList.add("is-hidden");
+  };
+
+  P._showContextMenu = function (x, y) {
+    var self = this;
+    var h = '';
+    h += '<button class="context-menu-item" data-ctx="copy">Copy</button>';
+    h += '<button class="context-menu-item" data-ctx="paste">Paste</button>';
+    h += '<div class="context-menu-divider"></div>';
+    h += '<button class="context-menu-item" data-ctx="repeat">Repeat Selection / Bar</button>';
+    h += '<button class="context-menu-item" data-ctx="select-bar">Select Bar</button>';
+    h += '<button class="context-menu-item" data-ctx="select-row">Select Row</button>';
+    h += '<button class="context-menu-item" data-ctx="select-all">Select Section</button>';
+
+    this._contextEl.innerHTML = h;
+    this._contextEl.classList.remove("is-hidden");
+    this._contextEl.style.left = x + "px";
+    this._contextEl.style.top = y + "px";
+
+    this._contextEl.onclick = function (e) {
+      var btn = e.target.closest("[data-ctx]");
+      if (!btn) return;
+      switch (btn.dataset.ctx) {
+        case "copy": self._copy(); break;
+        case "paste": self._paste(); break;
+        case "repeat":
+          if (self.selection) self._repeatSelection();
+          else self._repeatMeasure();
+          break;
+        case "select-bar": self._selectMeasure(); break;
+        case "select-row": self._selectRow(); break;
+        case "select-all": self._selectAll(); break;
+      }
+      self._hideContextMenu();
+    };
+  };
+
+  P._hideContextMenu = function () {
+    if (this._contextEl) this._contextEl.classList.add("is-hidden");
+  };
+
+  /* ════════════════════════════════════════════════════════════ *
+   *  UNDO / REDO
+   * ════════════════════════════════════════════════════════════ */
   P._saveSnapshot = function () {
     var snap = {
       song: S.cloneSong(this.song),
@@ -1137,13 +1324,13 @@
     clearTimeout(this._typingTimer);
     this._typingTimer = setTimeout(function () {
       self._saveSnapshot();
-    }, 500);
+    }, 450);
   };
 
   P._restoreSnapshot = function (snap) {
     this.song = S.cloneSong(snap.song);
     this.cursor = { posIndex: snap.cursor.posIndex, charOffset: snap.cursor.charOffset };
-    this.activeSectionIdx = snap.activeSectionIdx;
+    this.activeSectionIdx = Math.min(snap.activeSectionIdx, this.song.sections.length - 1);
     this.selection = null;
     this.inputBuffer = "";
     this.render();
@@ -1151,17 +1338,27 @@
 
   P._undo = function () {
     var snap = this.undoMgr.undo();
-    if (snap) this._restoreSnapshot(snap);
-    else this._toast("Nothing to undo.");
+    if (snap) {
+      this._restoreSnapshot(snap);
+      this._toast("Undo");
+    } else {
+      this._toast("Nothing to undo.");
+    }
   };
 
   P._redo = function () {
     var snap = this.undoMgr.redo();
-    if (snap) this._restoreSnapshot(snap);
-    else this._toast("Nothing to redo.");
+    if (snap) {
+      this._restoreSnapshot(snap);
+      this._toast("Redo");
+    } else {
+      this._toast("Nothing to redo.");
+    }
   };
 
-  /* ═══════════════ RESET ═══════════════ */
+  /* ════════════════════════════════════════════════════════════ *
+   *  RESET COMPOSITION (Requirement 14)
+   * ════════════════════════════════════════════════════════════ */
   P._confirmReset = function () {
     var self = this;
     this._showModal(
@@ -1188,7 +1385,9 @@
     this._toast("Composition reset.");
   };
 
-  /* ═══════════════ MODAL ═══════════════ */
+  /* ════════════════════════════════════════════════════════════ *
+   *  MODAL & TOAST
+   * ════════════════════════════════════════════════════════════ */
   P._showModal = function (title, message, buttons) {
     var modal = this._modalEl.querySelector(".sw-modal");
     var h = '<h3>' + this._escHtml(title) + '</h3>';
@@ -1202,6 +1401,7 @@
 
     var self = this;
     modal.onclick = function (e) {
+      e.stopPropagation();
       var btn = e.target.closest("[data-modal-btn]");
       if (btn) {
         var idx = Number(btn.dataset.modalBtn);
@@ -1210,20 +1410,8 @@
     };
 
     this._modalEl.classList.remove("is-hidden");
-    this._modalEl.querySelector(".sw-modal").onclick = function (e) { e.stopPropagation(); };
-    // Allow overlay click to cancel if first button is Cancel
     this._modalEl.onclick = function () {
       self._hideModal();
-    };
-    // Re-bind inner modal to stop propagation
-    var innerModal = this._modalEl.querySelector(".sw-modal");
-    innerModal.onclick = function (e) {
-      e.stopPropagation();
-      var btn = e.target.closest("[data-modal-btn]");
-      if (btn) {
-        var idx = Number(btn.dataset.modalBtn);
-        if (buttons[idx] && buttons[idx].action) buttons[idx].action();
-      }
     };
   };
 
@@ -1231,7 +1419,6 @@
     this._modalEl.classList.add("is-hidden");
   };
 
-  /* ═══════════════ TOAST ═══════════════ */
   P._toast = function (msg) {
     var el = this._toastEl;
     el.textContent = msg;
@@ -1239,14 +1426,17 @@
     clearTimeout(this._toastTimer);
     this._toastTimer = setTimeout(function () {
       el.classList.remove("is-visible");
-    }, 2200);
+    }, 2400);
   };
 
-  /* ═══════════════ IMPORT / EXPORT ═══════════════ */
+  /* ════════════════════════════════════════════════════════════ *
+   *  IMPORT / EXPORT (.swar & TXT)
+   * ════════════════════════════════════════════════════════════ */
   P._exportSwar = function () {
+    this._commitBuffer();
     var data = S.serialize(this.song);
     var json = JSON.stringify(data, null, 2);
-    var filename = (this.song.name || "untitled").replace(/[^a-zA-Z0-9_-]/g, "_") + ".swar";
+    var filename = (this.song.name || "MySong").replace(/[^a-zA-Z0-9_-]/g, "_") + ".swar";
     this._downloadFile(json, filename, "application/json");
     this.savedSong = S.cloneSong(this.song);
     this._toast("Project exported: " + filename);
@@ -1255,11 +1445,10 @@
   P._importFile = function (file) {
     var self = this;
     if (!file.name.endsWith(".swar")) {
-      this._toast("Only .swar files are supported.");
+      this._toast("Invalid file: only .swar project files are supported.");
       return;
     }
 
-    // Warn if unsaved changes
     var isDirty = !S.songsEqual(this.song, this.savedSong);
 
     var doImport = function () {
@@ -1284,7 +1473,7 @@
           self.render();
           self._toast("Project imported successfully.");
         } catch (err) {
-          self._toast("Import failed: Invalid file format.");
+          self._toast("Import failed: corrupted or invalid file.");
         }
       };
       reader.readAsText(file);
@@ -1293,7 +1482,7 @@
     if (isDirty) {
       this._showModal(
         "Unsaved Changes",
-        "You have unsaved changes. Importing a project will replace your current work. Continue?",
+        "You have unsaved changes in your current composition. Importing will replace your current work. Continue?",
         [
           { label: "Cancel", cls: "", action: function () { self._hideModal(); } },
           { label: "Import Anyway", cls: "sw-btn--accent", action: function () { self._hideModal(); doImport(); } }
@@ -1307,7 +1496,7 @@
   P._exportTxt = function () {
     this._commitBuffer();
     var text = S.toTxt(this.song);
-    var filename = (this.song.name || "untitled").replace(/[^a-zA-Z0-9_-]/g, "_") + ".txt";
+    var filename = (this.song.name || "MySong").replace(/[^a-zA-Z0-9_-]/g, "_") + ".txt";
     this._downloadFile(text, filename, "text/plain;charset=utf-8");
     this._toast("TXT exported: " + filename);
   };
@@ -1324,19 +1513,23 @@
     URL.revokeObjectURL(url);
   };
 
-  /* ═══════════════ PDF PREVIEW ═══════════════ */
+  /* ════════════════════════════════════════════════════════════ *
+   *  PDF PREVIEW & PRINT (Part 15.3 & 16)
+   * ════════════════════════════════════════════════════════════ */
   P._showPdfPreview = function () {
     this._commitBuffer();
     var song = this.song;
     var ppm = S.getPositionsPerMeasure(song.timeSignature);
     var self = this;
+    var bpr = this._pdfBarsPerRow; // 4 or 2
 
-    var h = '<button class="sw-print-close" id="swPrintClose">&times;</button>';
-    h += '<div class="sw-print-sheet">';
+    var h = '<button class="sw-print-close" id="swPrintClose" aria-label="Close preview">&times;</button>';
+    h += '<div class="sw-print-sheet" id="swPrintSheet">';
     h += '<h2>' + this._escHtml(song.name || "Untitled Composition") + '</h2>';
     h += '<div class="print-meta">';
-    h += '<span>Scale: ' + song.scale + '</span>';
-    h += '<span>Music Bars: ' + song.timeSignature + '</span>';
+    h += '<span><strong>Scale:</strong> Sa = ' + song.scale + '</span>';
+    h += '<span><strong>Music Bars:</strong> ' + song.timeSignature + '</span>';
+    h += '<span><strong>Sections:</strong> ' + song.sections.length + '</span>';
     h += '</div>';
 
     for (var si = 0; si < song.sections.length; si++) {
@@ -1344,27 +1537,36 @@
       h += '<div class="print-section-name">' + this._escHtml(sec.name) + '</div>';
 
       if (sec.positions.length === 0) {
-        h += '<div style="color:#999; font-style:italic; margin:0.5rem 0;">(empty)</div>';
+        h += '<div style="color:#888; font-style:italic; margin:0.4rem 0;">(No notes entered)</div>';
         continue;
       }
 
       var measures = S.buildMeasures(sec.positions, song.timeSignature);
-      var blocks = S.buildBlocks(measures);
 
-      for (var bi = 0; bi < blocks.length; bi++) {
-        for (var ri = 0; ri < blocks[bi].rows.length; ri++) {
+      // Group into rows of bpr measures
+      for (var mi = 0; mi < measures.length; mi += bpr) {
+        var rowMeasures = measures.slice(mi, mi + bpr);
+
+        // Check if any measure in this row has unusually long groups
+        var isCrowded = rowMeasures.some(function (m) {
+          return m.positions.some(function (p) { return S.positionCharCount(p) > 6; });
+        });
+
+        // Adaptive split if 4-bar is crowded and bpr is 4
+        var subRows = (bpr === 4 && isCrowded)
+          ? [rowMeasures.slice(0, 2), rowMeasures.slice(2, 4)]
+          : [rowMeasures];
+
+        for (var sri = 0; sri < subRows.length; sri++) {
+          var sub = subRows[sri];
+          if (!sub.length) continue;
           h += '<div class="print-notation-row">';
-          var rowMeasures = blocks[bi].rows[ri];
-          for (var mi = 0; mi < rowMeasures.length; mi++) {
-            if (mi > 0) h += '<div class="print-barline"></div>';
+          for (var smi = 0; smi < sub.length; smi++) {
+            if (smi > 0) h += '<div class="print-barline"></div>';
             h += '<div class="print-measure">';
-            var measure = rowMeasures[mi];
+            var measure = sub[smi];
             for (var pi = 0; pi < measure.positions.length; pi++) {
               h += '<span class="print-position">' + this._escHtml(S.positionToText(measure.positions[pi])) + '</span>';
-            }
-            // Fill remaining positions with sustain placeholders
-            for (var fi = measure.positions.length; fi < ppm; fi++) {
-              h += '<span class="print-position" style="color:#bbb">-</span>';
             }
             h += '</div>';
           }
@@ -1373,9 +1575,12 @@
       }
     }
 
-    h += '</div>';
+    h += '</div>'; // end sheet
+
+    // Preview action buttons
     h += '<div class="sw-print-actions">';
-    h += '<button class="sw-btn sw-btn--accent" id="swPrintBtn">🖨 Print / Save PDF</button>';
+    h += '<button class="sw-btn" id="swPdfToggleBars">' + (bpr === 4 ? 'Switch to 2 Bars/Row' : 'Switch to 4 Bars/Row') + '</button>';
+    h += '<button class="sw-btn sw-btn--accent" id="swPrintBtn">🖨 Print / Save as PDF</button>';
     h += '<button class="sw-btn" id="swPrintCloseBtn">Close Preview</button>';
     h += '</div>';
 
@@ -1385,13 +1590,19 @@
     document.getElementById("swPrintClose").onclick = function () { self._hidePdfPreview(); };
     document.getElementById("swPrintCloseBtn").onclick = function () { self._hidePdfPreview(); };
     document.getElementById("swPrintBtn").onclick = function () { window.print(); };
+    document.getElementById("swPdfToggleBars").onclick = function () {
+      self._pdfBarsPerRow = (self._pdfBarsPerRow === 4) ? 2 : 4;
+      self._showPdfPreview();
+    };
   };
 
   P._hidePdfPreview = function () {
     this._printEl.classList.add("is-hidden");
   };
 
-  /* ═══════════════ HELPERS ═══════════════ */
+  /* ════════════════════════════════════════════════════════════ *
+   *  HELPERS
+   * ════════════════════════════════════════════════════════════ */
   P._escHtml = function (s) {
     var div = document.createElement("div");
     div.textContent = s;
@@ -1402,7 +1613,9 @@
     return String(s).replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
   };
 
-  /* ═══════════════ EXPORT ═══════════════ */
+  /* ════════════════════════════════════════════════════════════ *
+   *  EXPOSE
+   * ════════════════════════════════════════════════════════════ */
   S.Editor = SwaralipiEditor;
 
 })(window.Swaralipi);

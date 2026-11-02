@@ -264,16 +264,32 @@
 }
 
 /* -----------------------------------------------
-   Four-Bar Blocks
+   Four-Bar Blocks & Rows
    ----------------------------------------------- */
 .four-bar-block {
   margin-bottom: 1.5rem;
+  width: 100%;
 }
 
 .notation-row {
   display: flex;
   align-items: stretch;
-  min-height: 2.4rem;
+  min-height: 2.6rem;
+  width: 100%;
+}
+
+/* 4 Bars per row (Default Desktop) */
+.four-bar-block.bars-per-row-4 .sw-measure {
+  flex: 0 0 calc(25% - 2px);
+  max-width: calc(25% - 2px);
+  min-width: 0;
+}
+
+/* 2 Bars per row (Mobile or user toggle) */
+.four-bar-block.bars-per-row-2 .sw-measure {
+  flex: 0 0 calc(50% - 2px);
+  max-width: calc(50% - 2px);
+  min-width: 0;
 }
 
 .sw-measure {
@@ -282,21 +298,21 @@
   align-items: center;
   justify-content: flex-start;
   flex-wrap: nowrap;
-  padding: 0.4rem 0.3rem;
+  padding: 0.4rem 0.5rem;
   gap: 0;
 }
 
 .sw-barline {
   width: 2px;
-  background: #999;
-  margin: 0 0.1rem;
+  background: #888;
+  margin: 0 0.15rem;
   align-self: stretch;
   flex-shrink: 0;
 }
 
 .block-barline {
   width: 3px;
-  background: #666;
+  background: #555;
 }
 
 /* -----------------------------------------------
@@ -422,43 +438,28 @@
 }
 
 /* -----------------------------------------------
-   Group Mode Toggle (Floating FAB)
+   Group Mode Toggle (Section Controls)
    ----------------------------------------------- */
-.group-mode-toggle {
-  position: fixed;
-  bottom: 1.5rem;
-  right: 1.5rem;
-  z-index: 100;
-  width: 52px;
-  height: 52px;
-  border-radius: 50%;
-  border: 2px solid var(--border-soft);
-  background: rgba(10, 20, 26, 0.9);
-  color: var(--text-secondary);
-  font-family: "Manrope", sans-serif;
-  font-size: 0.65rem;
+.section-ctrl-btn.group-btn {
   font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all var(--transition);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
-  user-select: none;
+  letter-spacing: 0.04em;
+  padding: 0.3rem 0.75rem;
+  border: 1px solid var(--border-soft);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-secondary);
 }
 
-.group-mode-toggle:hover {
-  border-color: var(--accent);
+.section-ctrl-btn.group-btn:hover {
   color: var(--accent-bright);
+  border-color: var(--accent);
+  background: rgba(216, 168, 93, 0.1);
 }
 
-.group-mode-toggle.is-active {
-  background: linear-gradient(135deg, rgba(216, 168, 93, 0.35), rgba(216, 168, 93, 0.15));
+.section-ctrl-btn.group-btn.is-active {
+  background: linear-gradient(135deg, rgba(216, 168, 93, 0.3), rgba(216, 168, 93, 0.15));
   border-color: var(--accent);
   color: var(--accent-bright);
-  box-shadow: 0 0 16px rgba(216, 168, 93, 0.3);
+  box-shadow: 0 0 10px rgba(216, 168, 93, 0.25);
 }
 
 /* -----------------------------------------------
@@ -760,6 +761,11 @@
    Responsive — Tablet & Small Screens
    ----------------------------------------------- */
 @media (max-width: 760px) {
+  .four-bar-block.bars-per-row-4 .sw-measure {
+    flex: 0 0 calc(50% - 2px);
+    max-width: calc(50% - 2px);
+  }
+
   .song-info-bar {
     flex-direction: column;
     align-items: stretch;
@@ -795,12 +801,7 @@
     padding: 10mm;
   }
 
-  .group-mode-toggle {
-    bottom: 1rem;
-    right: 1rem;
-    width: 46px;
-    height: 46px;
-  }
+
 }
 
 /* -----------------------------------------------

@@ -48,9 +48,19 @@
     assert("A15", "S# is invalid", !S.parsePositionText("S#").valid);
     assert("A16", "S@ is invalid", !S.parsePositionText("S@").valid);
 
-    // Case sensitivity checks
-    assert("A_case1", "Lowercase s is invalid base", !S.isSwara("s") && !S.parsePositionText("s").valid);
-    assert("A_case2", "Lowercase p is invalid base", !S.isSwara("p") && !S.parsePositionText("p").valid);
+    // Case sensitivity & normalization checks for S and P
+    assert("A_norm_s", "Lowercase s normalizes to canonical S", S.normalizeSwara("s") === "S" && S.parsePositionText("s").tokens[0].base === "S");
+    assert("A_norm_p", "Lowercase p normalizes to canonical P", S.normalizeSwara("p") === "P" && S.parsePositionText("p").tokens[0].base === "P");
+    assert("A_case_r", "r preserves lowercase", S.parsePositionText("r").tokens[0].base === "r");
+    assert("A_case_R", "R preserves uppercase", S.parsePositionText("R").tokens[0].base === "R");
+    assert("A_case_g", "g preserves lowercase", S.parsePositionText("g").tokens[0].base === "g");
+    assert("A_case_G", "G preserves uppercase", S.parsePositionText("G").tokens[0].base === "G");
+    assert("A_case_m", "m preserves lowercase", S.parsePositionText("m").tokens[0].base === "m");
+    assert("A_case_M", "M preserves uppercase", S.parsePositionText("M").tokens[0].base === "M");
+    assert("A_case_d", "d preserves lowercase", S.parsePositionText("d").tokens[0].base === "d");
+    assert("A_case_D", "D preserves uppercase", S.parsePositionText("D").tokens[0].base === "D");
+    assert("A_case_n", "n preserves lowercase", S.parsePositionText("n").tokens[0].base === "n");
+    assert("A_case_N", "N preserves uppercase", S.parsePositionText("N").tokens[0].base === "N");
 
     /* ────────────────────────────────────────────────────────
        TEST GROUP B — MODIFIER VALIDATION
@@ -149,29 +159,31 @@
 
     /* ────────────────────────────────────────────────────────
        TEST GROUP E — FOUR-BAR BLOCK LAYOUT
-       E01: 4 measures -> Row 1 has Bar 1 & 2; Row 2 has Bar 3 & 4
-       E02: 5 measures -> New block starts for Bar 5
-       E03: 3/4 uses same 4-bar block architecture
-       E04: 5/4 uses same 4-bar block architecture
+       E01: Desktop 4 bars per row -> 4 bars in 1 row
+       E01b: 2 bars per row mode -> Row 1 has Bar 1 & 2; Row 2 has Bar 3 & 4
+       E02: 5 measures -> New block starts for Bar 5 on a new line
+       E03: 3/4 uses 4-bar block architecture
+       E04: 5/4 uses 4-bar block architecture
        ──────────────────────────────────────────────────────── */
     var pos16 = S.parseNotationString("S R G M P D N S S R G M P D N S").positions;
     var m16 = S.buildMeasures(pos16, "4/4"); // 4 measures
-    var b4 = S.buildBlocks(m16);
-    assert("E01a", "4 measures yield 1 block", b4.length === 1);
-    assert("E01b", "Block 1 has 2 rows", b4[0].rows.length === 2);
-    assert("E01c", "Row 1 has 2 bars", b4[0].rows[0].length === 2);
-    assert("E01d", "Row 2 has 2 bars", b4[0].rows[1].length === 2);
+    var b4 = S.buildBlocks(m16, 4);
+    assert("E01a", "4 measures yield 1 block in 4-bar mode", b4.length === 1);
+    assert("E01b", "Desktop 4-bar mode has 1 row with 4 bars", b4[0].rows.length === 1 && b4[0].rows[0].length === 4);
+
+    var b4_2bar = S.buildBlocks(m16, 2);
+    assert("E01c", "2-bar mode has 2 rows of 2 bars", b4_2bar[0].rows.length === 2 && b4_2bar[0].rows[0].length === 2 && b4_2bar[0].rows[1].length === 2);
 
     var pos20 = S.parseNotationString("S R G M P D N S S R G M P D N S S R G M").positions;
     var m20 = S.buildMeasures(pos20, "4/4"); // 5 measures
-    var b5 = S.buildBlocks(m20);
+    var b5 = S.buildBlocks(m20, 4);
     assert("E02", "5 measures begin a second block on a new line", b5.length === 2 && b5[1].rows[0].length === 1);
 
-    var m_3_4_blocks = S.buildBlocks(S.buildMeasures(pos20, "3/4"));
-    assert("E03", "3/4 follows 4-bar block architecture", m_3_4_blocks[0].rows[0].length === 2);
+    var m_3_4_blocks = S.buildBlocks(S.buildMeasures(pos20, "3/4"), 4);
+    assert("E03", "3/4 follows 4-bar block architecture", m_3_4_blocks[0].rows[0].length === 4);
 
-    var m_5_4_blocks = S.buildBlocks(S.buildMeasures(pos20, "5/4"));
-    assert("E04", "5/4 follows 4-bar block architecture", m_5_4_blocks[0].rows[0].length === 2);
+    var m_5_4_blocks = S.buildBlocks(S.buildMeasures(pos20, "5/4"), 4);
+    assert("E04", "5/4 follows 4-bar block architecture", m_5_4_blocks[0].rows[0].length === 4);
 
     /* ────────────────────────────────────────────────────────
        TEST GROUP G — COPY AND PASTE
@@ -237,6 +249,46 @@
     assert("J04c", "Reset song has default time signature 4/4", resetSong.timeSignature === "4/4");
     assert("J04d", "Reset song has 1 default Sthayi section", resetSong.sections.length === 1 && resetSong.sections[0].name === "Sthayi");
     assert("J04e", "Reset Sthayi has 0 positions", resetSong.sections[0].positions.length === 0);
+
+    /* ────────────────────────────────────────────────────────
+       TEST GROUP K — SPECIAL S/P MAPPING & GROUPING EXAMPLES (Tests A–H)
+       ──────────────────────────────────────────────────────── */
+    // Test A — Normal Mode: s r G p -> S r G P (4 separate positions)
+    var testA = S.parseNotationString("s r G p");
+    assert("K_TestA", "Test A: 's r G p' parses to 4 positions 'S', 'r', 'G', 'P'",
+      testA.valid && testA.positions.length === 4 &&
+      S.positionToText(testA.positions[0]) === "S" &&
+      S.positionToText(testA.positions[1]) === "r" &&
+      S.positionToText(testA.positions[2]) === "G" &&
+      S.positionToText(testA.positions[3]) === "P"
+    );
+
+    // Test B — Group Mode: GMPM -> 1 position
+    var testB = S.parsePositionText("GMPM");
+    assert("K_TestB", "Test B: 'GMPM' is 1 position with 4 swaras",
+      testB.valid && testB.tokens.length === 4 && S.positionToText(S.createPosition(testB.tokens)) === "GMPM"
+    );
+
+    // Test C & D — Group Mode with s/p normalization: gMpS -> gMPS (1 position)
+    var testD = S.parsePositionText("gMpS");
+    assert("K_TestD", "Test D: 'gMpS' -> 'gMPS' (p->P, s->S, g and M preserved)",
+      testD.valid && testD.tokens.length === 4 &&
+      testD.tokens[0].base === "g" &&
+      testD.tokens[1].base === "M" &&
+      testD.tokens[2].base === "P" &&
+      testD.tokens[3].base === "S" &&
+      S.positionToText(S.createPosition(testD.tokens)) === "gMPS"
+    );
+
+    // Test H — Pasted notation normalization: s r g p -> S r g P
+    var testH = S.parseNotationString("s r g p");
+    assert("K_TestH", "Test H: Pasting 's r g p' normalizes s->S and p->P while keeping r and g lowercase",
+      testH.valid && testH.positions.length === 4 &&
+      S.positionToText(testH.positions[0]) === "S" &&
+      S.positionToText(testH.positions[1]) === "r" &&
+      S.positionToText(testH.positions[2]) === "g" &&
+      S.positionToText(testH.positions[3]) === "P"
+    );
 
     return results;
   }

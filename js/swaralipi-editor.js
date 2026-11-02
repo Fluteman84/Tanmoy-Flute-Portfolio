@@ -53,6 +53,7 @@
     this.clipboard = null;         // {positions: [...]}
     this.savedSong = null;         // for dirty check
     this._pdfBarsPerRow = 4;       // 4 or 2
+    this.barsPerRow = 4;           // 4 bars per row default for desktop editing
 
     // DOM caches
     this._songNameEl = null;
@@ -123,6 +124,7 @@
     h += '<div class="project-controls-bar">';
     h += '<button class="sw-btn" data-action="undo" title="Undo (Ctrl+Z)">↶ Undo</button>';
     h += '<button class="sw-btn" data-action="redo" title="Redo (Ctrl+Y)">↷ Redo</button>';
+    h += '<button class="sw-btn" data-action="toggle-bars" id="swBarsToggle" title="Toggle between 4 bars and 2 bars per row">4 Bars / Row</button>';
     h += '<button class="sw-btn sw-btn--accent" data-action="export-swar" title="Export .swar project file">⬇ Export Project (.swar)</button>';
     h += '<button class="sw-btn" data-action="import-swar" title="Import .swar project file">⬆ Import Project</button>';
     h += '<button class="sw-btn" data-action="export-txt" title="Export plain text">📄 Export TXT</button>';
@@ -145,7 +147,6 @@
     h += '<div class="input-buffer" id="swBuffer"></div>';
     h += '<div class="selection-popup is-hidden" id="swPopup"></div>';
     h += '<div class="sw-context-menu is-hidden" id="swContext"></div>';
-    h += '<button class="group-mode-toggle" id="swGroupToggle" title="Group Mode (Caps Lock / Tap)">GRP</button>';
     h += '<div class="sw-toast" id="swToast"></div>';
     h += '<div class="sw-modal-overlay is-hidden" id="swModal"><div class="sw-modal"></div></div>';
     h += '<div class="sw-print-overlay is-hidden" id="swPrint"></div>';
@@ -161,7 +162,6 @@
     this._bufferEl = document.getElementById("swBuffer");
     this._popupEl = document.getElementById("swPopup");
     this._contextEl = document.getElementById("swContext");
-    this._groupToggle = document.getElementById("swGroupToggle");
     this._toastEl = document.getElementById("swToast");
     this._modalEl = document.getElementById("swModal");
     this._printEl = document.getElementById("swPrint");
@@ -205,13 +205,6 @@
       }
     });
 
-    // Mobile / Desktop floating Group Mode toggle
-    this._groupToggle.addEventListener("click", function (e) {
-      e.stopPropagation();
-      self._setGroupMode(!self.groupMode);
-      self._focusProxy();
-    });
-
     // Proxy Input keyboard events
     this._proxyInput.addEventListener("keydown", function (e) {
       self._onKeyDown(e);
@@ -229,7 +222,7 @@
       }
     });
 
-    // Global keyboard listener for CapsLock and shortcut fallback
+    // Global keyboard listener for shortcut fallback
     document.addEventListener("keydown", function (e) {
       var active = document.activeElement;
       if (active && (active.tagName === "INPUT" || active.tagName === "SELECT" || active.tagName === "TEXTAREA")) {
@@ -239,11 +232,8 @@
         self._onKeyDown(e);
       }
     });
-    document.addEventListener("keyup", function (e) {
-      self._onKeyUp(e);
-    });
 
-    // Notation area clicks & selection
+    // Notation area clicks, section switching & selection
     document.addEventListener("click", function (e) {
       self._hideContextMenu();
 
@@ -251,7 +241,10 @@
       if (posEl) {
         var area = posEl.closest(".notation-area");
         if (area) {
-          self._setActiveSectionByArea(area);
+          var areaIdx = Number(area.dataset.sectionIndex);
+          if (!isNaN(areaIdx) && areaIdx !== self.activeSectionIdx) {
+            self._switchActiveSection(areaIdx);
+          }
           self._handlePositionClick(posEl, e);
           return;
         }
@@ -259,9 +252,20 @@
 
       var area = e.target.closest(".notation-area");
       if (area) {
-        self._setActiveSectionByArea(area);
+        var areaIdx2 = Number(area.dataset.sectionIndex);
+        if (!isNaN(areaIdx2) && areaIdx2 !== self.activeSectionIdx) {
+          self._switchActiveSection(areaIdx2);
+        }
         self._clickedEmptyArea(area, e);
         return;
+      }
+
+      var secEl = e.target.closest(".swaralipi-section");
+      if (secEl) {
+        var secIdx = Number(secEl.dataset.sectionIndex);
+        if (!isNaN(secIdx) && secIdx !== self.activeSectionIdx) {
+          self._switchActiveSection(secIdx);
+        }
       }
 
       if (!e.target.closest(".selection-popup") && !e.target.closest(".sw-context-menu")) {
@@ -326,6 +330,13 @@
     switch (action) {
       case "undo": this._undo(); break;
       case "redo": this._redo(); break;
+      case "toggle-bars":
+        this.barsPerRow = (this.barsPerRow === 4) ? 2 : 4;
+        var btn = document.getElementById("swBarsToggle");
+        if (btn) btn.textContent = this.barsPerRow + " Bars / Row";
+        this.render();
+        this._toast("Displaying " + this.barsPerRow + " bars per row.");
+        break;
       case "reset": this._confirmReset(); break;
       case "export-swar": this._exportSwar(); break;
       case "import-swar": this._fileInput.click(); break;
@@ -358,6 +369,10 @@
     if (idx < 0 || idx >= secs.length) return;
 
     switch (action) {
+      case "toggle-group":
+        this._setGroupMode(!this.groupMode);
+        this._focusProxy();
+        return;
       case "delete":
         if (secs.length <= 1) {
           this._toast("Cannot delete the only section.");
@@ -392,13 +407,28 @@
     this._focusProxy();
   };
 
+  P._switchActiveSection = function (newIdx) {
+    if (newIdx === this.activeSectionIdx || newIdx < 0 || newIdx >= this.song.sections.length) return;
+    this._commitBuffer();
+
+    var prevSec = this.song.sections[this.activeSectionIdx];
+    if (prevSec) {
+      prevSec.groupMode = this.groupMode;
+    }
+
+    this.activeSectionIdx = newIdx;
+    var nextSec = this.song.sections[newIdx];
+    this.groupMode = nextSec && typeof nextSec.groupMode === "boolean" ? nextSec.groupMode : false;
+    this.cursor = { posIndex: nextSec ? nextSec.positions.length : 0, charOffset: 0 };
+    this.selection = null;
+    this.render();
+    this._focusProxy();
+  };
+
   P._setActiveSectionByArea = function (areaEl) {
     var idx = Number(areaEl.dataset.sectionIndex);
     if (!isNaN(idx) && idx !== this.activeSectionIdx) {
-      this._commitBuffer();
-      this.activeSectionIdx = idx;
-      this.cursor = { posIndex: 0, charOffset: 0 };
-      this.selection = null;
+      this._switchActiveSection(idx);
     }
   };
 
@@ -439,10 +469,13 @@
 
   P._renderSection = function (sec, si) {
     var isActive = si === this.activeSectionIdx;
-    var h = '<div class="swaralipi-section' + (isActive ? ' is-active' : '') + '">';
+    var h = '<div class="swaralipi-section' + (isActive ? ' is-active' : '') + '" data-section-index="' + si + '">';
     h += '<div class="section-header">';
     h += '<input class="section-name-input" value="' + this._escAttr(sec.name) + '" data-section-index="' + si + '" spellcheck="false" />';
     h += '<div class="section-controls">';
+    if (isActive) {
+      h += '<button class="section-ctrl-btn group-btn' + (this.groupMode ? ' is-active' : '') + '" id="swGroupToggle" data-section-action="toggle-group" data-section-index="' + si + '" title="Toggle Group Mode">' + (this.groupMode ? 'Group ●' : 'Group') + '</button>';
+    }
     h += '<button class="section-ctrl-btn" data-section-action="move-up" data-section-index="' + si + '" title="Move section up">▲</button>';
     h += '<button class="section-ctrl-btn" data-section-action="move-down" data-section-index="' + si + '" title="Move section down">▼</button>';
     h += '<button class="section-ctrl-btn" data-section-action="delete" data-section-index="' + si + '" title="Delete section">✕</button>';
@@ -471,11 +504,12 @@
     }
 
     var measures = S.buildMeasures(sec.positions, this.song.timeSignature);
-    var blocks = S.buildBlocks(measures);
+    var bpr = this.barsPerRow || 4;
+    var blocks = S.buildBlocks(measures, bpr);
     var h = "";
 
     for (var bi = 0; bi < blocks.length; bi++) {
-      h += '<div class="four-bar-block">';
+      h += '<div class="four-bar-block bars-per-row-' + bpr + '">';
       for (var ri = 0; ri < blocks[bi].rows.length; ri++) {
         h += '<div class="notation-row">';
         var rowMeasures = blocks[bi].rows[ri];
@@ -629,14 +663,6 @@
     var area = document.querySelector('.notation-area[data-section-index="' + this.activeSectionIdx + '"]');
     if (!area) return;
 
-    // Detect and sync physical Caps Lock
-    if (e.key !== "CapsLock" && e.key.length === 1 && e.getModifierState) {
-      var caps = e.getModifierState("CapsLock");
-      if (caps !== undefined && caps !== this.groupMode) {
-        this._setGroupMode(caps);
-      }
-    }
-
     var ctrl = e.ctrlKey || e.metaKey;
 
     if (ctrl) {
@@ -718,11 +744,7 @@
     }
   };
 
-  P._onKeyUp = function (e) {
-    if (e.key === "CapsLock" && e.getModifierState) {
-      this._setGroupMode(e.getModifierState("CapsLock"));
-    }
-  };
+  P._onKeyUp = function (e) {};
 
   /* ════════════════════════════════════════════════════════════ *
    *  GROUP MODE MANAGEMENT
@@ -730,6 +752,10 @@
   P._setGroupMode = function (on) {
     var wasOn = this.groupMode;
     this.groupMode = !!on;
+    var sec = this._activeSection();
+    if (sec) {
+      sec.groupMode = this.groupMode;
+    }
     this._updateGroupToggleUI();
 
     // If turning OFF and buffer has content, commit the group
@@ -739,9 +765,10 @@
   };
 
   P._updateGroupToggleUI = function () {
-    if (this._groupToggle) {
-      this._groupToggle.classList.toggle("is-active", this.groupMode);
-      this._groupToggle.textContent = this.groupMode ? "GRP ●" : "GRP";
+    var toggle = document.getElementById("swGroupToggle");
+    if (toggle) {
+      toggle.classList.toggle("is-active", this.groupMode);
+      toggle.textContent = this.groupMode ? "Group ●" : "Group";
     }
   };
 
@@ -749,6 +776,8 @@
    *  INPUT DISPATCH & BUFFER COMMIT
    * ════════════════════════════════════════════════════════════ */
   P._handleCharInput = function (ch) {
+    ch = S.normalizeSwara(ch);
+
     if (this.selection) {
       this._deleteSelection();
     }
@@ -1085,7 +1114,8 @@
     var sec = this._activeSection();
     if (sec.positions.length === 0) return;
     var ppm = S.getPositionsPerMeasure(this.song.timeSignature);
-    var posPerRow = ppm * S.BARS_PER_ROW;
+    var bpr = this.barsPerRow || S.BARS_PER_ROW || 4;
+    var posPerRow = ppm * bpr;
     var rowIdx = Math.floor(this.cursor.posIndex / posPerRow);
     var startPos = rowIdx * posPerRow;
     var endPos = Math.min(startPos + posPerRow - 1, sec.positions.length - 1);
@@ -1117,7 +1147,7 @@
 
   /* ════════════════════════════════════════════════════════════ *
    *  COPY, PASTE & REPETITION
-   * ════════════════════════════════════════════════════════════ *
+   * ════════════════════════════════════════════════════════════ */
   P._copy = function () {
     var range = this._getSelectionRange();
     if (!range) {
@@ -1160,6 +1190,7 @@
   };
 
   P._pasteText = function (text) {
+    text = S.normalizeNotationText(text);
     var result = S.parseNotationString(text);
     if (!result.valid) {
       this._toast("Paste rejected: " + result.error);
@@ -1495,7 +1526,7 @@
 
   P._exportTxt = function () {
     this._commitBuffer();
-    var text = S.toTxt(this.song);
+    var text = S.toTxt(this.song, this.barsPerRow || 4);
     var filename = (this.song.name || "MySong").replace(/[^a-zA-Z0-9_-]/g, "_") + ".txt";
     this._downloadFile(text, filename, "text/plain;charset=utf-8");
     this._toast("TXT exported: " + filename);

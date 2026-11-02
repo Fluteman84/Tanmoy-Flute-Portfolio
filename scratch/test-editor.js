@@ -85,7 +85,7 @@ const S = global.window.Swaralipi;
 const root = createMockElement('div');
 const editor = new S.Editor(root);
 
-console.log('Testing Swaralipi Editor...');
+console.log('Testing Swaralipi Editor (with new requirements)...');
 
 let testsPassed = 0;
 let testsFailed = 0;
@@ -98,85 +98,96 @@ function test(name, condition) {
   }
 }
 
-// Test 1: Normal typing (Caps Lock OFF) -> S R G M
-editor._handleCharInput('S');
-editor._handleCharInput('R');
+// Test A — Normal Mode: s r G p -> S r G P (4 separate positions)
+editor._setGroupMode(false);
+editor._handleCharInput('s'); // lowercase s
+editor._handleCharInput('r'); // lowercase r
+editor._handleCharInput('G'); // uppercase G
+editor._handleCharInput('p'); // lowercase p
+editor._commitBuffer();
+
+test('Test A: Normal mode s r G p creates 4 positions', editor._activeSection().positions.length === 4);
+test('Test A: Position 0 is uppercase S', S.positionToText(editor._activeSection().positions[0]) === 'S');
+test('Test A: Position 1 is lowercase r', S.positionToText(editor._activeSection().positions[1]) === 'r');
+test('Test A: Position 2 is uppercase G', S.positionToText(editor._activeSection().positions[2]) === 'G');
+test('Test A: Position 3 is uppercase P', S.positionToText(editor._activeSection().positions[3]) === 'P');
+
+// Test B & C & D — Group Mode with S and P normalisation
+editor._setGroupMode(true);
+test('Test B: Group mode is active', editor.groupMode === true);
+editor._handleCharInput('g'); // lowercase g
+editor._handleCharInput('M'); // uppercase M
+editor._handleCharInput('p'); // lowercase p -> normalizes to P
+editor._handleCharInput('S'); // uppercase S
+test('Test D: Buffer contains gMPS (only p normalized, g and M preserved)', editor.inputBuffer === 'gMPS');
+editor._setGroupMode(false); // turning off commits the group as 1 position
+test('Test D: Turning off commits as 1 single position', editor._activeSection().positions.length === 5);
+test('Test D: Position 4 text is gMPS', S.positionToText(editor._activeSection().positions[4]) === 'gMPS');
+
+// Test E — Shift key & Caps Lock independence
+editor._setGroupMode(false);
+// Simulate keydown with CapsLock physical state ON -> MUST NOT activate Group Mode!
+editor._onKeyDown({
+  key: 'M',
+  length: 1,
+  shiftKey: true,
+  preventDefault: function() {},
+  getModifierState: function(mod) { return mod === 'CapsLock'; }
+});
+test('Test E: CapsLock ON does not trigger Group Mode', editor.groupMode === false);
+editor._commitBuffer();
+test('Test E: Shift+M entered M normally', S.positionToText(editor._activeSection().positions[5]) === 'M');
+
+// Test F — Group Button Toggle behavior
+editor._setGroupMode(true);
 editor._handleCharInput('G');
 editor._handleCharInput('M');
-editor._commitBuffer(); // commits final buffered note
-test('Normal mode S R G M creates 4 positions', editor._activeSection().positions.length === 4);
-test('Position 0 is S', S.positionToText(editor._activeSection().positions[0]) === 'S');
-test('Position 1 is R', S.positionToText(editor._activeSection().positions[1]) === 'R');
-test('Position 2 is G', S.positionToText(editor._activeSection().positions[2]) === 'G');
-test('Position 3 is M', S.positionToText(editor._activeSection().positions[3]) === 'M');
+editor._handleCharInput('P');
+editor._handleCharInput('M');
+test('Test F: Buffer accumulates GMPM', editor.inputBuffer === 'GMPM');
+editor._setGroupMode(false);
+test('Test F: Turning Group Mode off commits GMPM as 1 position', S.positionToText(editor._activeSection().positions[6]) === 'GMPM');
 
-// Test 2: Measure grouping with 4/4
-const m_4 = S.buildMeasures(editor._activeSection().positions, editor.song.timeSignature);
-test('4 positions in 4/4 creates exactly 1 measure', m_4.length === 1 && m_4[0].positions.length === 4);
+// Test G — Section Switching Isolation
+editor._addSection(); // creates Section 2 (Antara)
+test('Test G: 2 sections present', editor.song.sections.length === 2);
+test('Test G: Active section is index 1', editor.activeSectionIdx === 1);
+test('Test G: Section 1 groupMode starts as false', editor.groupMode === false);
 
-// Test 3: Suffix modifier in normal mode (typing S'-)
-editor._handleCharInput('S');
-editor._handleCharInput("'");
-editor._handleCharInput("-");
-editor._commitBuffer();
-test("Modifier ' and - attach to S forming S'-", S.positionToText(editor._activeSection().positions[4]) === "S'-");
-
-// Test 4: Group Mode (Caps Lock ON / Floating GRP button)
+// Turn Group Mode ON in Section 1
 editor._setGroupMode(true);
-test('Group mode is active', editor.groupMode === true);
-editor._handleCharInput('P');
-editor._handleCharInput('D');
-editor._handleCharInput(' '); // space should be ignored!
-editor._handleCharInput('N');
-editor._handleCharInput('P');
-test('Spaces ignored in group mode', editor.inputBuffer === 'PDNP');
-editor._setGroupMode(false); // turning off commits the group!
-test('Turning group mode OFF commits PDNP as 1 position', editor._activeSection().positions.length === 6);
-test('Position 5 is PDNP', S.positionToText(editor._activeSection().positions[5]) === 'PDNP');
-
-// Test 5: Prefix modifier in normal mode (-S)
-editor._handleCharInput('-');
-test('Standalone modifier sits in inputBuffer', editor.inputBuffer === '-');
+test('Test G: Section 1 groupMode is now true', editor.groupMode === true);
 editor._handleCharInput('S');
-editor._commitBuffer();
-test('Prefix modifier - combined with S commits as -S', S.positionToText(editor._activeSection().positions[6]) === '-S');
+editor._handleCharInput('R');
 
-// Test 6: Requirement 10.5 & F06 (Inserting note with Group Mode OFF inside existing group)
-// Click inside PDNP (at index 5, charOffset 2, after D)
-editor.cursor = { posIndex: 5, charOffset: 2 };
-editor._handleCharInput('g');
-editor._commitBuffer();
-// Original PDNP must remain intact! 'g' inserted as separate position!
-test('Original group PDNP remains intact at index 5', S.positionToText(editor._activeSection().positions[5]) === 'PDNP');
-test('New swara g inserted as separate position at index 6', S.positionToText(editor._activeSection().positions[6]) === 'g');
+// Switch back to Section 0
+editor._switchActiveSection(0);
+test('Test G: Switched to Section 0', editor.activeSectionIdx === 0);
+test('Test G: Section 0 groupMode is false (uncontaminated)', editor.groupMode === false);
 
-// Test 7: Backspace deletes character/position
-editor.cursor = { posIndex: 6, charOffset: 1 };
-editor._handleBackspace();
-test('Backspace removes position g', S.positionToText(editor._activeSection().positions[5]) === 'PDNP');
+// Switch back to Section 1
+editor._switchActiveSection(1);
+test('Test G: Switched back to Section 1', editor.activeSectionIdx === 1);
+test('Test G: Section 1 groupMode restored to true', editor.groupMode === true);
+editor._setGroupMode(false); // commit SR
+test('Test G: Section 1 has SR as 1 position', S.positionToText(editor._activeSection().positions[0]) === 'SR');
 
-// Test 8: Undo and Redo
-const countBeforeUndo = editor._activeSection().positions.length;
-editor._undo();
-test('Undo restores previous state', editor._activeSection().positions.length !== countBeforeUndo || editor.cursor !== null);
-editor._redo();
-test('Redo works', true);
+// Test H — Pasted notation normalization
+editor._switchActiveSection(0);
+const prePasteCount = editor._activeSection().positions.length;
+editor._pasteText('s r g p');
+test('Test H: Pasted 4 positions', editor._activeSection().positions.length === prePasteCount + 4);
+test('Test H: Pasted s normalized to S', S.positionToText(editor._activeSection().positions[prePasteCount]) === 'S');
+test('Test H: Pasted r preserved as r', S.positionToText(editor._activeSection().positions[prePasteCount + 1]) === 'r');
+test('Test H: Pasted g preserved as g', S.positionToText(editor._activeSection().positions[prePasteCount + 2]) === 'g');
+test('Test H: Pasted p normalized to P', S.positionToText(editor._activeSection().positions[prePasteCount + 3]) === 'P');
 
-// Test 9: Section Management
-editor._addSection();
-test('Add section creates Section 2 (Antara)', editor.song.sections.length === 2 && editor.song.sections[1].name === 'Antara');
-test('Active section switched to 1', editor.activeSectionIdx === 1);
-editor._handleSectionAction('move-up', 1);
-test('Move up moves Antara to index 0', editor.song.sections[0].name === 'Antara');
-editor._handleSectionAction('delete', 0);
-test('Delete removes section', editor.song.sections.length === 1);
-
-// Test 10: Reset confirmation
-editor._doReset();
-test('Reset clears song name', editor.song.name === '');
-test('Reset restores scale C', editor.song.scale === 'C');
-test('Reset restores 4/4', editor.song.timeSignature === '4/4');
-test('Reset restores 1 Sthayi section with 0 positions', editor.song.sections.length === 1 && editor.song.sections[0].positions.length === 0);
+// Test I — Section Header Controls: Group button is beside move-up (▲)
+const sec0Html = editor._renderSection(editor.song.sections[0], 0);
+test('Test I: Active section contains swGroupToggle', sec0Html.indexOf('id="swGroupToggle"') !== -1);
+test('Test I: swGroupToggle is placed before move-up ▲', sec0Html.indexOf('id="swGroupToggle"') < sec0Html.indexOf('data-section-action="move-up"'));
+const sec1Html = editor._renderSection(editor.song.sections[1], 1);
+test('Test I: Inactive section 1 does NOT contain swGroupToggle', sec1Html.indexOf('id="swGroupToggle"') === -1);
 
 console.log('Results: Passed ' + testsPassed + ', Failed ' + testsFailed);
 if (testsFailed > 0) process.exit(1);

@@ -16,7 +16,7 @@
   S.POSITIONS_PER_MEASURE = { "3/4": 3, "4/4": 4, "5/4": 5 };
   S.DEFAULT_SECTIONS = ["Sthayi", "Antara", "Sanchari", "Abhog"];
   S.BARS_PER_BLOCK = 4;
-  S.BARS_PER_ROW = 2;
+  S.BARS_PER_ROW = 4;
 
   /* ── ID generation ─────────────────────────────── */
   var _idCounter = 0;
@@ -24,7 +24,18 @@
     return "sw" + ++_idCounter + "_" + Date.now().toString(36);
   };
 
-  /* ── Validation ────────────────────────────────── */
+  /* ── Validation & Normalization ────────────────── */
+  S.normalizeSwara = function (ch) {
+    if (ch === "s") return "S";
+    if (ch === "p") return "P";
+    return ch;
+  };
+
+  S.normalizeNotationText = function (text) {
+    if (typeof text !== "string") return text;
+    return text.replace(/s/g, "S").replace(/p/g, "P");
+  };
+
   S.isSwara = function (ch) {
     return S.VALID_SWARAS.indexOf(ch) !== -1;
   };
@@ -76,6 +87,7 @@
     if (typeof text !== "string" || !text.length) {
       return { valid: false, error: "Empty input", tokens: [] };
     }
+    text = S.normalizeNotationText(text);
     var tokens = [];
     var i = 0;
     while (i < text.length) {
@@ -171,13 +183,15 @@
     return measures;
   };
 
-  S.buildBlocks = function (measures) {
+  S.buildBlocks = function (measures, barsPerRow) {
+    var bpr = barsPerRow || S.BARS_PER_ROW || 4;
+    var bpb = Math.max(S.BARS_PER_BLOCK || 4, bpr);
     var blocks = [];
-    for (var i = 0; i < measures.length; i += S.BARS_PER_BLOCK) {
-      var blockMeasures = measures.slice(i, i + S.BARS_PER_BLOCK);
+    for (var i = 0; i < measures.length; i += bpb) {
+      var blockMeasures = measures.slice(i, i + bpb);
       var rows = [];
-      for (var r = 0; r < blockMeasures.length; r += S.BARS_PER_ROW) {
-        rows.push(blockMeasures.slice(r, r + S.BARS_PER_ROW));
+      for (var r = 0; r < blockMeasures.length; r += bpr) {
+        rows.push(blockMeasures.slice(r, r + bpr));
       }
       blocks.push({ rows: rows, startMeasure: i });
     }
@@ -290,6 +304,7 @@
     if (!text || typeof text !== "string") {
       return { valid: false, error: "Empty input", positions: [] };
     }
+    text = S.normalizeNotationText(text);
     var cleaned = text.replace(/\|/g, " ").replace(/\[.*?\]/g, " ").trim();
     if (!cleaned) return { valid: true, positions: [] };
 
@@ -313,7 +328,7 @@
   };
 
   /* ── TXT export ────────────────────────────────── */
-  S.toTxt = function (song) {
+  S.toTxt = function (song, barsPerRow) {
     var lines = [];
     lines.push("Song Name: " + (song.name || "(Untitled)"));
     lines.push("Scale: " + song.scale);
@@ -334,7 +349,7 @@
       }
 
       var measures = S.buildMeasures(sec.positions, song.timeSignature);
-      var blocks = S.buildBlocks(measures);
+      var blocks = S.buildBlocks(measures, barsPerRow || 4);
 
       for (var bi = 0; bi < blocks.length; bi++) {
         for (var ri = 0; ri < blocks[bi].rows.length; ri++) {

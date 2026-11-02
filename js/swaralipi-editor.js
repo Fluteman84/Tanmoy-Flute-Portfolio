@@ -461,19 +461,8 @@
     }
     this._sectionsEl.innerHTML = html;
 
-    this._bindSectionNameInputs(this._sectionsEl);
-
-    this._syncSongInfo();
-    this._repositionCursor();
-    this._updateGroupToggleUI();
-    this._hidePopup();
-    this._restoreViewport(scrollX, scrollY);
-  };
-
-  P._bindSectionNameInputs = function (scope) {
-    var self = this;
-    var secs = this.song.sections;
-    var nameInputs = scope.querySelectorAll(".section-name-input");
+    // Bind section name inputs
+    var nameInputs = this._sectionsEl.querySelectorAll(".section-name-input");
     nameInputs.forEach(function (inp) {
       inp.addEventListener("input", function () {
         var idx = Number(this.dataset.sectionIndex);
@@ -483,34 +472,12 @@
         }
       });
     });
-  };
-
-  P._renderActiveSection = function () {
-    var scrollX = window.scrollX;
-    var scrollY = window.scrollY;
-    var sectionIndex = this.activeSectionIdx;
-    var currentEl = this._sectionsEl.querySelector('.swaralipi-section[data-section-index="' + sectionIndex + '"]');
-
-    if (!currentEl) {
-      this.render();
-      return;
-    }
-
-    currentEl.outerHTML = this._renderSection(this._activeSection(), sectionIndex);
-    var updatedEl = this._sectionsEl.querySelector('.swaralipi-section[data-section-index="' + sectionIndex + '"]');
-    if (updatedEl) this._bindSectionNameInputs(updatedEl);
 
     this._syncSongInfo();
+    this._repositionCursor();
     this._updateGroupToggleUI();
     this._hidePopup();
-    this._repositionCursor();
-
-    // Measure geometry is final after the replacement frame is painted.
-    var self = this;
-    window.requestAnimationFrame(function () {
-      self._repositionCursor();
-      self._restoreViewport(scrollX, scrollY);
-    });
+    this._restoreViewport(scrollX, scrollY);
   };
 
   P._restoreViewport = function (scrollX, scrollY) {
@@ -612,14 +579,10 @@
       return;
     }
 
-    // Cursor and buffer are absolute children of the editor root.
-    // Use root-relative coordinates only; document scroll offsets cause mobile drift.
-    var rootRect = this.root.getBoundingClientRect();
-
     if (sec.positions.length === 0) {
       var areaRect = area.getBoundingClientRect();
-      var cLeft = areaRect.left - rootRect.left + 16;
-      var cTop = areaRect.top - rootRect.top + 14;
+      var cLeft = areaRect.left + 16 + window.scrollX;
+      var cTop = areaRect.top + 14 + window.scrollY;
       this._cursorEl.style.display = "block";
       this._cursorEl.style.left = cLeft + "px";
       this._cursorEl.style.top = cTop + "px";
@@ -651,25 +614,25 @@
       if (this.cursor.charOffset > 0 && this.cursor.charOffset <= charEls.length) {
         var charEl = charEls[this.cursor.charOffset - 1];
         var r = charEl.getBoundingClientRect();
-        cursorX = r.right - rootRect.left;
+        cursorX = r.right + window.scrollX;
       } else {
         var r2 = posEl.getBoundingClientRect();
-        cursorX = r2.left - rootRect.left;
+        cursorX = r2.left + window.scrollX;
       }
       var posRect = posEl.getBoundingClientRect();
-      cursorY = posRect.top - rootRect.top;
+      cursorY = posRect.top + window.scrollY;
       cursorH = posRect.height;
     } else {
       var lastPosEl = area.querySelector('.sw-position[data-pos-index="' + (sec.positions.length - 1) + '"]');
       if (lastPosEl) {
         var lr = lastPosEl.getBoundingClientRect();
-        cursorX = lr.right - rootRect.left + 2;
-        cursorY = lr.top - rootRect.top;
+        cursorX = lr.right + 2 + window.scrollX;
+        cursorY = lr.top + window.scrollY;
         cursorH = lr.height;
       } else {
         var ar = area.getBoundingClientRect();
-        cursorX = ar.left - rootRect.left + 16;
-        cursorY = ar.top - rootRect.top + 14;
+        cursorX = ar.left + 16 + window.scrollX;
+        cursorY = ar.top + 14 + window.scrollY;
         cursorH = 24;
       }
     }
@@ -928,7 +891,7 @@
     this.cursor = { posIndex: insertIdx + 1, charOffset: 0 };
     this.inputBuffer = "";
     this._saveSnapshot();
-    this._renderActiveSection();
+    this.render();
   };
 
   /* ════════════════════════════════════════════════════════════ *
@@ -1203,7 +1166,7 @@
     this.selection = null;
     this.inputBuffer = "";
     this._saveSnapshot();
-    this._renderActiveSection();
+    this.render();
   };
 
   /* ════════════════════════════════════════════════════════════ *

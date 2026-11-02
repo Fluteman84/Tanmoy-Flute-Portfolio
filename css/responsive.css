@@ -224,3 +224,57 @@
     font-size: 0.9rem;
   }
 }
+
+/* Mobile uses the platform picker instead of the desktop overlay menu. */
+@media (max-width: 860px) {
+  .nav-dropdown {
+    display: none;
+  }
+
+  .mobile-tools-select {
+    display: block;
+    min-width: 0;
+    min-height: 42px;
+    padding: 0 0.75rem;
+    color: var(--accent-bright);
+    font: inherit;
+    font-size: 0.86rem;
+    font-weight: 700;
+    border: 1px solid rgba(216, 168, 93, 0.45);
+    border-radius: 999px;
+    background: rgba(8, 18, 24, 0.94);
+    color-scheme: dark;
+  }
+
+  .tool-page-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    margin-left: auto;
+    min-width: 0;
+  }
+
+  .notes-page .nav-shell {
+    min-height: 72px;
+    gap: 0.65rem;
+  }
+
+  .notes-page .brand-mark {
+    font-size: 1.18rem;
+    letter-spacing: 0.12em;
+  }
+
+  .notes-page .brand-sub {
+    font-size: 0.62rem;
+    letter-spacing: 0.16em;
+  }
+
+  .notes-page .notes-back-link {
+    min-height: 42px;
+    display: inline-flex;
+    align-items: center;
+    padding: 0.55rem 0.7rem;
+    white-space: nowrap;
+    font-size: 0.8rem;
+  }
+}

@@ -16,7 +16,7 @@
     <header class="site-header">
       <div class="container nav-shell">
         <a class="brand" href="index.html"><span class="brand-mark">TANMOY</span><span class="brand-sub">Flute</span></a>
-        <div style="display:flex; align-items:center; gap:1rem;">
+        <div class="tool-page-actions">
           <div class="nav-dropdown" id="toolsDropdown">
             <button class="nav-dropdown-toggle" aria-haspopup="true" aria-expanded="false" id="toolsToggle">
               Tools <span class="dropdown-arrow" aria-hidden="true">▾</span>
@@ -32,6 +32,11 @@
               </a>
             </div>
           </div>
+          <select class="mobile-tools-select" aria-label="Open a music tool" onchange="if (this.value) window.location.href = this.value;">
+            <option value="" selected>Tools</option>
+            <option value="notes.html">Palta Generator</option>
+            <option value="notation.html">Notation Generator</option>
+          </select>
           <a class="notes-back-link" href="index.html">Back to Stage</a>
         </div>
       </div>

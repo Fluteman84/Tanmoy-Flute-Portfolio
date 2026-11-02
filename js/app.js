@@ -1,6 +1,35 @@
 document.addEventListener("DOMContentLoaded", () => {
   const menuToggle = document.getElementById("menuToggle");
   const navLinks = document.getElementById("navLinks");
+
+  // ── Tools dropdown ───────────────────────────────
+  const toolsDropdown = document.getElementById("toolsDropdown");
+  const toolsToggle = document.getElementById("toolsToggle");
+
+  if (toolsToggle && toolsDropdown) {
+    toolsToggle.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const isOpen = toolsDropdown.classList.toggle("is-open");
+      toolsToggle.setAttribute("aria-expanded", String(isOpen));
+    });
+
+    // Close on outside click
+    document.addEventListener("click", (e) => {
+      if (!toolsDropdown.contains(e.target)) {
+        toolsDropdown.classList.remove("is-open");
+        toolsToggle.setAttribute("aria-expanded", "false");
+      }
+    });
+
+    // Close on Escape key
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") {
+        toolsDropdown.classList.remove("is-open");
+        toolsToggle.setAttribute("aria-expanded", "false");
+      }
+    });
+  }
+  // ────────────────────────────────────────────────
   const scrollProgress = document.getElementById("scrollProgress");
   const contactForm = document.getElementById("contactForm");
   const connectButton = document.getElementById("connectButton");

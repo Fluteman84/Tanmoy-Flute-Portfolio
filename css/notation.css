@@ -1,0 +1,822 @@
+/* ============================================================
+   SWARALIPI — Hindustani Classical Music Notation Editor
+   Stylesheet for the notation editor page (.notes-page)
+   Uses CSS custom properties defined in style.css
+   ============================================================ */
+
+/* -----------------------------------------------
+   Page Structure
+   ----------------------------------------------- */
+.swaralipi-app {
+  max-width: var(--container);
+  margin: 0 auto;
+  padding: 0 1.5rem 4rem;
+}
+
+.swaralipi-hero {
+  text-align: center;
+  padding: 3.5rem 0 2rem;
+}
+
+.swaralipi-hero h1 {
+  font-family: "Cormorant Garamond", serif;
+  font-size: clamp(2rem, 5vw, 3rem);
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0 0 0.5rem;
+}
+
+.swaralipi-hero h1 span {
+  color: var(--accent);
+}
+
+/* -----------------------------------------------
+   Song Info Bar
+   ----------------------------------------------- */
+.song-info-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 1rem;
+  padding: 1.2rem 1.5rem;
+  background: var(--bg-panel);
+  border: 1px solid var(--border-soft);
+  border-radius: 22px;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.song-info-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.song-info-field label {
+  font-size: 0.7rem;
+  font-family: "Manrope", sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
+}
+
+.song-info-field input {
+  background: transparent;
+  border: none;
+  border-bottom: 1.5px solid var(--accent);
+  color: var(--text-primary);
+  font-size: 1.05rem;
+  font-family: "Manrope", sans-serif;
+  padding: 0.3rem 0.2rem;
+  width: 240px;
+  max-width: 100%;
+  outline: none;
+  transition: border-color var(--transition);
+}
+
+.song-info-field input:focus {
+  border-bottom-color: var(--accent-bright);
+}
+
+.song-info-field select {
+  background: var(--bg-secondary);
+  border: 1px solid var(--accent);
+  color: var(--accent-bright);
+  font-family: "Manrope", sans-serif;
+  font-size: 0.88rem;
+  padding: 0.4rem 0.6rem;
+  border-radius: 10px;
+  outline: none;
+  cursor: pointer;
+  color-scheme: dark;
+  transition: border-color var(--transition);
+}
+
+.song-info-field select:focus {
+  border-color: var(--accent-bright);
+}
+
+/* -----------------------------------------------
+   Project Controls Bar
+   ----------------------------------------------- */
+.project-controls-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin-top: 1rem;
+}
+
+/* -- Shared Button Base (.sw-btn) -- */
+.sw-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.55rem 1rem;
+  font-family: "Manrope", sans-serif;
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-soft);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: all var(--transition);
+  white-space: nowrap;
+  user-select: none;
+}
+
+.sw-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent-bright);
+  background: var(--accent-soft);
+}
+
+/* Danger variant */
+.sw-btn--danger {
+  border-color: rgba(220, 80, 80, 0.4);
+  color: #e88;
+}
+
+.sw-btn--danger:hover {
+  background: rgba(220, 80, 80, 0.15);
+  border-color: rgba(220, 80, 80, 0.6);
+  color: #faa;
+}
+
+/* Accent variant */
+.sw-btn--accent {
+  border-color: var(--accent);
+  color: var(--accent-bright);
+  background: var(--accent-soft);
+}
+
+.sw-btn--accent:hover {
+  background: rgba(216, 168, 93, 0.28);
+}
+
+/* -----------------------------------------------
+   Section Management
+   ----------------------------------------------- */
+.swaralipi-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 2.5rem;
+  margin-top: 2rem;
+}
+
+.swaralipi-section {
+  border: 1px solid rgba(216, 168, 93, 0.2);
+  border-radius: 28px;
+  background: linear-gradient(150deg, rgba(255, 255, 255, 0.06), rgba(9, 19, 25, 0.7));
+  padding: 1.5rem;
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.section-name-input {
+  font-family: "Cormorant Garamond", serif;
+  font-size: 1.6rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  background: transparent;
+  border: none;
+  outline: none;
+  border-bottom: 2px solid transparent;
+  padding: 0.15rem 0;
+  transition: border-color var(--transition);
+}
+
+.section-name-input:focus {
+  border-bottom-color: var(--accent);
+}
+
+.section-controls {
+  display: flex;
+  gap: 0.4rem;
+  flex-shrink: 0;
+}
+
+.section-ctrl-btn {
+  padding: 0.3rem 0.6rem;
+  border-radius: 8px;
+  font-family: "Manrope", sans-serif;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  background: transparent;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all var(--transition);
+  white-space: nowrap;
+}
+
+.section-ctrl-btn:hover {
+  color: var(--text-secondary);
+  background: rgba(255, 255, 255, 0.06);
+  border-color: var(--border-soft);
+}
+
+/* Add Section Button */
+.add-section-btn {
+  width: 100%;
+  padding: 0.8rem;
+  text-align: center;
+  color: var(--text-muted);
+  background: transparent;
+  border: 1.5px dashed var(--border-soft);
+  border-radius: 18px;
+  font-family: "Manrope", sans-serif;
+  font-size: 0.88rem;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.add-section-btn:hover {
+  color: var(--accent-bright);
+  border-color: var(--accent);
+}
+
+/* -----------------------------------------------
+   Notation Area — The Core Canvas
+   ----------------------------------------------- */
+.notation-area {
+  position: relative;
+  min-height: 120px;
+  padding: 1.2rem 0.8rem;
+  background: #fafaf8;
+  border-radius: 16px;
+  color: #1a1a1a;
+  cursor: text;
+  outline: none;
+  margin-top: 1rem;
+  font-family: "Cormorant Garamond", serif;
+  font-size: 1.4rem;
+  line-height: 1.5;
+}
+
+.notation-area:focus {
+  box-shadow: 0 0 0 2px rgba(216, 168, 93, 0.5);
+}
+
+/* -----------------------------------------------
+   Four-Bar Blocks
+   ----------------------------------------------- */
+.four-bar-block {
+  margin-bottom: 1.5rem;
+}
+
+.notation-row {
+  display: flex;
+  align-items: stretch;
+  min-height: 2.4rem;
+}
+
+.sw-measure {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: flex-start;
+  flex-wrap: nowrap;
+  padding: 0.4rem 0.3rem;
+  gap: 0;
+}
+
+.sw-barline {
+  width: 2px;
+  background: #999;
+  margin: 0 0.1rem;
+  align-self: stretch;
+  flex-shrink: 0;
+}
+
+.block-barline {
+  width: 3px;
+  background: #666;
+}
+
+/* -----------------------------------------------
+   Positions — Individual Rhythmic Slots
+   ----------------------------------------------- */
+.sw-position {
+  display: inline-flex;
+  padding: 0.1rem 0.25rem;
+  border-radius: 4px;
+  cursor: text;
+  position: relative;
+  white-space: nowrap;
+  min-width: 0.8em;
+}
+
+.sw-position:hover {
+  background: rgba(216, 168, 93, 0.08);
+}
+
+.sw-position.is-selected {
+  background: rgba(100, 149, 237, 0.2);
+}
+
+.sw-position.is-composing {
+  background: rgba(216, 168, 93, 0.15);
+  border-bottom: 2px solid var(--accent);
+}
+
+.pos-char {
+  display: inline;
+  cursor: text;
+  position: relative;
+}
+
+/* -----------------------------------------------
+   Cursor — Blinking Caret
+   ----------------------------------------------- */
+.sw-cursor {
+  position: absolute;
+  width: 2px;
+  background: #d8a85d;
+  height: 1.4em;
+  z-index: 10;
+  pointer-events: none;
+  animation: sw-blink 1s step-end infinite;
+}
+
+@keyframes sw-blink {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0; }
+}
+
+/* -----------------------------------------------
+   Input Buffer Display
+   ----------------------------------------------- */
+.input-buffer {
+  position: absolute;
+  display: inline-block;
+  background: rgba(216, 168, 93, 0.2);
+  border-bottom: 2px solid #d8a85d;
+  color: #1a1a1a;
+  font-family: "Cormorant Garamond", serif;
+  font-size: 1.4rem;
+  padding: 0 2px;
+  pointer-events: none;
+  z-index: 5;
+  white-space: nowrap;
+}
+
+.input-buffer:empty {
+  display: none;
+}
+
+/* -----------------------------------------------
+   Empty State
+   ----------------------------------------------- */
+.notation-empty {
+  color: #aaa;
+  font-style: italic;
+  padding: 2rem 0;
+  text-align: center;
+  font-size: 0.95rem;
+  font-family: "Manrope", sans-serif;
+}
+
+/* -----------------------------------------------
+   Selection Popup
+   ----------------------------------------------- */
+.selection-popup {
+  position: fixed;
+  z-index: 500;
+  background: rgba(10, 20, 26, 0.97);
+  border: 1px solid rgba(216, 168, 93, 0.4);
+  border-radius: 14px;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.4);
+  padding: 0.3rem;
+  display: flex;
+  gap: 0.2rem;
+}
+
+.selection-popup.is-hidden {
+  display: none;
+}
+
+.popup-btn {
+  padding: 0.45rem 0.75rem;
+  border-radius: 8px;
+  color: var(--text-secondary);
+  font-family: "Manrope", sans-serif;
+  font-size: 0.78rem;
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  transition: all var(--transition);
+  white-space: nowrap;
+}
+
+.popup-btn:hover {
+  color: var(--accent-bright);
+  background: rgba(216, 168, 93, 0.15);
+}
+
+/* -----------------------------------------------
+   Group Mode Toggle (Floating FAB)
+   ----------------------------------------------- */
+.group-mode-toggle {
+  position: fixed;
+  bottom: 1.5rem;
+  right: 1.5rem;
+  z-index: 100;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  border: 2px solid var(--border-soft);
+  background: rgba(10, 20, 26, 0.9);
+  color: var(--text-secondary);
+  font-family: "Manrope", sans-serif;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all var(--transition);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+  user-select: none;
+}
+
+.group-mode-toggle:hover {
+  border-color: var(--accent);
+  color: var(--accent-bright);
+}
+
+.group-mode-toggle.is-active {
+  background: linear-gradient(135deg, rgba(216, 168, 93, 0.35), rgba(216, 168, 93, 0.15));
+  border-color: var(--accent);
+  color: var(--accent-bright);
+  box-shadow: 0 0 16px rgba(216, 168, 93, 0.3);
+}
+
+/* -----------------------------------------------
+   Status Bar
+   ----------------------------------------------- */
+.swaralipi-status {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  padding: 0.5rem 0;
+  color: var(--text-muted);
+  font-family: "Manrope", sans-serif;
+  font-size: 0.72rem;
+}
+
+.status-item {
+  /* individual status piece — inherits from parent */
+}
+
+/* -----------------------------------------------
+   Confirm Dialog (Modal)
+   ----------------------------------------------- */
+.sw-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9000;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+.sw-modal-overlay.is-hidden {
+  display: none;
+}
+
+.sw-modal {
+  background: rgba(12, 22, 28, 0.98);
+  border: 1px solid rgba(216, 168, 93, 0.3);
+  border-radius: 24px;
+  padding: 2rem;
+  max-width: 420px;
+  width: calc(100% - 2rem);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5);
+}
+
+.sw-modal h3 {
+  font-family: "Cormorant Garamond", serif;
+  font-size: 1.5rem;
+  color: var(--text-primary);
+  margin: 0 0 0.8rem;
+}
+
+.sw-modal p {
+  color: var(--text-secondary);
+  font-family: "Manrope", sans-serif;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  margin: 0 0 1.5rem;
+}
+
+.sw-modal-actions {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: flex-end;
+}
+
+.sw-modal-actions .sw-btn {
+  min-width: 100px;
+  justify-content: center;
+}
+
+/* -----------------------------------------------
+   Toast Notification
+   ----------------------------------------------- */
+.sw-toast {
+  position: fixed;
+  bottom: 1.2rem;
+  left: 50%;
+  transform: translateX(-50%) translateY(10px);
+  z-index: 8000;
+  padding: 0.75rem 1.2rem;
+  border-radius: 12px;
+  background: rgba(10, 20, 26, 0.96);
+  border: 1px solid rgba(216, 168, 93, 0.35);
+  color: var(--text-primary);
+  font-family: "Manrope", sans-serif;
+  font-size: 0.85rem;
+  box-shadow: var(--shadow-soft);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 240ms ease, transform 240ms ease;
+}
+
+.sw-toast.is-visible {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+  pointer-events: auto;
+}
+
+/* -----------------------------------------------
+   Context Menu (Right-Click)
+   ----------------------------------------------- */
+.sw-context-menu {
+  position: fixed;
+  z-index: 600;
+  background: rgba(10, 20, 26, 0.97);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.45);
+  padding: 0.3rem 0;
+  min-width: 160px;
+}
+
+.sw-context-menu.is-hidden {
+  display: none;
+}
+
+.context-menu-item {
+  display: block;
+  width: 100%;
+  padding: 0.5rem 1rem;
+  text-align: left;
+  color: var(--text-secondary);
+  font-family: "Manrope", sans-serif;
+  font-size: 0.82rem;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.context-menu-item:hover {
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.context-menu-divider {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.08);
+  margin: 0.2rem 0;
+}
+
+/* -----------------------------------------------
+   Print / PDF Preview Overlay
+   ----------------------------------------------- */
+.sw-print-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  overflow-y: auto;
+  padding: 2rem 1rem;
+}
+
+.sw-print-overlay.is-hidden {
+  display: none;
+}
+
+/* A4-sized print sheet */
+.sw-print-sheet {
+  background: #fff;
+  color: #1a1a1a;
+  width: 210mm;
+  min-height: 297mm;
+  padding: 20mm;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  border-radius: 4px;
+  font-family: "Cormorant Garamond", serif;
+}
+
+.sw-print-sheet h2 {
+  font-size: 1.6rem;
+  margin: 0 0 0.3rem;
+  color: #1a1a1a;
+}
+
+.sw-print-sheet .print-meta {
+  font-family: "Manrope", sans-serif;
+  font-size: 0.8rem;
+  color: #666;
+  margin-bottom: 1.5rem;
+  display: flex;
+  gap: 1.5rem;
+}
+
+.sw-print-sheet .print-section-name {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin: 1.2rem 0 0.6rem;
+  color: #333;
+  border-bottom: 1px solid #ddd;
+  padding-bottom: 0.3rem;
+}
+
+.sw-print-sheet .print-notation-row {
+  display: flex;
+  margin-bottom: 0.2rem;
+  font-size: 1.2rem;
+  line-height: 1.6;
+}
+
+.sw-print-sheet .print-measure {
+  display: flex;
+  flex: 1;
+  gap: 0.4rem;
+  padding: 0.2rem;
+}
+
+.sw-print-sheet .print-barline {
+  width: 1.5px;
+  background: #888;
+  margin: 0 0.3rem;
+  align-self: stretch;
+}
+
+.sw-print-sheet .print-position {
+  white-space: nowrap;
+}
+
+/* Print Close Button */
+.sw-print-close {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  z-index: 10001;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.7);
+  color: #fff;
+  font-size: 1.3rem;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background var(--transition);
+}
+
+.sw-print-close:hover {
+  background: rgba(0, 0, 0, 0.9);
+}
+
+/* Print Action Buttons */
+.sw-print-actions {
+  position: fixed;
+  bottom: 1.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10001;
+  display: flex;
+  gap: 0.75rem;
+}
+
+.sw-print-actions .sw-btn {
+  background: rgba(10, 20, 26, 0.95);
+  border-color: rgba(216, 168, 93, 0.5);
+  color: var(--accent-bright);
+  padding: 0.65rem 1.3rem;
+}
+
+/* -----------------------------------------------
+   @media print — Physical Print Styles
+   ----------------------------------------------- */
+@media print {
+  body * {
+    visibility: hidden !important;
+  }
+
+  .sw-print-sheet,
+  .sw-print-sheet * {
+    visibility: visible !important;
+  }
+
+  .sw-print-sheet {
+    position: fixed;
+    left: 0;
+    top: 0;
+    width: 100%;
+    padding: 15mm;
+    box-shadow: none;
+    border-radius: 0;
+  }
+
+  .sw-print-close,
+  .sw-print-actions,
+  .sw-print-overlay {
+    display: none !important;
+  }
+}
+
+/* -----------------------------------------------
+   Responsive — Tablet & Small Screens
+   ----------------------------------------------- */
+@media (max-width: 760px) {
+  .song-info-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .song-info-field input {
+    width: 100%;
+  }
+
+  .project-controls-bar {
+    justify-content: center;
+  }
+
+  .swaralipi-section {
+    padding: 1rem;
+    border-radius: 20px;
+  }
+
+  .section-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.6rem;
+  }
+
+  .notation-area {
+    font-size: 1.15rem;
+    padding: 0.8rem 0.5rem;
+  }
+
+  .sw-print-sheet {
+    width: 100%;
+    min-height: auto;
+    padding: 10mm;
+  }
+
+  .group-mode-toggle {
+    bottom: 1rem;
+    right: 1rem;
+    width: 46px;
+    height: 46px;
+  }
+}
+
+/* -----------------------------------------------
+   Responsive — Very Small Screens
+   ----------------------------------------------- */
+@media (max-width: 440px) {
+  .notation-area {
+    font-size: 1rem;
+  }
+
+  .sw-btn {
+    font-size: 0.75rem;
+    padding: 0.45rem 0.75rem;
+  }
+
+  .section-name-input {
+    font-size: 1.3rem;
+  }
+}

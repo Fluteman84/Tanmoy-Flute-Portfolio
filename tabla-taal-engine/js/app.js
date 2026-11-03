@@ -23,12 +23,18 @@
 
     /**
      * Initializes the application once the DOM is ready.
+     * @param {string} [dataPath] - Optional custom path to taals.json.
      */
-    init: async function () {
+    init: async function (dataPath) {
+      if (this.initialized) return;
+      this.initialized = true;
+
       this.cacheDOMElements();
       this.initMetronomeEngine();
       this.setupControlEventListeners();
-      await this.loadAndInitializeData("data/taals.json");
+
+      const resolvedPath = dataPath || window.__TABLA_DATA_PATH__ || "data/taals.json";
+      await this.loadAndInitializeData(resolvedPath);
     },
 
     /**
@@ -261,7 +267,17 @@
         return;
       }
 
-      const result = await window.TaalLoader.load(dataUrl);
+      let result = await window.TaalLoader.load(dataUrl);
+
+      // If initial load failed with default path, attempt fallback to standalone folder
+      if ((!result.success || result.taals.length === 0) && dataUrl === "data/taals.json") {
+        try {
+          const fallbackResult = await window.TaalLoader.load("tabla-taal-engine/data/taals.json");
+          if (fallbackResult.success && fallbackResult.taals.length > 0) {
+            result = fallbackResult;
+          }
+        } catch (e) {}
+      }
 
       // Render diagnostic notice if errors/warnings exist
       if (this.elements.statusNotice) {

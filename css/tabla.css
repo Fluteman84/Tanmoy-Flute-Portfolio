@@ -1,0 +1,1004 @@
+/* ==========================================================================
+   Tabla Taal Engine — Swaralipi Design System Integration
+   Aesthetic: Translucent Dark Teal & Charcoal Glassmorphism with Muted Warm Gold Accents
+   Inherits design tokens directly from style.css, notes.css and notation.css
+   Viewport: Desktop single-screen layout with ZERO vertical scrollbar (1440x900 & 1366x768)
+   ========================================================================== */
+
+/* ── Swaralipi Design Tokens & Custom Properties ────────────────────────── */
+:root {
+  /* Cinematic Dark Teal / Charcoal Backgrounds */
+  --taal-bg-page: radial-gradient(circle at 84% 10%, rgba(216, 168, 93, 0.16), transparent 25%),
+                  radial-gradient(circle at 14% 62%, rgba(130, 187, 204, 0.1), transparent 26%),
+                  linear-gradient(180deg, #05090d 0%, #0a151a 52%, #05090d 100%);
+  
+  /* Translucent Glass Panels */
+  --taal-panel-bg: linear-gradient(150deg, rgba(255, 255, 255, 0.06), rgba(9, 19, 25, 0.72));
+  --taal-panel-border: 1px solid rgba(216, 168, 93, 0.22);
+  --taal-panel-shadow: 0 14px 34px rgba(0, 0, 0, 0.28), inset 0 1px rgba(255, 255, 255, 0.05);
+
+  /* Translucent Beat Cells */
+  --taal-cell-bg: linear-gradient(150deg, rgba(255, 255, 255, 0.05), rgba(9, 19, 25, 0.6));
+  --taal-cell-border: 1px solid rgba(216, 168, 93, 0.16);
+  --taal-cell-shadow: 0 6px 18px rgba(0, 0, 0, 0.2), inset 0 1px rgba(255, 255, 255, 0.04);
+
+  /* Active Beat (Warm Gold Tinted Glass) */
+  --taal-active-bg: linear-gradient(135deg, rgba(216, 168, 93, 0.24), rgba(216, 168, 93, 0.08));
+  --taal-active-border: 2px solid var(--accent);
+  --taal-active-shadow: 0 0 20px rgba(216, 168, 93, 0.32), inset 0 0 14px rgba(216, 168, 93, 0.14), 0 8px 24px rgba(0, 0, 0, 0.32);
+
+  /* Restrained Deep Green Play Button */
+  --taal-play-bg: linear-gradient(135deg, #185a30 0%, #114223 100%);
+  --taal-play-hover: linear-gradient(135deg, #1e703c 0%, #15542d 100%);
+  --taal-play-border: 1px solid rgba(74, 222, 128, 0.38);
+
+  /* Translucent Stop Buttons */
+  --taal-stop-bg: rgba(255, 255, 255, 0.05);
+  --taal-stop-hover: rgba(255, 255, 255, 0.09);
+  --taal-stop-border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+/* ── Global Page Overrides (Desktop No-Scroll) ─────────────────────────── */
+@media (min-width: 900px) {
+  html,
+  body.notes-page {
+    height: 100vh !important;
+    max-height: 100vh !important;
+    overflow: hidden !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: var(--taal-bg-page) !important;
+  }
+
+  body.notes-page {
+    display: flex !important;
+    flex-direction: column !important;
+  }
+
+  /* Swaralipi-Style Site Header */
+  body.notes-page .site-header {
+    flex-shrink: 0;
+    background: rgba(5, 9, 13, 0.82);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+  }
+
+  body.notes-page .site-header .nav-shell {
+    min-height: 48px !important;
+    height: 48px !important;
+    padding: 0 1.5rem !important;
+  }
+
+  /* Compact Main Stage Filling Remaining Viewport */
+  body.notes-page .notes-main {
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+    padding: 0.35rem 1.5rem 0.55rem !important;
+    display: flex;
+    flex-direction: column;
+  }
+}
+
+/* ── Mobile Layout (Natural Scrolling) ──────────────────────────────────── */
+@media (max-width: 899px) {
+  body.notes-page {
+    min-height: 100vh;
+    background: var(--taal-bg-page);
+    overflow-y: auto;
+  }
+
+  body.notes-page .site-header {
+    background: rgba(5, 9, 13, 0.92);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  body.notes-page .notes-main {
+    padding: 1rem 0.75rem 3rem !important;
+  }
+}
+
+/* ── Workspace Shell ────────────────────────────────────────────────────── */
+.header-nav-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+}
+
+.taal-workspace {
+  width: 100%;
+  max-width: 1240px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  padding: 0 !important;
+}
+
+@media (min-width: 900px) {
+  .taal-workspace {
+    flex: 1;
+    min-height: 0;
+  }
+}
+
+/* ── Section Heading (Matching Swaralipi Style) ─────────────────────────── */
+.engine-compact-header {
+  flex-shrink: 0;
+  text-align: center;
+  padding: 0.15rem 0 0.35rem;
+  border-bottom: 1px solid rgba(216, 168, 93, 0.15);
+}
+
+.engine-compact-header .eyebrow {
+  margin: 0 0 0.2rem;
+  font-family: var(--font-sans, "Manrope", sans-serif);
+  font-size: 0.7rem;
+  color: var(--accent);
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  font-weight: 700;
+}
+
+.engine-main-title {
+  font-family: var(--font-serif, "Cormorant Garamond", Georgia, serif);
+  font-size: clamp(1.4rem, 2.4vh, 1.95rem);
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  color: var(--text-primary);
+  margin: 0;
+  line-height: 1.1;
+}
+
+.engine-main-title span {
+  color: var(--accent);
+}
+
+.engine-subtitle {
+  font-family: var(--font-sans, "Manrope", sans-serif);
+  font-size: clamp(0.7rem, 1.1vh, 0.78rem);
+  color: var(--text-muted);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  margin: 0.2rem 0 0;
+}
+
+/* ── Diagnostic Status Notices ──────────────────────────────────────────── */
+.taal-status-notice {
+  margin: 0.2rem 0;
+  display: none;
+}
+
+.taal-status-alert {
+  padding: 0.45rem 0.85rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.78rem;
+  line-height: 1.35;
+}
+
+.taal-status-alert.alert-warning {
+  background: rgba(216, 168, 93, 0.12);
+  border: 1px solid rgba(216, 168, 93, 0.4);
+  color: var(--accent-bright);
+}
+
+.taal-status-alert.alert-error {
+  background: rgba(220, 80, 80, 0.12);
+  border: 1px solid rgba(220, 80, 80, 0.45);
+  color: #fca5a5;
+}
+
+/* ── Controls Section (Translucent Glass Panel) ─────────────────────────── */
+.controls-section {
+  flex-shrink: 0;
+  padding: 0.45rem 0.95rem;
+  background: var(--taal-panel-bg);
+  border: var(--taal-panel-border);
+  border-radius: 16px;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  box-shadow: var(--taal-panel-shadow);
+}
+
+.controls-row {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 0.95rem;
+}
+
+.control-label {
+  display: block;
+  font-size: 0.65rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--accent);
+  margin-bottom: 0.3rem;
+  font-family: "Manrope", sans-serif;
+}
+
+/* 1. Taal Selector */
+.taal-select-group {
+  flex: 1 1 240px;
+  max-width: 340px;
+}
+
+.select-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.taal-dropdown {
+  width: 100%;
+  height: 40px;
+  padding: 0 2.2rem 0 0.85rem;
+  background: rgba(11, 20, 26, 0.88);
+  border: 1px solid rgba(216, 168, 93, 0.35);
+  border-radius: 10px;
+  color: var(--text-primary);
+  font-family: "Manrope", sans-serif;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  color-scheme: dark;
+  transition: border-color var(--transition), background var(--transition), box-shadow var(--transition);
+}
+
+.taal-dropdown:focus {
+  outline: none;
+  border-color: var(--accent-bright);
+  box-shadow: 0 0 0 2px rgba(216, 168, 93, 0.35);
+}
+
+.select-arrow {
+  position: absolute;
+  right: 0.85rem;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  color: var(--accent);
+  font-size: 0.75rem;
+}
+
+/* 2. Tempo Controls Cluster */
+.tempo-control-group {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.tempo-controls-cluster {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.tempo-input-box {
+  display: flex;
+  align-items: center;
+  height: 40px;
+  background: rgba(11, 20, 26, 0.88);
+  border: 1px solid rgba(216, 168, 93, 0.35);
+  border-radius: 10px;
+  overflow: hidden;
+  transition: border-color var(--transition), box-shadow var(--transition);
+}
+
+.tempo-input-box:focus-within {
+  border-color: var(--accent-bright);
+  box-shadow: 0 0 0 2px rgba(216, 168, 93, 0.35);
+}
+
+.tempo-input {
+  width: 58px;
+  height: 100%;
+  border: none;
+  background: transparent;
+  text-align: center;
+  font-family: "Cormorant Garamond", serif;
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--accent-bright);
+  padding: 0 0.2rem;
+  -moz-appearance: textfield;
+}
+
+.tempo-input::-webkit-outer-spin-button,
+.tempo-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.tempo-input:focus {
+  outline: none;
+}
+
+.tempo-steppers {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  height: 100%;
+  border-left: 1px solid rgba(216, 168, 93, 0.2);
+  padding: 0 0.15rem;
+}
+
+.stepper-arrow-btn {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 2px 4px;
+  font-size: 0.55rem;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color var(--transition);
+}
+
+.stepper-arrow-btn:hover {
+  color: var(--accent-bright);
+}
+
+.tempo-unit-badge {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  padding: 0 0.55rem;
+  background: rgba(216, 168, 93, 0.1);
+  border-left: 1px solid rgba(216, 168, 93, 0.2);
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--accent);
+  letter-spacing: 0.05em;
+  user-select: none;
+}
+
+/* Multiplier Buttons */
+.tempo-btn-multiplier {
+  height: 40px;
+  min-width: 40px;
+  padding: 0 0.6rem;
+  background: rgba(216, 168, 93, 0.08);
+  border: 1px solid rgba(216, 168, 93, 0.32);
+  border-radius: 10px;
+  font-family: "Manrope", sans-serif;
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--accent-bright);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background var(--transition), border-color var(--transition), transform var(--transition);
+}
+
+.tempo-btn-multiplier:hover {
+  background: rgba(216, 168, 93, 0.22);
+  border-color: var(--accent);
+  transform: translateY(-1px);
+}
+
+.tempo-btn-multiplier:active {
+  transform: translateY(0);
+}
+
+/* 3. Play Button */
+.play-control-group {
+  flex: 0 0 auto;
+}
+
+.btn-play {
+  height: 40px;
+  min-width: 128px;
+  padding: 0 1.35rem;
+  background: var(--taal-play-bg);
+  color: var(--text-primary);
+  border: var(--taal-play-border);
+  border-radius: 10px;
+  font-family: "Manrope", sans-serif;
+  font-size: 0.88rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.28), 0 0 12px rgba(34, 197, 94, 0.18);
+  transition: background var(--transition), box-shadow var(--transition), transform var(--transition);
+}
+
+.btn-play svg {
+  fill: currentColor;
+  width: 13px;
+  height: 13px;
+}
+
+.btn-play:hover {
+  background: var(--taal-play-hover);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35), 0 0 16px rgba(34, 197, 94, 0.3);
+  transform: translateY(-1px);
+}
+
+.btn-play.is-playing {
+  background: linear-gradient(135deg, #134626 0%, #0d321c 100%);
+  box-shadow: 0 0 0 2px rgba(74, 222, 128, 0.4), 0 0 16px rgba(34, 197, 94, 0.4);
+}
+
+.playing-pulse-indicator {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #86efac;
+  box-shadow: 0 0 8px #86efac;
+  animation: pulse-dot 1s infinite alternate ease-in-out;
+}
+
+@keyframes pulse-dot {
+  from { opacity: 0.6; transform: scale(0.85); }
+  to { opacity: 1; transform: scale(1.15); }
+}
+
+/* ── Playback Information Strip (Translucent Dark Teal Glass) ────────────── */
+.playback-info-bar {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  background: linear-gradient(150deg, rgba(255, 255, 255, 0.05), rgba(9, 19, 25, 0.65));
+  border: 1px solid rgba(216, 168, 93, 0.18);
+  border-radius: 12px;
+  padding: 0.35rem 0.95rem;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2), inset 0 1px rgba(255, 255, 255, 0.04);
+}
+
+.info-metric {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.metric-label {
+  font-size: 0.65rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--accent);
+}
+
+.metric-val {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1;
+}
+
+.metric-val .dimmed {
+  font-size: 0.76rem;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.metric-val.beat-counter-val {
+  color: var(--accent-bright);
+  font-size: 0.98rem;
+}
+
+.metric-val.cycle-counter-val {
+  color: var(--text-primary);
+  font-size: 0.98rem;
+}
+
+.playback-status-pill {
+  font-size: 0.65rem;
+  font-weight: 800;
+  padding: 0.22rem 0.6rem;
+  border-radius: 999px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  user-select: none;
+}
+
+.status-idle {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-soft);
+}
+
+.status-playing {
+  background: rgba(34, 197, 94, 0.16);
+  color: #86efac;
+  border: 1px solid rgba(74, 222, 128, 0.4);
+}
+
+.status-stopping {
+  background: rgba(216, 168, 93, 0.18);
+  color: var(--accent-bright);
+  border: 1px solid rgba(216, 168, 93, 0.45);
+}
+
+/* ── Beat Display Section ───────────────────────────────────────────────── */
+.beat-display-section {
+  display: flex;
+  flex-direction: column;
+}
+
+@media (min-width: 900px) {
+  .beat-display-section {
+    flex: 1;
+    min-height: 0;
+  }
+}
+
+/* Beat Grid */
+.beat-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.5rem;
+  width: 100%;
+}
+
+@media (min-width: 900px) {
+  .beat-grid {
+    flex: 1;
+    min-height: 0;
+    grid-template-rows: repeat(4, 1fr);
+  }
+
+  .beat-grid[data-total-beats="6"] {
+    grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: repeat(2, 1fr);
+  }
+
+  .beat-grid[data-total-beats="10"] {
+    grid-template-columns: repeat(5, 1fr);
+    grid-template-rows: repeat(2, 1fr);
+  }
+}
+
+/* Empty message */
+.beat-grid-empty-message {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 2.5rem 1rem;
+  color: var(--text-muted);
+  font-size: 0.95rem;
+}
+
+/* ── Beat Cell (Translucent Dark Glass) ─────────────────────────────────── */
+.beat-cell {
+  position: relative;
+  background: var(--taal-cell-bg);
+  border: var(--taal-cell-border);
+  border-radius: 12px;
+  padding: clamp(0.35rem, 0.9vh, 0.65rem) 0.65rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  cursor: default;
+  user-select: none;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow: var(--taal-cell-shadow);
+  transition: background var(--transition), border-color var(--transition), box-shadow var(--transition), transform var(--transition);
+  box-sizing: border-box;
+}
+
+@media (min-width: 900px) {
+  .beat-cell {
+    min-height: 0;
+  }
+}
+
+@media (max-width: 899px) {
+  .beat-cell {
+    min-height: 72px;
+  }
+}
+
+/* Vibhag Section Boundary Marker */
+.beat-cell.vibhag-boundary-end {
+  border-right: 2px solid rgba(216, 168, 93, 0.38);
+  box-shadow: 2px 0 0 0 rgba(216, 168, 93, 0.15);
+}
+
+/* Cell Header (Beat Number & Marker Badge) */
+.beat-cell-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  gap: 0.3rem;
+  line-height: 1;
+}
+
+.beat-number {
+  font-size: clamp(0.72rem, 1.1vh, 0.84rem);
+  font-weight: 700;
+  color: var(--text-muted);
+  letter-spacing: 0.05em;
+}
+
+/* Sam, Tali, Khali Badges (Muted Gold & Silver System) */
+.beat-marker {
+  display: inline-block;
+  font-size: 0.58rem;
+  font-weight: 800;
+  line-height: 1;
+  padding: 0.16rem 0.38rem;
+  border-radius: 4px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.marker-sam {
+  background: rgba(216, 168, 93, 0.16);
+  color: var(--accent-bright);
+  border: 1px solid rgba(216, 168, 93, 0.45);
+}
+
+.marker-tali {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-secondary);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.marker-khali {
+  background: rgba(130, 187, 204, 0.08);
+  color: #a4d0dc;
+  border: 1px solid rgba(130, 187, 204, 0.22);
+}
+
+/* Bol Text (Musical Serif Typography) */
+.beat-bol {
+  font-family: var(--font-serif, "Cormorant Garamond", Georgia, serif);
+  font-size: clamp(1.4rem, 3.2vh, 2.3rem);
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.1;
+  letter-spacing: 0.02em;
+  text-align: center;
+  margin: auto 0;
+  transition: transform var(--transition), color var(--transition);
+}
+
+.beat-bol.empty-bol {
+  font-family: var(--font-sans, "Manrope", sans-serif);
+  font-size: clamp(0.68rem, 1.2vh, 0.78rem);
+  font-weight: 600;
+  font-style: italic;
+  color: var(--text-muted);
+  letter-spacing: 0;
+}
+
+/* Subtle Vibhag Corner Indicator */
+.vibhag-badge {
+  font-size: 0.54rem;
+  font-weight: 700;
+  color: rgba(216, 168, 93, 0.5);
+  align-self: flex-end;
+  line-height: 1;
+}
+
+/* ── Active Beat State (Warm Gold Glass Highlight) ──────────────────────── */
+.beat-cell.active {
+  background: var(--taal-active-bg);
+  border: var(--taal-active-border);
+  box-shadow: var(--taal-active-shadow);
+  transform: translateY(-1px);
+}
+
+.beat-cell.active .beat-number {
+  color: var(--accent-bright);
+  font-weight: 900;
+}
+
+.beat-cell.active .beat-bol:not(.empty-bol) {
+  color: #FFFFFF;
+  text-shadow: 0 0 14px rgba(216, 168, 93, 0.4);
+  transform: scale(1.05);
+}
+
+.beat-cell.active .marker-sam {
+  color: var(--accent-bright);
+  border-color: var(--accent);
+  background: rgba(216, 168, 93, 0.26);
+}
+
+/* ── Bottom Playback Action Controls ─────────────────────────────────────── */
+.playback-actions-section {
+  flex-shrink: 0;
+  padding: 0.15rem 0 0;
+}
+
+.playback-buttons-row {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.btn-stop-now,
+.btn-stop-cycle {
+  flex: 1 1 50%;
+  height: 40px;
+  padding: 0 1.2rem;
+  background: var(--taal-stop-bg);
+  border: var(--taal-stop-border);
+  border-radius: 12px;
+  font-family: "Manrope", sans-serif;
+  font-size: 0.86rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--text-primary);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  transition: all var(--transition);
+}
+
+.btn-stop-now:hover:not(:disabled) {
+  background: rgba(220, 80, 80, 0.14);
+  border-color: rgba(220, 80, 80, 0.5);
+  color: #fca5a5;
+  transform: translateY(-1px);
+}
+
+.btn-stop-cycle:hover:not(:disabled) {
+  background: rgba(216, 168, 93, 0.15);
+  border-color: var(--accent);
+  color: var(--accent-bright);
+  transform: translateY(-1px);
+}
+
+/* Disabled & Pending States */
+.btn-stop-now:disabled,
+.btn-stop-cycle:disabled,
+.is-disabled {
+  opacity: 0.32;
+  cursor: not-allowed;
+  pointer-events: none;
+  transform: none;
+}
+
+.btn-stop-cycle.is-pending {
+  background: rgba(216, 168, 93, 0.22);
+  border-color: var(--accent-bright);
+  color: var(--accent-bright);
+  animation: pending-pulse 1.3s infinite alternate ease-in-out;
+}
+
+@keyframes pending-pulse {
+  from { opacity: 0.85; }
+  to { opacity: 1; }
+}
+
+.btn-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-icon svg {
+  fill: currentColor;
+  width: 13px;
+  height: 13px;
+}
+
+/* ── Responsive Mobile Adjustments (<= 640px) ────────────────────────────── */
+@media (max-width: 640px) {
+  html, body.notes-page {
+    overflow-x: hidden !important;
+    max-width: 100vw !important;
+  }
+
+  .site-header {
+    width: 100% !important;
+    overflow-x: hidden !important;
+  }
+
+  .site-header .container {
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 0 0.5rem !important;
+  }
+
+  .site-header .nav-shell {
+    min-height: 48px !important;
+    height: 48px !important;
+    padding: 0 !important;
+    gap: 0.4rem !important;
+  }
+
+  .site-header .brand {
+    font-size: 0.92rem;
+  }
+
+  .site-header .brand-sub {
+    display: none;
+  }
+
+  .header-nav-actions {
+    gap: 0.35rem !important;
+  }
+
+  .nav-dropdown-toggle {
+    padding: 0.3rem 0.5rem !important;
+    font-size: 0.74rem !important;
+  }
+
+  .notes-back-link {
+    white-space: nowrap;
+    padding: 0.3rem 0.5rem !important;
+    font-size: 0.72rem !important;
+  }
+
+  body.notes-page .notes-main {
+    padding: 0.6rem 0.4rem 2.5rem !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    overflow-x: hidden !important;
+  }
+
+  .taal-workspace {
+    padding: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    overflow-x: hidden !important;
+  }
+
+  .controls-section {
+    padding: 0.45rem 0.5rem;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .controls-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.5rem;
+    width: 100%;
+  }
+
+  .taal-select-group {
+    flex: 0 0 auto;
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .tempo-controls-cluster {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+
+  .tempo-input-box {
+    flex: 0 0 auto;
+    width: auto;
+  }
+
+  .tempo-input {
+    width: 44px;
+    font-size: 1.15rem;
+  }
+
+  .tempo-unit-badge {
+    padding: 0 0.35rem;
+    font-size: 0.65rem;
+  }
+
+  .tempo-btn-multiplier {
+    min-width: 36px;
+    height: 40px;
+    padding: 0 0.4rem;
+    font-size: 0.88rem;
+    flex-shrink: 0;
+  }
+
+  .btn-play {
+    width: 100%;
+    height: 42px;
+  }
+
+  .playback-info-bar {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.35rem 0.25rem;
+    padding: 0.4rem 0.45rem;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .info-metric {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.1rem;
+    min-width: 0;
+  }
+
+  .metric-label {
+    font-size: 0.56rem;
+  }
+
+  .metric-val {
+    font-size: 0.82rem;
+  }
+
+  .beat-display-section {
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .beat-grid {
+    width: 100% !important;
+    box-sizing: border-box;
+    grid-template-columns: repeat(4, 1fr) !important;
+    gap: 0.25rem !important;
+  }
+
+  .beat-cell {
+    min-width: 0 !important;
+    min-height: 64px;
+    padding: 0.3rem 0.15rem !important;
+    border-radius: 6px;
+    box-sizing: border-box;
+  }
+
+  .beat-number {
+    font-size: 0.65rem;
+  }
+
+  .beat-marker {
+    font-size: 0.46rem;
+    padding: 0.08rem 0.2rem;
+  }
+
+  .beat-bol {
+    font-size: clamp(0.95rem, 3.8vw, 1.25rem) !important;
+  }
+
+  .vibhag-badge {
+    font-size: 0.46rem;
+  }
+
+  .playback-buttons-row {
+    flex-direction: column;
+    gap: 0.45rem;
+    width: 100%;
+  }
+
+  .btn-stop-now,
+  .btn-stop-cycle {
+    width: 100%;
+    height: 42px;
+  }
+}
+
+/* Ultra Small Screens (<= 380px) */
+@media (max-width: 380px) {
+  .beat-cell {
+    min-height: 60px;
+  }
+
+  .beat-bol {
+    font-size: 1rem !important;
+  }
+
+  .beat-marker {
+    display: none;
+  }
+}

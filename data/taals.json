@@ -1,0 +1,92 @@
+{
+  "version": 1,
+  "taals": [
+    {
+      "id": "tintaal",
+      "name": "Tintaal",
+      "beats": 16,
+      "vibhags": [4, 4, 4, 4],
+      "sam": 1,
+      "tali": [1, 5, 13],
+      "khali": [9],
+      "notation": [
+        "Dha",
+        "Dhin",
+        "Dhin",
+        "Dha",
+        "Dha",
+        "Dhin",
+        "Dhin",
+        "Dha",
+        "Na",
+        "Tin",
+        "Tin",
+        "Ta",
+        "Tete",
+        "Dhin",
+        "Dhin",
+        "Dha"
+      ]
+    },
+    {
+      "id": "dadra",
+      "name": "Dadra",
+      "beats": 6,
+      "vibhags": null,
+      "sam": null,
+      "tali": [],
+      "khali": [],
+      "notation": null
+    },
+    {
+      "id": "ektaal",
+      "name": "Ektaal",
+      "beats": 12,
+      "vibhags": null,
+      "sam": null,
+      "tali": [],
+      "khali": [],
+      "notation": null
+    },
+    {
+      "id": "keharwa",
+      "name": "Keharwa",
+      "beats": 8,
+      "vibhags": null,
+      "sam": null,
+      "tali": [],
+      "khali": [],
+      "notation": null
+    },
+    {
+      "id": "rupak",
+      "name": "Rupak",
+      "beats": 7,
+      "vibhags": null,
+      "sam": null,
+      "tali": [],
+      "khali": [],
+      "notation": null
+    },
+    {
+      "id": "jhaptaal",
+      "name": "Jhaptaal",
+      "beats": 10,
+      "vibhags": null,
+      "sam": null,
+      "tali": [],
+      "khali": [],
+      "notation": null
+    },
+    {
+      "id": "deepchandi",
+      "name": "Deepchandi",
+      "beats": 14,
+      "vibhags": null,
+      "sam": null,
+      "tali": [],
+      "khali": [],
+      "notation": null
+    }
+  ]
+}

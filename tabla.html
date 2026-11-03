@@ -5,20 +5,24 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta
       name="description"
-      content="Hindustani Classical Tabla Taal Engine by Tanmoy Flute. Rhythm accompaniment, practice beats, and thekas for bansuri and Indian classical music."
+      content="Hindustani Classical Tabla Taal Engine by Tanmoy Flute. Minimalist visual beat counting, metronome and rhythm practice."
     />
     <title>Tabla Taal Engine | Tanmoy Flute</title>
+    <!-- Google Fonts: Cormorant Garamond & Manrope -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Manrope:wght@500;600;700;800&display=swap"
       rel="stylesheet"
     />
+    <!-- Stylesheets -->
     <link rel="stylesheet" href="css/style.css" />
     <link rel="stylesheet" href="css/responsive.css" />
     <link rel="stylesheet" href="css/notes.css" />
+    <link rel="stylesheet" href="css/tabla.css" />
   </head>
   <body class="notes-page">
+    <!-- ── Global Site Header ─────────────────────────────────────────── -->
     <header class="site-header">
       <div class="container nav-shell">
         <a class="brand" href="index.html">
@@ -26,7 +30,7 @@
           <span class="brand-sub">Flute</span>
         </a>
 
-        <div style="display:flex; align-items:center; gap:1rem;">
+        <div class="header-nav-actions">
           <div class="nav-dropdown" id="toolsDropdown">
             <button class="nav-dropdown-toggle" aria-haspopup="true" aria-expanded="false" id="toolsToggle">
               Tools <span class="dropdown-arrow" aria-hidden="true">▾</span>
@@ -51,27 +55,130 @@
       </div>
     </header>
 
+    <!-- ── Main Stage Area (Viewport Optimized, No Desktop Scroll) ─────── -->
     <main class="notes-main">
-      <section class="notes-hero">
-        <div class="container">
+      <div class="taal-workspace" id="tablaTaalEngineApp">
+        <!-- 1. Minimalist Compact Header -->
+        <header class="engine-compact-header">
           <p class="eyebrow">Tools / Rhythm Studio</p>
-          <h1>Hindustani Classical <span>Tabla Taal Engine</span></h1>
-          <p class="notes-subtitle">Rhythm accompaniment, thekas &amp; practice beats for bansuri and classical music.</p>
-        </div>
-      </section>
+          <h1 class="engine-main-title">Tabla <span>Taal Engine</span></h1>
+          <p class="engine-subtitle">Hindustani Classical &bull; Metronome &bull; Laya</p>
+        </header>
 
-      <section class="container" style="max-width: 900px; margin: 0 auto; padding: 1rem;">
-        <div class="glass-card" style="padding: clamp(2rem, 5vw, 3.5rem) clamp(1.25rem, 4vw, 2.5rem); text-align: center; border-radius: 28px; border: 1px solid rgba(216, 168, 93, 0.3); background: linear-gradient(150deg, rgba(255, 255, 255, 0.06), rgba(9, 19, 25, 0.75)); box-shadow: var(--shadow-soft);">
-          <div style="font-size: 3.2rem; margin-bottom: 1.25rem; line-height: 1;">🥁</div>
-          <h2 style="font-family: 'Cormorant Garamond', serif; font-size: clamp(2rem, 4vw, 2.8rem); margin: 0 0 0.85rem; color: var(--accent-bright);">Tabla Taal Engine Workspace</h2>
-          <p style="color: var(--text-secondary); max-width: 560px; margin: 0 auto 1.5rem; line-height: 1.6; font-size: 1.05rem;">
-            This module is ready for development. Rhythm accompaniment, interactive thekas (Teentaal, Ektaal, Jhaptal, Keherwa, Dadra, Rupak), tempo BPM controls, and audio playback features will be built here.
-          </p>
-          <div id="tablaApp" class="tabla-app"></div>
-        </div>
-      </section>
+        <!-- 2. Diagnostic Status Notice -->
+        <div id="taalStatusNotice" class="taal-status-notice" role="status" aria-live="polite"></div>
+
+        <!-- 3. Horizontal Controls Section -->
+        <section class="controls-section" aria-label="Taal and Tempo Controls">
+          <div class="controls-row">
+            <!-- Taal Selector -->
+            <div class="taal-select-group">
+              <label class="control-label" for="taalSelect">SELECT TAAL</label>
+              <div class="select-wrapper">
+                <select class="taal-dropdown" id="taalSelect" name="taalSelect" aria-label="Select Taal">
+                  <option value="">Loading Taals...</option>
+                </select>
+                <span class="select-arrow" aria-hidden="true">&#9662;</span>
+              </div>
+            </div>
+
+            <!-- Tempo Controls Cluster -->
+            <div class="tempo-control-group">
+              <label class="control-label" for="tempoInput">TEMPO</label>
+              <div class="tempo-controls-cluster">
+                <div class="tempo-input-box">
+                  <input
+                    type="number"
+                    class="tempo-input"
+                    id="tempoInput"
+                    name="tempoInput"
+                    value="80"
+                    min="20"
+                    max="300"
+                    step="1"
+                    aria-label="Tempo in BPM"
+                  />
+                  <div class="tempo-steppers" aria-hidden="true">
+                    <button type="button" class="stepper-arrow-btn" id="btnStepperUp" tabindex="-1" aria-label="Increase tempo">&#9650;</button>
+                    <button type="button" class="stepper-arrow-btn" id="btnStepperDown" tabindex="-1" aria-label="Decrease tempo">&#9660;</button>
+                  </div>
+                  <span class="tempo-unit-badge">BPM</span>
+                </div>
+                <button
+                  type="button"
+                  class="tempo-btn-multiplier"
+                  id="btnHalveTempo"
+                  aria-label="Halve Tempo"
+                  title="Halve Tempo (÷2)"
+                >
+                  &divide;2
+                </button>
+                <button
+                  type="button"
+                  class="tempo-btn-multiplier"
+                  id="btnDoubleTempo"
+                  aria-label="Double Tempo"
+                  title="Double Tempo (×2)"
+                >
+                  &times;2
+                </button>
+              </div>
+            </div>
+
+            <!-- Play Button -->
+            <div class="play-control-group">
+              <button type="button" class="btn-play" id="btnPlay" aria-label="Play Taal">
+                <svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                  <path d="M4 2.5L13.5 8L4 13.5V2.5Z" />
+                </svg>
+                <span>PLAY</span>
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <!-- 4. Compact Playback Information Strip -->
+        <div id="playbackInfoBar" class="playback-info-bar" role="status" aria-live="polite"></div>
+
+        <!-- 5. Main Beat Grid Display (Full Width, Large Notation) -->
+        <section class="beat-display-section" aria-label="Beat Counting Display">
+          <div class="beat-grid" id="beatGrid" role="region" aria-label="Beat Grid">
+            <!-- Beat cells rendered dynamically by js/taal-renderer.js -->
+          </div>
+        </section>
+
+        <!-- 6. Playback Action Buttons (Side-by-Side Neutral Charcoal) -->
+        <section class="playback-actions-section" aria-label="Playback Action Controls">
+          <div class="playback-buttons-row">
+            <button type="button" class="btn-stop-now" id="btnStopNow" aria-label="Stop Now" disabled>
+              <span class="btn-icon" aria-hidden="true">
+                <svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+                  <rect x="2.5" y="2.5" width="11" height="11" rx="1.5" />
+                </svg>
+              </span>
+              STOP NOW
+            </button>
+            <button type="button" class="btn-stop-cycle" id="btnStopCycle" aria-label="Stop After Cycle" disabled>
+              <span class="btn-icon" aria-hidden="true">
+                <svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M2.5 3L9.5 8L2.5 13V3Z" />
+                  <rect x="11.5" y="3" width="2" height="10" rx="0.5" />
+                </svg>
+              </span>
+              STOP AFTER CYCLE
+            </button>
+          </div>
+        </section>
+      </div>
     </main>
 
+    <!-- ── JavaScript Modules ─────────────────────────────────────────── -->
+    <script src="tabla-taal-engine/js/taal-loader.js"></script>
+    <script src="tabla-taal-engine/js/taal-renderer.js"></script>
+    <script src="tabla-taal-engine/js/metronome-engine.js"></script>
+    <script src="tabla-taal-engine/js/app.js"></script>
+
+    <!-- Global Nav Dropdown Interaction -->
     <script>
       (function () {
         var toolsDropdown = document.getElementById("toolsDropdown");

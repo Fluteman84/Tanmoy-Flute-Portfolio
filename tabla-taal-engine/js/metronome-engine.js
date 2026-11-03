@@ -214,6 +214,13 @@
     },
 
     /**
+     * Alias for stopImmediate.
+     */
+    stop: function () {
+      this.stopImmediate();
+    },
+
+    /**
      * Requests termination after completing the current Taal cycle.
      * Playback continues until the final beat of the ongoing cycle, then stops before starting the next cycle.
      */

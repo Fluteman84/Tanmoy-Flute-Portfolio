@@ -37,10 +37,6 @@
     padding: 1.25rem 1.4rem 1.4rem;
   }
 
-  .playback-actions-section {
-    padding: 0 1.4rem 1.5rem;
-  }
-
   .section-divider {
     margin: 0 1.4rem;
   }
@@ -91,14 +87,35 @@
     flex: 1 1 auto;
   }
 
-  .play-control-group {
-    flex: 0 0 auto;
-    align-self: flex-end;
+  .playback-controls-group {
+    flex: 1 1 100%;
+    width: 100%;
+  }
+
+  .playback-buttons-cluster {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    width: 100%;
   }
 
   .btn-play {
+    flex: 1 1 100%;
+    width: 100%;
     height: 44px;
-    padding: 0 1.35rem;
+    padding: 0 1.25rem;
+  }
+
+  .btn-stop-now {
+    flex: 1 1 calc(45% - 0.25rem);
+    height: 44px;
+    min-width: 0;
+  }
+
+  .btn-stop-cycle {
+    flex: 1 1 calc(55% - 0.25rem);
+    height: 44px;
+    min-width: 0;
   }
 
   /* Live Info Bar on Mobile */
@@ -290,23 +307,6 @@
 
   .vibhag-badge {
     font-size: 0.52rem;
-  }
-
-  .playback-actions-section {
-    padding: 0 1rem 1.2rem;
-  }
-
-  .playback-buttons-row {
-    flex-direction: column;
-    gap: 0.65rem;
-  }
-
-  .btn-stop-now,
-  .btn-stop-cycle {
-    width: 100%;
-    min-height: 46px;
-    font-size: 0.88rem;
-    padding: 0.75rem 1rem;
   }
 }
 

@@ -189,15 +189,34 @@
         btnStepperDown
       } = this.elements;
 
-      // Play button
+      // Play / Pause toggle button
       if (btnPlay) {
         btnPlay.addEventListener("click", async (e) => {
           e.preventDefault();
           if (!this.metronome) return;
-          if (this.metronome.state === "PLAYING" || this.metronome.state === "STOPPING_AFTER_CYCLE") {
+
+          // 1. If currently playing or stopping after cycle -> PAUSE
+          if (
+            this.metronome.state === this.metronome.STATE_PLAYING ||
+            this.metronome.state === this.metronome.STATE_STOPPING_AFTER_CYCLE
+          ) {
+            this.metronome.pause();
             return;
           }
 
+          // 2. If currently paused -> RESUME
+          if (
+            this.metronome.state === this.metronome.STATE_PAUSED ||
+            this.metronome.state === this.metronome.STATE_PAUSED_AFTER_CYCLE_REQUEST
+          ) {
+            if (this.audioEngine) {
+              await this.audioEngine.ensureContext();
+            }
+            this.metronome.resume();
+            return;
+          }
+
+          // 3. If currently stopped -> START from beat 1
           // Audio initialization & user-gesture resumption
           if (this.audioEngine) {
             if (this.audioEngine.status === "UNINITIALIZED" || this.audioEngine.status === "LOADING") {

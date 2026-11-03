@@ -125,14 +125,36 @@
               </div>
             </div>
 
-            <!-- Play Button -->
-            <div class="play-control-group">
-              <button type="button" class="btn-play" id="btnPlay" aria-label="Play Taal">
-                <svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                  <path d="M4 2.5L13.5 8L4 13.5V2.5Z" />
-                </svg>
-                <span>PLAY</span>
-              </button>
+            <!-- Playback Controls Cluster (Unified Row) -->
+            <div class="playback-controls-group">
+              <label class="control-label">PLAYBACK</label>
+              <div class="playback-buttons-cluster">
+                <button type="button" class="btn-play" id="btnPlay" aria-label="Play Taal" aria-pressed="false">
+                  <span class="btn-icon" aria-hidden="true">
+                    <svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M4 2.5L13.5 8L4 13.5V2.5Z" />
+                    </svg>
+                  </span>
+                  <span class="btn-label">PLAY</span>
+                </button>
+                <button type="button" class="btn-stop-now" id="btnStopNow" aria-label="Stop Now" disabled>
+                  <span class="btn-icon" aria-hidden="true">
+                    <svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+                      <rect x="3" y="3" width="10" height="10" rx="1.5" />
+                    </svg>
+                  </span>
+                  <span class="btn-label">STOP NOW</span>
+                </button>
+                <button type="button" class="btn-stop-cycle" id="btnStopCycle" aria-label="Stop After Cycle" disabled>
+                  <span class="btn-icon" aria-hidden="true">
+                    <svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M2.5 3L9.5 8L2.5 13V3Z" />
+                      <rect x="11.5" y="3" width="2" height="10" rx="0.5" />
+                    </svg>
+                  </span>
+                  <span class="btn-label">STOP AFTER CYCLE</span>
+                </button>
+              </div>
             </div>
           </div>
         </section>
@@ -144,29 +166,6 @@
         <section class="beat-display-section" aria-label="Beat Counting Display">
           <div class="beat-grid" id="beatGrid" role="region" aria-label="Beat Grid">
             <!-- Beat cells rendered dynamically by js/taal-renderer.js -->
-          </div>
-        </section>
-
-        <!-- 6. Playback Action Buttons (Side-by-Side Neutral Charcoal) -->
-        <section class="playback-actions-section" aria-label="Playback Action Controls">
-          <div class="playback-buttons-row">
-            <button type="button" class="btn-stop-now" id="btnStopNow" aria-label="Stop Now" disabled>
-              <span class="btn-icon" aria-hidden="true">
-                <svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
-                  <rect x="2.5" y="2.5" width="11" height="11" rx="1.5" />
-                </svg>
-              </span>
-              STOP NOW
-            </button>
-            <button type="button" class="btn-stop-cycle" id="btnStopCycle" aria-label="Stop After Cycle" disabled>
-              <span class="btn-icon" aria-hidden="true">
-                <svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M2.5 3L9.5 8L2.5 13V3Z" />
-                  <rect x="11.5" y="3" width="2" height="10" rx="0.5" />
-                </svg>
-              </span>
-              STOP AFTER CYCLE
-            </button>
           </div>
         </section>
       </div>

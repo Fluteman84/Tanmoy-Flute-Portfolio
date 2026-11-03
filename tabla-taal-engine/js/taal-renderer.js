@@ -247,9 +247,15 @@
       if (info.state === "PLAYING") {
         statusLabel = "PLAYING";
         statusClass = "status-playing";
+      } else if (info.state === "PAUSED") {
+        statusLabel = "PAUSED";
+        statusClass = "status-paused";
       } else if (info.state === "STOPPING_AFTER_CYCLE") {
         statusLabel = "STOPPING AT END OF CYCLE";
         statusClass = "status-stopping";
+      } else if (info.state === "PAUSED_AFTER_CYCLE_REQUEST") {
+        statusLabel = "PAUSED — STOPPING AFTER CYCLE";
+        statusClass = "status-paused-stopping";
       }
 
       let soundLabel = "READY";
@@ -301,86 +307,106 @@
     /**
      * Synchronizes button states with the playback state machine.
      * @param {Object} buttons - { btnPlay, btnStopNow, btnStopCycle }
-     * @param {string} state - STOPPED | PLAYING | STOPPING_AFTER_CYCLE
+     * @param {string} state - STOPPED | PLAYING | PAUSED | STOPPING_AFTER_CYCLE | PAUSED_AFTER_CYCLE_REQUEST
      */
     updateButtonStates: function (buttons, state) {
       const { btnPlay, btnStopNow, btnStopCycle } = buttons;
 
       if (!btnPlay || !btnStopNow || !btnStopCycle) return;
 
+      const playIconSvg = `<span class="btn-icon" aria-hidden="true"><svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg"><path d="M4 2.5L13.5 8L4 13.5V2.5Z" /></svg></span>`;
+      const pauseIconSvg = `<span class="btn-icon" aria-hidden="true"><svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg"><rect x="3.5" y="2.5" width="3" height="11" rx="1" /><rect x="9.5" y="2.5" width="3" height="11" rx="1" /></svg></span>`;
+      const stopNowIconSvg = `<span class="btn-icon" aria-hidden="true"><svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg"><rect x="3" y="3" width="10" height="10" rx="1.5" /></svg></span>`;
+      const stopCycleIconSvg = `<span class="btn-icon" aria-hidden="true"><svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg"><path d="M2.5 3L9.5 8L2.5 13V3Z" /><rect x="11.5" y="3" width="2" height="10" rx="0.5" /></svg></span>`;
+      const stopCyclePendingIconSvg = `<span class="btn-icon" aria-hidden="true"><svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg"><circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="2" fill="none" stroke-dasharray="8 4" /></svg></span>`;
+
       if (state === "STOPPED") {
-        // Play enabled
+        // Play button: Enabled, Shows "PLAY"
         btnPlay.classList.remove("is-playing");
         btnPlay.removeAttribute("disabled");
         btnPlay.setAttribute("aria-pressed", "false");
-        btnPlay.innerHTML = `
-          <svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-            <path d="M4 2.5L13.5 8L4 13.5V2.5Z" />
-          </svg>
-          Play
-        `;
+        btnPlay.setAttribute("aria-label", "Play Taal");
+        btnPlay.innerHTML = `${playIconSvg}<span class="btn-label">PLAY</span>`;
 
-        // Stop buttons disabled
+        // Stop buttons: Disabled
         btnStopNow.setAttribute("disabled", "true");
         btnStopNow.classList.add("is-disabled");
+        btnStopNow.innerHTML = `${stopNowIconSvg}<span class="btn-label">STOP NOW</span>`;
 
         btnStopCycle.setAttribute("disabled", "true");
         btnStopCycle.classList.add("is-disabled");
         btnStopCycle.classList.remove("is-pending");
-        btnStopCycle.innerHTML = `
-          <span class="btn-icon" aria-hidden="true">
-            <svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
-              <path d="M2.5 3L9.5 8L2.5 13V3Z" />
-              <rect x="11.5" y="3" width="2" height="10" rx="0.5" />
-            </svg>
-          </span>
-          STOP AFTER CYCLE
-        `;
+        btnStopCycle.innerHTML = `${stopCycleIconSvg}<span class="btn-label">STOP AFTER CYCLE</span>`;
       } else if (state === "PLAYING") {
-        // Play indicates active playback
+        // Play button: Active, Shows "PAUSE"
         btnPlay.classList.add("is-playing");
+        btnPlay.removeAttribute("disabled");
         btnPlay.setAttribute("aria-pressed", "true");
-        btnPlay.innerHTML = `
-          <span class="playing-pulse-indicator" aria-hidden="true"></span>
-          Playing
-        `;
+        btnPlay.setAttribute("aria-label", "Pause Taal");
+        btnPlay.innerHTML = `${pauseIconSvg}<span class="btn-label">PAUSE</span>`;
 
-        // Stop buttons active
+        // Stop Now: Enabled
         btnStopNow.removeAttribute("disabled");
         btnStopNow.classList.remove("is-disabled");
+        btnStopNow.innerHTML = `${stopNowIconSvg}<span class="btn-label">STOP NOW</span>`;
 
+        // Stop After Cycle: Enabled
         btnStopCycle.removeAttribute("disabled");
         btnStopCycle.classList.remove("is-disabled");
         btnStopCycle.classList.remove("is-pending");
-        btnStopCycle.innerHTML = `
-          <span class="btn-icon" aria-hidden="true">
-            <svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
-              <path d="M2.5 3L9.5 8L2.5 13V3Z" />
-              <rect x="11.5" y="3" width="2" height="10" rx="0.5" />
-            </svg>
-          </span>
-          STOP AFTER CYCLE
-        `;
-      } else if (state === "STOPPING_AFTER_CYCLE") {
-        // Play remains active
-        btnPlay.classList.add("is-playing");
-        btnPlay.setAttribute("aria-pressed", "true");
+        btnStopCycle.innerHTML = `${stopCycleIconSvg}<span class="btn-label">STOP AFTER CYCLE</span>`;
+      } else if (state === "PAUSED") {
+        // Play button: Shows "PLAY" (Resume action)
+        btnPlay.classList.remove("is-playing");
+        btnPlay.removeAttribute("disabled");
+        btnPlay.setAttribute("aria-pressed", "false");
+        btnPlay.setAttribute("aria-label", "Resume Taal");
+        btnPlay.innerHTML = `${playIconSvg}<span class="btn-label">PLAY</span>`;
 
-        // Stop Now remains enabled for immediate abort
+        // Stop Now: Enabled (resets to beat 1, cycle 1, stopped)
         btnStopNow.removeAttribute("disabled");
         btnStopNow.classList.remove("is-disabled");
+        btnStopNow.innerHTML = `${stopNowIconSvg}<span class="btn-label">STOP NOW</span>`;
 
-        // Stop After Cycle shows pending status
+        // Stop After Cycle: Enabled (sets pending stop request while paused)
+        btnStopCycle.removeAttribute("disabled");
+        btnStopCycle.classList.remove("is-disabled");
+        btnStopCycle.classList.remove("is-pending");
+        btnStopCycle.innerHTML = `${stopCycleIconSvg}<span class="btn-label">STOP AFTER CYCLE</span>`;
+      } else if (state === "STOPPING_AFTER_CYCLE") {
+        // Play button: Active, Shows "PAUSE"
+        btnPlay.classList.add("is-playing");
+        btnPlay.removeAttribute("disabled");
+        btnPlay.setAttribute("aria-pressed", "true");
+        btnPlay.setAttribute("aria-label", "Pause Taal");
+        btnPlay.innerHTML = `${pauseIconSvg}<span class="btn-label">PAUSE</span>`;
+
+        // Stop Now: Enabled for immediate abort
+        btnStopNow.removeAttribute("disabled");
+        btnStopNow.classList.remove("is-disabled");
+        btnStopNow.innerHTML = `${stopNowIconSvg}<span class="btn-label">STOP NOW</span>`;
+
+        // Stop After Cycle: Shows pending status
         btnStopCycle.removeAttribute("disabled");
         btnStopCycle.classList.add("is-pending");
-        btnStopCycle.innerHTML = `
-          <span class="btn-icon" aria-hidden="true">
-            <svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
-              <circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="2" fill="none" stroke-dasharray="8 4" />
-            </svg>
-          </span>
-          FINISHING CYCLE...
-        `;
+        btnStopCycle.innerHTML = `${stopCyclePendingIconSvg}<span class="btn-label">FINISHING CYCLE...</span>`;
+      } else if (state === "PAUSED_AFTER_CYCLE_REQUEST") {
+        // Play button: Shows "PLAY" (Resume action)
+        btnPlay.classList.remove("is-playing");
+        btnPlay.removeAttribute("disabled");
+        btnPlay.setAttribute("aria-pressed", "false");
+        btnPlay.setAttribute("aria-label", "Resume Taal (Finishing Cycle)");
+        btnPlay.innerHTML = `${playIconSvg}<span class="btn-label">PLAY</span>`;
+
+        // Stop Now: Enabled
+        btnStopNow.removeAttribute("disabled");
+        btnStopNow.classList.remove("is-disabled");
+        btnStopNow.innerHTML = `${stopNowIconSvg}<span class="btn-label">STOP NOW</span>`;
+
+        // Stop After Cycle: Remains in pending state
+        btnStopCycle.removeAttribute("disabled");
+        btnStopCycle.classList.add("is-pending");
+        btnStopCycle.innerHTML = `${stopCyclePendingIconSvg}<span class="btn-label">FINISHING CYCLE...</span>`;
       }
     },
 

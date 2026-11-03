@@ -5,7 +5,9 @@
  * Responsibilities:
  * - High-resolution monotonic timing via performance.now() and Web Audio API
  * - Drift-compensated deadline scheduling (no setInterval)
- * - Playback state machine: STOPPED | PLAYING | STOPPING_AFTER_CYCLE
+ * - Complete playback state machine:
+ *     STOPPED | PLAYING | PAUSED | STOPPING_AFTER_CYCLE | PAUSED_AFTER_CYCLE_REQUEST
+ * - Instant Pause/Resume mechanism preserving beat position, cycle counter, and pending stop requests
  * - Seamless mid-playback tempo adjustment at next beat boundary
  * - Synchronized audio and visual beat progression against the absolute beat timeline
  * - Immediate stop (STOP NOW) with instant audio cutoff
@@ -20,7 +22,9 @@
     // Playback States
     STATE_STOPPED: "STOPPED",
     STATE_PLAYING: "PLAYING",
+    STATE_PAUSED: "PAUSED",
     STATE_STOPPING_AFTER_CYCLE: "STOPPING_AFTER_CYCLE",
+    STATE_PAUSED_AFTER_CYCLE_REQUEST: "PAUSED_AFTER_CYCLE_REQUEST",
 
     // State Variables
     state: "STOPPED",
@@ -62,6 +66,7 @@
       this._audioIntervalSec = 60 / this.bpm;
       this.currentBeat = 1;
       this.currentCycle = 1;
+      this._stopAfterCycleRequested = false;
       this.audioEngine = window.AudioEngine || null;
 
       // Handle background tab throttling recovery
@@ -94,6 +99,7 @@
     /**
      * Sets a new tempo (BPM). Clamped to 20..300 BPM.
      * If playing, applies the new interval at the next beat boundary without resetting beat or cycle.
+     * If paused, preserves beat/cycle/stop request and applies when resumed.
      * @param {number} newBpm - Target tempo in Beats Per Minute.
      * @returns {number} The sanitized BPM applied.
      */
@@ -126,12 +132,16 @@
     },
 
     /**
-     * Starts playback from Beat 1, Cycle 1.
+     * Starts playback from Beat 1, Cycle 1 (or delegates to resume if currently paused).
      * Guarded against duplicate calls.
      */
     start: function () {
       if (this.state === this.STATE_PLAYING || this.state === this.STATE_STOPPING_AFTER_CYCLE) {
-        return; // Already playing; prevent duplicate loops
+        return; // Already playing
+      }
+
+      if (this.state === this.STATE_PAUSED || this.state === this.STATE_PAUSED_AFTER_CYCLE_REQUEST) {
+        return this.resume();
       }
 
       // Refresh AudioEngine reference if needed
@@ -182,6 +192,92 @@
     },
 
     /**
+     * Pauses playback immediately.
+     * Freezes current beat, cycle, Taal, and preserves any pending stop-after-cycle request.
+     * Silences all playing audio immediately.
+     */
+    pause: function () {
+      if (this.state !== this.STATE_PLAYING && this.state !== this.STATE_STOPPING_AFTER_CYCLE) {
+        return; // Only active playback can be paused
+      }
+
+      // Invalidate session token to prevent scheduled callbacks from firing
+      this._sessionToken = null;
+      if (this._timerId) {
+        clearTimeout(this._timerId);
+        this._timerId = null;
+      }
+
+      // Immediately silence any currently playing or scheduled audio
+      if (this.audioEngine && typeof this.audioEngine.stopAll === "function") {
+        this.audioEngine.stopAll();
+      }
+
+      // Transition to appropriate paused state preserving pending stop-after-cycle
+      if (this._stopAfterCycleRequested) {
+        this.state = this.STATE_PAUSED_AFTER_CYCLE_REQUEST;
+      } else {
+        this.state = this.STATE_PAUSED;
+      }
+
+      this._notifyStateChange();
+    },
+
+    /**
+     * Resumes playback from the preserved beat position and cycle counter.
+     * Plays the appropriate sample for the preserved beat and resumes progression.
+     */
+    resume: function () {
+      if (this.state !== this.STATE_PAUSED && this.state !== this.STATE_PAUSED_AFTER_CYCLE_REQUEST) {
+        return; // Only paused state can be resumed
+      }
+
+      // Refresh AudioEngine reference if needed
+      if (!this.audioEngine && window.AudioEngine) {
+        this.audioEngine = window.AudioEngine;
+      }
+
+      const session = {};
+      this._sessionToken = session;
+
+      // Transition back to PLAYING or STOPPING_AFTER_CYCLE
+      if (this._stopAfterCycleRequested) {
+        this.state = this.STATE_STOPPING_AFTER_CYCLE;
+      } else {
+        this.state = this.STATE_PLAYING;
+      }
+
+      // Recompute intervals from current BPM
+      this._intervalMs = 60000 / this.bpm;
+      this._audioIntervalSec = 60 / this.bpm;
+
+      // Anchor timelines from right now
+      const now = (typeof performance !== "undefined" && performance.now) ? performance.now() : Date.now();
+      const hasAudio = (this.audioEngine && this.audioEngine.status === "READY" && this.audioEngine.ctx);
+      const audioNow = hasAudio ? this.audioEngine.ctx.currentTime : 0;
+
+      const leadInSec = 0.025;
+      const leadInMs = leadInSec * 1000;
+
+      this._timelineStart = now + leadInMs;
+      this._audioTimelineStart = audioNow + leadInSec;
+      this._beatsInCurrentSegment = 0;
+      this._nextBeatExpectedTime = this._timelineStart + this._intervalMs;
+      this._nextBeatAudioTime = this._audioTimelineStart + this._audioIntervalSec;
+
+      this._notifyStateChange();
+
+      // 1. Play the saved beat sample from its beginning
+      this._triggerAudioForBeat(this.currentBeat, this.currentCycle, this._audioTimelineStart);
+
+      // 2. Keep visual highlight on the current beat
+      this._notifyBeat();
+
+      // 3. Schedule the subsequent tick
+      this._scheduleNextTick(session);
+    },
+
+    /**
      * Triggers audio playback for the given beat against the Web Audio timeline.
      * @param {number} beatNumber
      * @param {number} cycleNumber
@@ -202,7 +298,7 @@
      * @param {Object} session - The current session token.
      */
     _scheduleNextTick: function (session) {
-      if (this._sessionToken !== session || this.state === this.STATE_STOPPED) {
+      if (this._sessionToken !== session || this.state === this.STATE_STOPPED || this.state === this.STATE_PAUSED || this.state === this.STATE_PAUSED_AFTER_CYCLE_REQUEST) {
         return;
       }
 
@@ -220,8 +316,8 @@
      * @param {Object} session - The session token for validation.
      */
     _tick: function (session) {
-      // Invalidate if session token has changed or state is stopped
-      if (this._sessionToken !== session || this.state === this.STATE_STOPPED) {
+      // Invalidate if session token has changed or state is not active
+      if (this._sessionToken !== session || this.state === this.STATE_STOPPED || this.state === this.STATE_PAUSED || this.state === this.STATE_PAUSED_AFTER_CYCLE_REQUEST) {
         return;
       }
 
@@ -261,7 +357,7 @@
     /**
      * Requests immediate termination of playback.
      * Cancels all timers, stops and silences all audio samples, resets position to Beat 1,
-     * cycle to 1, and restores STOPPED state.
+     * cycle to 1, clears pending cycle stop requests, and restores STOPPED state.
      */
     stopImmediate: function () {
       // Invalidate session immediately
@@ -301,16 +397,19 @@
 
     /**
      * Requests termination after completing the current Taal cycle.
-     * Playback continues until the final beat of the ongoing cycle, then stops before starting the next cycle.
+     * If playing, continues until the final beat of ongoing cycle, then stops.
+     * If paused, registers the pending stop request and remains paused until resumed.
      */
     stopAfterCycle: function () {
-      if (this.state !== this.STATE_PLAYING) {
-        return; // Inactive or already stopping
+      if (this.state === this.STATE_PLAYING) {
+        this._stopAfterCycleRequested = true;
+        this.state = this.STATE_STOPPING_AFTER_CYCLE;
+        this._notifyStateChange();
+      } else if (this.state === this.STATE_PAUSED) {
+        this._stopAfterCycleRequested = true;
+        this.state = this.STATE_PAUSED_AFTER_CYCLE_REQUEST;
+        this._notifyStateChange();
       }
-
-      this._stopAfterCycleRequested = true;
-      this.state = this.STATE_STOPPING_AFTER_CYCLE;
-      this._notifyStateChange();
     },
 
     /**
@@ -345,12 +444,12 @@
      */
     _handleVisibilityChange: function () {
       if (typeof document === "undefined" || document.hidden) {
-        return; // Tab became hidden; background timer continues
+        return; // Tab became hidden
       }
 
       // Tab became visible again
       if (this.state !== this.STATE_PLAYING && this.state !== this.STATE_STOPPING_AFTER_CYCLE) {
-        return;
+        return; // Paused or stopped: do not advance
       }
 
       const now = (typeof performance !== "undefined" && performance.now) ? performance.now() : Date.now();

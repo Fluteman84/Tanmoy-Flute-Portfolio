@@ -300,6 +300,36 @@
   font-family: "Cormorant Garamond", serif;
   font-size: 1.4rem;
   line-height: 1.5;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+.sw-measure,
+.sw-position,
+.pos-char,
+.sw-barline {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+.song-info-field input,
+.section-name-input,
+.sw-rulebook-body,
+.sw-rulebook-content,
+.sw-modal p,
+.sw-toast {
+  -webkit-user-select: text;
+  -moz-user-select: text;
+  user-select: text;
+  -webkit-touch-callout: default;
 }
 
 .notation-area:focus {
@@ -969,9 +999,12 @@
     padding: 0.75rem 0 1.25rem;
   }
 
-  .four-bar-block.bars-per-row-4 .sw-measure {
-    flex: 0 0 calc(50% - 2px);
-    max-width: calc(50% - 2px);
+  .song-info-field {
+    width: 100%;
+  }
+
+  .song-info-field select {
+    width: 100%;
   }
 
   .song-info-bar {
@@ -1048,6 +1081,29 @@
     padding: 10mm;
   }
 
+  .sw-print-actions {
+    position: fixed;
+    bottom: max(1rem, env(safe-area-inset-bottom, 1rem));
+    left: 50%;
+    transform: translateX(-50%);
+    width: min(92vw, 380px);
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 0.6rem;
+    background: rgba(4, 8, 11, 0.94);
+    border: 1px solid rgba(216, 168, 93, 0.3);
+    border-radius: 16px;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+
+  .sw-print-actions .sw-btn {
+    width: 100%;
+    justify-content: center;
+    padding: 0.6rem 1rem;
+    font-size: 0.85rem;
+  }
+
 
 }
 
@@ -1066,5 +1122,23 @@
 
   .section-name-input {
     font-size: 1.3rem;
+  }
+}
+
+/* -----------------------------------------------
+   Responsive — Selection Popup
+   ----------------------------------------------- */
+@media (max-width: 600px) {
+  .selection-popup {
+    max-width: calc(100vw - 20px);
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.25rem;
+    padding: 0.4rem;
+  }
+
+  .popup-btn {
+    padding: 0.35rem 0.55rem;
+    font-size: 0.74rem;
   }
 }

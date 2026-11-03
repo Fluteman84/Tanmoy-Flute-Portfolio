@@ -53,7 +53,9 @@
     this.clipboard = null;         // {positions: [...]}
     this.savedSong = null;         // for dirty check
     this._pdfBarsPerRow = 4;       // 4 or 2
-    this.barsPerRow = 4;           // 4 bars per row default for desktop editing
+    this._userForcedBarsPerRow = false;
+    var isMobileInit = (typeof window !== "undefined" && window.innerWidth <= 760);
+    this.barsPerRow = isMobileInit ? 2 : 4; // 2 bars per row on mobile (≤760px), 4 on desktop default
 
     // DOM caches
     this._songNameEl = null;
@@ -129,13 +131,13 @@
     h += '<div class="project-controls-bar">';
     h += '<button class="sw-btn" data-action="undo" title="Undo (Ctrl+Z)">↶ Undo</button>';
     h += '<button class="sw-btn" data-action="redo" title="Redo (Ctrl+Y)">↷ Redo</button>';
-    h += '<button class="sw-btn" data-action="toggle-bars" id="swBarsToggle" title="Toggle between 4 bars and 2 bars per row">4 Bars / Row</button>';
+    h += '<button class="sw-btn" data-action="toggle-bars" id="swBarsToggle" title="Toggle between 4 bars and 2 bars per row">' + this.barsPerRow + ' Bars / Row</button>';
     h += '<button class="sw-btn sw-btn--accent" data-action="export-swar" title="Export .swar project file">⬇ Export Project (.swar)</button>';
     h += '<button class="sw-btn" data-action="import-swar" title="Import .swar project file">⬆ Import Project</button>';
     h += '<button class="sw-btn" data-action="export-txt" title="Export plain text">📄 Export TXT</button>';
     h += '<button class="sw-btn" data-action="export-pdf" title="Print or preview PDF">🖨 PDF Preview</button>';
     h += '<button class="sw-btn sw-btn--danger" data-action="reset" title="Reset composition">⟲ Reset</button>';
-    h += '<input type="file" id="swFileInput" accept=".swar" style="display:none" />';
+    h += '<input type="file" id="swFileInput" accept=".swar,.swar.json,.json,application/json" style="display:none" />';
     h += '</div>';
 
     // Sections container
@@ -145,7 +147,7 @@
     h += '<button class="add-section-btn" data-action="add-section" style="margin-top:1.5rem;">+ Add Section</button>';
 
     // Hidden proxy caret trap for desktop & mobile virtual keyboard
-    h += '<input type="text" id="swProxyInput" class="sw-proxy-input" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" aria-hidden="true" style="position:fixed; opacity:0; width:1px; height:1px; top:0; left:0; border:0; padding:0; pointer-events:none; z-index:-1;" />';
+    h += '<input type="text" id="swProxyInput" class="sw-proxy-input" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" aria-hidden="true" style="position:absolute; opacity:0; width:1px; height:1px; top:0; left:0; border:0; padding:0; margin:0; pointer-events:none; z-index:-1;" />';
 
     // Floating UI Elements
     h += '<div class="sw-cursor" id="swCursor"></div>';
@@ -227,14 +229,38 @@
       }
     });
 
-    // Proxy Input keyboard events
-    this._proxyInput.addEventListener("keydown", function (e) {
-      self._onKeyDown(e);
+    // Proxy Input keyboard & input events (BUG-MOB-03 Android deletion support & duplicate protection)
+    var lastDeleteTime = 0;
+    function safeDelete(source) {
+      var now = Date.now();
+      if (now - lastDeleteTime < 80) return; // Prevent duplicate deletion within 80ms window
+      lastDeleteTime = now;
+      self._handleBackspace();
+    }
+    self._safeDelete = safeDelete;
+
+    this._proxyInput.addEventListener("beforeinput", function (e) {
+      if (e.inputType === "deleteContentBackward") {
+        if (e.cancelable) e.preventDefault();
+        safeDelete("beforeinput");
+        return;
+      }
+      if (e.inputType === "deleteContentForward") {
+        if (e.cancelable) e.preventDefault();
+        self._handleDelete();
+        return;
+      }
     });
-    this._proxyInput.addEventListener("keyup", function (e) {
-      self._onKeyUp(e);
-    });
+
     this._proxyInput.addEventListener("input", function (e) {
+      if (e.inputType === "deleteContentBackward") {
+        safeDelete("input");
+        return;
+      }
+      if (e.inputType === "deleteContentForward") {
+        self._handleDelete();
+        return;
+      }
       if (self._proxyInput.value) {
         var val = self._proxyInput.value;
         self._proxyInput.value = "";
@@ -242,6 +268,13 @@
           self._handleCharInput(val[ci]);
         }
       }
+    });
+
+    this._proxyInput.addEventListener("keydown", function (e) {
+      self._onKeyDown(e);
+    });
+    this._proxyInput.addEventListener("keyup", function (e) {
+      self._onKeyUp(e);
     });
 
     // Global keyboard listener for shortcut fallback
@@ -323,21 +356,152 @@
       e.preventDefault();
       if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length) {
         var file = e.dataTransfer.files[0];
-        if (file.name.endsWith(".swar")) {
+        var fn = (file && file.name) ? file.name.toLowerCase() : "";
+        if (fn.endsWith(".swar") || fn.endsWith(".swar.json") || fn.endsWith(".json")) {
           self._importFile(file);
         }
       }
     });
 
-    // Viewport resize & scroll
+    // Touch range selection on mobile devices (BUG-MOB-06)
+    var touchStartPosIdx = -1;
+    var touchStartX = 0;
+    var touchStartY = 0;
+    var touchTimer = null;
+    var isTouchSelecting = false;
+
+    this._sectionsEl.addEventListener("touchstart", function (e) {
+      var posEl = e.target.closest(".sw-position");
+      if (!posEl || e.touches.length !== 1) {
+        touchStartPosIdx = -1;
+        isTouchSelecting = false;
+        clearTimeout(touchTimer);
+        return;
+      }
+      var area = posEl.closest(".notation-area");
+      if (area) {
+        var aIdx = Number(area.dataset.sectionIndex);
+        if (!isNaN(aIdx) && aIdx !== self.activeSectionIdx) {
+          self._switchActiveSection(aIdx);
+        }
+      }
+
+      touchStartPosIdx = Number(posEl.dataset.posIndex);
+      touchStartX = e.touches[0].clientX;
+      touchStartY = e.touches[0].clientY;
+      isTouchSelecting = false;
+
+      clearTimeout(touchTimer);
+      touchTimer = setTimeout(function () {
+        // Touch held for > 250ms on a swara: activate selection mode
+        isTouchSelecting = true;
+        var sec = self._activeSection();
+        if (sec && touchStartPosIdx >= 0 && touchStartPosIdx < sec.positions.length) {
+          self.selection = {
+            anchorPos: touchStartPosIdx,
+            anchorOff: 0,
+            focusPos: touchStartPosIdx,
+            focusOff: S.positionCharCount(sec.positions[touchStartPosIdx])
+          };
+          self.render();
+        }
+      }, 250);
+    }, { passive: true });
+
+    this._sectionsEl.addEventListener("touchmove", function (e) {
+      if (touchStartPosIdx < 0 || e.touches.length !== 1) return;
+
+      var curX = e.touches[0].clientX;
+      var curY = e.touches[0].clientY;
+
+      if (!isTouchSelecting) {
+        // If moved vertically > 10px before the long-press timer fired, it's a normal page scroll!
+        if (Math.abs(curY - touchStartY) > 10 || Math.abs(curX - touchStartX) > 10) {
+          clearTimeout(touchTimer);
+          touchStartPosIdx = -1;
+        }
+        return;
+      }
+
+      // We are in active touch selection mode: prevent viewport scrolling
+      if (e.cancelable) e.preventDefault();
+
+      var el = document.elementFromPoint(curX, curY);
+      var hoverPosEl = el ? el.closest(".sw-position") : null;
+      if (hoverPosEl) {
+        var hoverIdx = Number(hoverPosEl.dataset.posIndex);
+        var sec = self._activeSection();
+        if (sec && !isNaN(hoverIdx) && hoverIdx >= 0 && hoverIdx < sec.positions.length) {
+          if (self.selection && self.selection.focusPos !== hoverIdx) {
+            self.selection.focusPos = hoverIdx;
+            self.selection.focusOff = S.positionCharCount(sec.positions[hoverIdx]);
+            self.render();
+          }
+        }
+      }
+    }, { passive: false });
+
+    this._sectionsEl.addEventListener("touchend", function (e) {
+      clearTimeout(touchTimer);
+      if (isTouchSelecting) {
+        isTouchSelecting = false;
+        touchStartPosIdx = -1;
+        if (self.selection) {
+          self._showSelectionPopup();
+        }
+        return;
+      }
+      touchStartPosIdx = -1;
+    });
+
+    this._sectionsEl.addEventListener("touchcancel", function () {
+      clearTimeout(touchTimer);
+      isTouchSelecting = false;
+      touchStartPosIdx = -1;
+    });
+
+    // Viewport resize, orientation change & scroll (BUG-MOB-02 & BUG-MOB-01)
     window.addEventListener("scroll", function () {
       self._hidePopup();
       self._hideContextMenu();
       self._repositionCursor();
     }, { passive: true });
 
+    var resizeDebounce = null;
     window.addEventListener("resize", function () {
-      self._repositionCursor();
+      clearTimeout(resizeDebounce);
+      resizeDebounce = setTimeout(function () {
+        if (!self._userForcedBarsPerRow) {
+          var nowMobile = window.innerWidth <= 760;
+          var targetBpr = nowMobile ? 2 : 4;
+          if (self.barsPerRow !== targetBpr) {
+            self.barsPerRow = targetBpr;
+            var toggleBtn = document.getElementById("swBarsToggle");
+            if (toggleBtn) toggleBtn.textContent = self.barsPerRow + " Bars / Row";
+            self.render();
+          }
+        }
+        self._repositionCursor();
+        if (self.selection && self._popupEl && !self._popupEl.classList.contains("is-hidden")) {
+          self._showSelectionPopup();
+        }
+      }, 120);
+    });
+
+    window.addEventListener("orientationchange", function () {
+      setTimeout(function () {
+        if (!self._userForcedBarsPerRow) {
+          var nowMobile = window.innerWidth <= 760;
+          var targetBpr = nowMobile ? 2 : 4;
+          if (self.barsPerRow !== targetBpr) {
+            self.barsPerRow = targetBpr;
+            var toggleBtn = document.getElementById("swBarsToggle");
+            if (toggleBtn) toggleBtn.textContent = self.barsPerRow + " Bars / Row";
+            self.render();
+          }
+        }
+        self._repositionCursor();
+      }, 200);
     });
   };
 
@@ -346,8 +510,20 @@
    * ════════════════════════════════════════════════════════════ */
   P._focusProxy = function () {
     if (this._proxyInput) {
+      var area = this._sectionsEl ? this._sectionsEl.querySelector('.notation-area[data-section-index="' + this.activeSectionIdx + '"]') : null;
+      if (area && this._proxyInput.parentElement !== area) {
+        area.appendChild(this._proxyInput);
+      }
+      if (this._cursorEl && this._cursorEl.parentElement === area) {
+        this._proxyInput.style.top = this._cursorEl.style.top || "0px";
+        this._proxyInput.style.left = this._cursorEl.style.left || "0px";
+      }
       this._proxyInput.value = "";
-      this._proxyInput.focus({ preventScroll: true });
+      try {
+        this._proxyInput.focus({ preventScroll: true });
+      } catch (e) {
+        this._proxyInput.focus();
+      }
     }
   };
 
@@ -359,6 +535,7 @@
       case "undo": this._undo(); break;
       case "redo": this._redo(); break;
       case "toggle-bars":
+        this._userForcedBarsPerRow = true;
         this.barsPerRow = (this.barsPerRow === 4) ? 2 : 4;
         var btn = document.getElementById("swBarsToggle");
         if (btn) btn.textContent = this.barsPerRow + " Bars / Row";
@@ -472,12 +649,34 @@
   P.render = function () {
     var self = this;
     var secs = this.song.sections;
-    var html = "";
 
+    // Preserve scroll offsets of notation areas across re-renders (BUG-MOB-01)
+    var scrollOffsets = {};
+    if (this._sectionsEl) {
+      var existingAreas = this._sectionsEl.querySelectorAll(".notation-area");
+      existingAreas.forEach(function (ar) {
+        var idx = ar.dataset.sectionIndex;
+        if (idx !== undefined) {
+          scrollOffsets[idx] = { left: ar.scrollLeft, top: ar.scrollTop };
+        }
+      });
+    }
+
+    var html = "";
     for (var si = 0; si < secs.length; si++) {
       html += this._renderSection(secs[si], si);
     }
     this._sectionsEl.innerHTML = html;
+
+    // Restore scroll offsets
+    var newAreas = this._sectionsEl.querySelectorAll(".notation-area");
+    newAreas.forEach(function (ar) {
+      var idx = ar.dataset.sectionIndex;
+      if (idx !== undefined && scrollOffsets[idx]) {
+        ar.scrollLeft = scrollOffsets[idx].left;
+        ar.scrollTop = scrollOffsets[idx].top;
+      }
+    });
 
     // Bind section name inputs
     var nameInputs = this._sectionsEl.querySelectorAll(".section-name-input");
@@ -578,19 +777,27 @@
    * ════════════════════════════════════════════════════════════ */
   P._repositionCursor = function () {
     var sec = this._activeSection();
-    var area = this._sectionsEl.querySelector('.notation-area[data-section-index="' + this.activeSectionIdx + '"]');
+    var area = this._sectionsEl ? this._sectionsEl.querySelector('.notation-area[data-section-index="' + this.activeSectionIdx + '"]') : null;
     if (!area) {
       this._cursorEl.style.display = "none";
       this._bufferEl.style.display = "none";
       return;
     }
 
+    // Attach cursor and buffer to active notation-area so coordinates are container-relative (BUG-MOB-01)
+    if (this._cursorEl.parentElement !== area) {
+      area.appendChild(this._cursorEl);
+    }
+    if (this._bufferEl.parentElement !== area) {
+      area.appendChild(this._bufferEl);
+    }
+
+    var areaRect = area.getBoundingClientRect();
+
     if (sec.positions.length === 0) {
-      var areaRect = area.getBoundingClientRect();
-      var cLeft = areaRect.left + 16 + window.scrollX;
-      var cTop = areaRect.top + 14 + window.scrollY;
+      var cLeft = 16 + (area.scrollLeft || 0);
+      var cTop = 14 + (area.scrollTop || 0);
       this._cursorEl.style.display = "block";
-      this._cursorEl.style.left = cLeft + "px";
       this._cursorEl.style.top = cTop + "px";
       this._cursorEl.style.height = "1.5em";
 
@@ -599,8 +806,13 @@
         this._bufferEl.style.display = "block";
         this._bufferEl.style.left = (cLeft + 3) + "px";
         this._bufferEl.style.top = cTop + "px";
+
+        // Group Mode: place cursor at active typing edge after buffer (BUG-MOB-11)
+        var bufWidth = this._bufferEl.offsetWidth || (this.inputBuffer.length * 13);
+        this._cursorEl.style.left = (cLeft + 3 + bufWidth) + "px";
       } else {
         this._bufferEl.style.display = "none";
+        this._cursorEl.style.left = cLeft + "px";
       }
       return;
     }
@@ -620,31 +832,29 @@
       if (this.cursor.charOffset > 0 && this.cursor.charOffset <= charEls.length) {
         var charEl = charEls[this.cursor.charOffset - 1];
         var r = charEl.getBoundingClientRect();
-        cursorX = r.right + window.scrollX;
+        cursorX = r.right - areaRect.left + (area.scrollLeft || 0);
       } else {
         var r2 = posEl.getBoundingClientRect();
-        cursorX = r2.left + window.scrollX;
+        cursorX = r2.left - areaRect.left + (area.scrollLeft || 0);
       }
       var posRect = posEl.getBoundingClientRect();
-      cursorY = posRect.top + window.scrollY;
+      cursorY = posRect.top - areaRect.top + (area.scrollTop || 0);
       cursorH = posRect.height;
     } else {
       var lastPosEl = area.querySelector('.sw-position[data-pos-index="' + (sec.positions.length - 1) + '"]');
       if (lastPosEl) {
         var lr = lastPosEl.getBoundingClientRect();
-        cursorX = lr.right + 2 + window.scrollX;
-        cursorY = lr.top + window.scrollY;
+        cursorX = lr.right - areaRect.left + 2 + (area.scrollLeft || 0);
+        cursorY = lr.top - areaRect.top + (area.scrollTop || 0);
         cursorH = lr.height;
       } else {
-        var ar = area.getBoundingClientRect();
-        cursorX = ar.left + 16 + window.scrollX;
-        cursorY = ar.top + 14 + window.scrollY;
+        cursorX = 16 + (area.scrollLeft || 0);
+        cursorY = 14 + (area.scrollTop || 0);
         cursorH = 24;
       }
     }
 
     this._cursorEl.style.display = "block";
-    this._cursorEl.style.left = cursorX + "px";
     this._cursorEl.style.top = cursorY + "px";
     this._cursorEl.style.height = cursorH + "px";
 
@@ -653,8 +863,48 @@
       this._bufferEl.style.display = "block";
       this._bufferEl.style.left = (cursorX + 3) + "px";
       this._bufferEl.style.top = cursorY + "px";
+
+      // BUG-MOB-11: Cursor follows typing edge in Group Mode and buffer entry
+      var bufferW = this._bufferEl.offsetWidth || (this.inputBuffer.length * 13);
+      this._cursorEl.style.left = (cursorX + 3 + bufferW) + "px";
     } else {
       this._bufferEl.style.display = "none";
+      this._cursorEl.style.left = cursorX + "px";
+    }
+  };
+
+  /* ════════════════════════════════════════════════════════════ *
+   *  AUTO-SCROLL TO CURSOR (BUG-MOB-05)
+   * ════════════════════════════════════════════════════════════ */
+  P._scrollCursorIntoView = function () {
+    if (typeof window === "undefined" || !this._sectionsEl) return;
+    var area = this._sectionsEl ? this._sectionsEl.querySelector('.notation-area[data-section-index="' + this.activeSectionIdx + '"]') : null;
+    if (!area) return;
+
+    var targetEl = null;
+    var sec = this._activeSection();
+    if (sec && sec.positions.length > 0) {
+      var pIdx = Math.min(this.cursor.posIndex, sec.positions.length - 1);
+      targetEl = area.querySelector('.sw-position[data-pos-index="' + pIdx + '"]');
+    }
+    if (!targetEl) targetEl = this._cursorEl;
+    if (!targetEl || !targetEl.getBoundingClientRect) return;
+
+    var rect = targetEl.getBoundingClientRect();
+    var vvHeight = (window.visualViewport && window.visualViewport.height) ? window.visualViewport.height : window.innerHeight;
+
+    var topMargin = 70; // Clearance below sticky header
+    var bottomMargin = 50; // Clearance above mobile virtual keyboard
+
+    var isAbove = rect.top < topMargin;
+    var isBelow = rect.bottom > (vvHeight - bottomMargin);
+
+    if (isAbove || isBelow) {
+      try {
+        targetEl.scrollIntoView({ block: "nearest", inline: "nearest", behavior: "smooth" });
+      } catch (err) {
+        if (targetEl.scrollIntoView) targetEl.scrollIntoView(false);
+      }
     }
   };
 
@@ -763,7 +1013,11 @@
 
     if (e.key === "Backspace") {
       e.preventDefault();
-      this._handleBackspace();
+      if (typeof self._safeDelete === "function") {
+        self._safeDelete("keydown");
+      } else {
+        this._handleBackspace();
+      }
       return;
     }
     if (e.key === "Delete") {
@@ -920,9 +1174,11 @@
           if (this.cursor.charOffset > 0) {
             this.cursor = { posIndex: this.cursor.posIndex + 1, charOffset: 0 };
             this._repositionCursor();
+            this._scrollCursorIntoView();
           } else if (this.cursor.posIndex < sec.positions.length) {
             this.cursor.posIndex++;
             this._repositionCursor();
+            this._scrollCursorIntoView();
           }
         }
       }
@@ -1060,6 +1316,7 @@
     this._newPositionPending = false;
     this._saveSnapshot();
     this.render();
+    this._scrollCursorIntoView();
   };
 
   /* ════════════════════════════════════════════════════════════ *
@@ -1178,6 +1435,7 @@
       this.cursor.charOffset = S.positionCharCount(sec.positions[this.cursor.posIndex]);
     }
     this._repositionCursor();
+    this._scrollCursorIntoView();
   };
 
   P._moveCursorRight = function () {
@@ -1200,6 +1458,7 @@
       }
     }
     this._repositionCursor();
+    this._scrollCursorIntoView();
   };
 
   /* ════════════════════════════════════════════════════════════ *
@@ -1471,8 +1730,23 @@
       '<button class="popup-btn" data-popup="select-section">Select Section</button>';
 
     this._popupEl.classList.remove("is-hidden");
-    var popLeft = Math.max(10, rect.left);
-    var popTop = Math.max(10, rect.top - 46);
+
+    var popWidth = this._popupEl.offsetWidth || 300;
+    var popHeight = this._popupEl.offsetHeight || 44;
+    var winWidth = (typeof window !== "undefined" && window.innerWidth) ? window.innerWidth : 400;
+    var winHeight = (typeof window !== "undefined" && window.innerHeight) ? window.innerHeight : 600;
+
+    // Clamp horizontally to stay within viewport (BUG-MOB-07)
+    var popLeft = Math.max(10, Math.min(rect.left, winWidth - popWidth - 10));
+
+    // Flip vertically if close to top of viewport
+    var popTop;
+    if (rect.top - popHeight - 8 >= 10) {
+      popTop = rect.top - popHeight - 8;
+    } else {
+      popTop = Math.min(rect.bottom + 8, winHeight - popHeight - 10);
+    }
+
     this._popupEl.style.left = popLeft + "px";
     this._popupEl.style.top = popTop + "px";
 
@@ -1677,7 +1951,13 @@
 
   P._importFile = function (file) {
     var self = this;
-    if (!file.name.endsWith(".swar")) {
+    if (!file || !file.name) {
+      this._toast("Please select a file to import.");
+      return;
+    }
+    var lowerName = file.name.toLowerCase();
+    var isSwarExt = lowerName.endsWith(".swar") || lowerName.endsWith(".swar.json") || lowerName.endsWith(".json");
+    if (!isSwarExt) {
       this._toast("Invalid file: only .swar project files are supported.");
       return;
     }

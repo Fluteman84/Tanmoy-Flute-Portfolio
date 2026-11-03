@@ -81,6 +81,11 @@ Rules:
 - Space does not count as a rhythmic position.
 - Vertical barlines are generated automatically after the required number of positions.
 
+Responsive Measure Layout:
+- On desktop screens, the notation editor displays 4 measures per row by default.
+- On mobile devices (screen width ≤ 760px), the editor automatically displays 2 measures per row for clear readability.
+- Users can toggle between 4 and 2 measures per row at any time using the "Bars / Row" button.
+
 Examples:
 
 4/4:
@@ -191,12 +196,12 @@ Keyboard shortcuts:
 - Ctrl+A — Select all notation in the active section
 - Escape — Clear selection or dismiss the contextual popup
 
-Mobile users can use touch selection and the available contextual actions.
+Mobile users can touch and hold any swara, then drag across subsequent notes to select a range across measures and rows. Releasing touch displays the contextual popup menu.
 
 J. Project Import and Export
 
 Swaralipi supports:
-- ".swar" project files for saving and reopening editable compositions.
+- ".swar" project files (including mobile-downloaded ".swar.json" files) for saving and reopening editable compositions.
 - TXT export for plain-text notation.
 - PDF export for printable notation sheets.
 

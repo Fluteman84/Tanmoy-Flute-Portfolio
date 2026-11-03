@@ -189,5 +189,37 @@ test('Test I: swGroupToggle is placed before move-up ▲', sec0Html.indexOf('id=
 const sec1Html = editor._renderSection(editor.song.sections[1], 1);
 test('Test I: Inactive section 1 does NOT contain swGroupToggle', sec1Html.indexOf('id="swGroupToggle"') === -1);
 
+// Test J — 7/4 Time Signature in Editor
+editor.song.timeSignature = '7/4';
+editor._timeEl.value = '7/4';
+editor.render();
+test('Test J: 7/4 time signature set on song', editor.song.timeSignature === '7/4');
+test('Test J: Status bar reflects 7 pos/bar', editor._sectionsEl.innerHTML.indexOf('7 pos/bar') !== -1);
+
+// Test J2: Clear section and type 7 notes in 7/4
+editor._activeSection().positions = [];
+for (const sw of ['S', 'r', 'G', 'M', 'P', 'd', 'N']) {
+  editor._handleCharInput(sw);
+}
+editor._commitBuffer();
+test('Test J: 7 notes entered in active section', editor._activeSection().positions.length === 7);
+const m7_sec = S.buildMeasures(editor._activeSection().positions, editor.song.timeSignature);
+test('Test J: Exactly 1 measure of 7 notes in 7/4', m7_sec.length === 1 && m7_sec[0].positions.length === 7);
+
+// Type 8th note -> automatically creates second measure
+editor._handleCharInput('S');
+editor._commitBuffer();
+const m7_sec2 = S.buildMeasures(editor._activeSection().positions, editor.song.timeSignature);
+test('Test J: 8th note causes automatic recalculation to 2 measures', m7_sec2.length === 2 && m7_sec2[0].positions.length === 7 && m7_sec2[1].positions.length === 1);
+
+// Test J3: Repeat measure in 7/4
+editor.cursor = { posIndex: 0, charOffset: 0 };
+editor._repeatMeasure();
+test('Test J: Repeating measure in 7/4 duplicates 7 positions', editor._activeSection().positions.length === 15);
+
+// Test J4: PDF preview in 7/4
+editor._showPdfPreview();
+test('Test J: PDF preview contains Music Bars: 7/4', editor._printEl.innerHTML.indexOf('7/4') !== -1);
+
 console.log('Results: Passed ' + testsPassed + ', Failed ' + testsFailed);
 if (testsFailed > 0) process.exit(1);

@@ -1579,7 +1579,8 @@
         var rowMeasures = measures.slice(mi, mi + bpr);
 
         // Check if any measure in this row has unusually long groups
-        var isCrowded = rowMeasures.some(function (m) {
+        var totalRowChars = rowMeasures.reduce(function (sum, m) { return sum + m.positions.reduce(function (psum, p) { return psum + S.positionCharCount(p); }, 0); }, 0);
+        var isCrowded = (ppm >= 7 && totalRowChars > 28) || rowMeasures.some(function (m) {
           return m.positions.some(function (p) { return S.positionCharCount(p) > 6; });
         });
 

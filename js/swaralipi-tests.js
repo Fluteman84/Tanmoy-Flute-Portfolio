@@ -143,6 +143,10 @@
     var m_5_4 = S.buildMeasures(pos10, "5/4");
     assert("D03", "5/4: 10 positions give 2 measures of 5 positions", m_5_4.length === 2 && m_5_4[0].positions.length === 5 && m_5_4[1].positions.length === 5);
 
+    var pos14 = S.parseNotationString("S R G M P D N S R G M P D N").positions;
+    var m_7_4 = S.buildMeasures(pos14, "7/4");
+    assert("D03b", "7/4: 14 positions give 2 measures of 7 positions", m_7_4.length === 2 && m_7_4[0].positions.length === 7 && m_7_4[1].positions.length === 7);
+
     var pos_multi = S.parseNotationString("S R GM GMP").positions;
     var m_multi = S.buildMeasures(pos_multi, "4/4");
     assert("D04", "Multi-swara: S R GM GMP occupies 4 positions in 4/4 (1 complete measure)", m_multi.length === 1 && m_multi[0].positions.length === 4);
@@ -184,6 +188,9 @@
 
     var m_5_4_blocks = S.buildBlocks(S.buildMeasures(pos20, "5/4"), 4);
     assert("E04", "5/4 follows 4-bar block architecture", m_5_4_blocks[0].rows[0].length === 4);
+
+    var m_7_4_blocks = S.buildBlocks(S.buildMeasures(pos14, "7/4"), 4);
+    assert("E05", "7/4 follows 4-bar block architecture", m_7_4_blocks[0].rows[0].length === 2);
 
     /* ────────────────────────────────────────────────────────
        TEST GROUP G — COPY AND PASTE
@@ -288,6 +295,66 @@
       S.positionToText(testH.positions[1]) === "r" &&
       S.positionToText(testH.positions[2]) === "g" &&
       S.positionToText(testH.positions[3]) === "P"
+    );
+
+    /* ────────────────────────────────────────────────────────
+       TEST GROUP L — 7/4 TIME SIGNATURE (USER SPECIFIED TESTS A–E)
+       ──────────────────────────────────────────────────────── */
+    // Test A — Seven individual swaras: "S R G M P D N" -> 1 measure of 7 positions
+    var test7A_pos = S.parseNotationString("S R G M P D N").positions;
+    var test7A_m = S.buildMeasures(test7A_pos, "7/4");
+    assert("L_TestA", "Test A (7/4): 'S R G M P D N' produces exactly 1 measure with 7 positions",
+      test7A_m.length === 1 && test7A_m[0].positions.length === 7 &&
+      test7A_m[0].positions.map(S.positionToText).join(" ") === "S R G M P D N"
+    );
+
+    // Test B — Continuous notation: "S R G M P D N S R G M P D N" -> 2 measures of 7 positions
+    var test7B_pos = S.parseNotationString("S R G M P D N S R G M P D N").positions;
+    var test7B_m = S.buildMeasures(test7B_pos, "7/4");
+    assert("L_TestB", "Test B (7/4): 14 continuous positions produce exactly 2 measures of 7 positions each",
+      test7B_m.length === 2 && test7B_m[0].positions.length === 7 && test7B_m[1].positions.length === 7 &&
+      test7B_m[0].positions.map(S.positionToText).join(" ") === "S R G M P D N" &&
+      test7B_m[1].positions.map(S.positionToText).join(" ") === "S R G M P D N"
+    );
+
+    // Test C — Multi-swara group: "S R GM P D N S" -> 1 measure of 7 positions ('GM' is 1 position)
+    var test7C_pos = S.parseNotationString("S R GM P D N S").positions;
+    var test7C_m = S.buildMeasures(test7C_pos, "7/4");
+    assert("L_TestC", "Test C (7/4): 'S R GM P D N S' has 7 rhythmic positions with 'GM' counting as 1 position",
+      test7C_m.length === 1 && test7C_m[0].positions.length === 7 &&
+      S.positionToText(test7C_m[0].positions[2]) === "GM"
+    );
+
+    // Test D — Modifiers: "S' r, G- M: P D' N," -> 7 positions with modifiers attached
+    var test7D_pos = S.parseNotationString("S' r, G- M: P D' N,").positions;
+    var test7D_m = S.buildMeasures(test7D_pos, "7/4");
+    assert("L_TestD", "Test D (7/4): 'S\\' r, G- M: P D\\' N,' has 7 positions with all modifiers preserved",
+      test7D_m.length === 1 && test7D_m[0].positions.length === 7 &&
+      test7D_m[0].positions.map(S.positionToText).join(" ") === "S' r, G- M: P D' N,"
+    );
+
+    // Test E — Existing signatures regression (3/4, 4/4, 5/4)
+    var test7E_3 = S.buildMeasures(S.parseNotationString("S R G S R G").positions, "3/4");
+    var test7E_4 = S.buildMeasures(S.parseNotationString("S R G M S R G M").positions, "4/4");
+    var test7E_5 = S.buildMeasures(S.parseNotationString("S R G M P S R G M P").positions, "5/4");
+    assert("L_TestE_34", "Test E: 3/4 generates measures with 3 positions each", test7E_3.length === 2 && test7E_3[0].positions.length === 3 && test7E_3[1].positions.length === 3);
+    assert("L_TestE_44", "Test E: 4/4 generates measures with 4 positions each", test7E_4.length === 2 && test7E_4[0].positions.length === 4 && test7E_4[1].positions.length === 4);
+    assert("L_TestE_54", "Test E: 5/4 generates measures with 5 positions each", test7E_5.length === 2 && test7E_5[0].positions.length === 5 && test7E_5[1].positions.length === 5);
+
+    // Test F — Serialization & Deserialization of 7/4 project
+    var song7 = S.createSong("Raag Yaman 7/4", "C", "7/4");
+    song7.sections[0].positions = test7B_pos;
+    var ser7 = S.serialize(song7);
+    var deser7 = S.deserialize(ser7);
+    assert("L_TestF_ser", "7/4 song serializes and deserializes without error", deser7.valid && deser7.song.timeSignature === "7/4");
+    assert("L_TestF_measures", "Deserialized 7/4 song retains 2 measures of 7 positions",
+      S.buildMeasures(deser7.song.sections[0].positions, deser7.song.timeSignature).length === 2
+    );
+
+    // Test G — TXT export contains "Music Bars: 7/4" and barlines
+    var txt7 = S.toTxt(song7);
+    assert("L_TestG_txt", "TXT export formats 7/4 properly with barlines",
+      txt7.indexOf("Music Bars: 7/4") !== -1 && txt7.indexOf("S R G M P D N | S R G M P D N") !== -1
     );
 
     return results;

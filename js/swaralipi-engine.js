@@ -11,6 +11,8 @@
   /* ── Constants ──────────────────────────────────── */
   S.VALID_SWARAS = ["S", "r", "R", "g", "G", "M", "m", "P", "d", "D", "n", "N"];
   S.VALID_MODIFIERS = ["-", "'", ",", ":"];
+  S.VALID_PREFIX_MODIFIERS = ["-", ":"];
+  S.VALID_POSTFIX_MODIFIERS = ["-", ":", "'", ","];
   S.SCALES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B", "Any Scale"];
   S.TIME_SIGNATURES = ["3/4", "4/4", "5/4", "7/4"];
   S.POSITIONS_PER_MEASURE = { "3/4": 3, "4/4": 4, "5/4": 5, "7/4": 7 };
@@ -51,6 +53,14 @@
 
   S.isModifier = function (ch) {
     return S.VALID_MODIFIERS.indexOf(ch) !== -1;
+  };
+
+  S.isPrefixModifier = function (ch) {
+    return S.VALID_PREFIX_MODIFIERS.indexOf(ch) !== -1;
+  };
+
+  S.isPostfixModifier = function (ch) {
+    return S.VALID_POSTFIX_MODIFIERS.indexOf(ch) !== -1;
   };
 
   S.isValidChar = function (ch) {
@@ -102,6 +112,13 @@
     while (i < text.length) {
       var prefix = [];
       while (i < text.length && S.isModifier(text[i])) {
+        if (!S.isPrefixModifier(text[i])) {
+          return {
+            valid: false,
+            error: "Modifier '" + text[i] + "' is not allowed as a prefix",
+            tokens: [],
+          };
+        }
         prefix.push(text[i]);
         i++;
       }
@@ -110,6 +127,13 @@
         i++;
         var suffix = [];
         while (i < text.length && S.isModifier(text[i])) {
+          if (!S.isPostfixModifier(text[i])) {
+            return {
+              valid: false,
+              error: "Modifier '" + text[i] + "' is not allowed as a postfix",
+              tokens: [],
+            };
+          }
           suffix.push(text[i]);
           i++;
         }
@@ -280,14 +304,14 @@
             var pre = Array.isArray(t.prefix) ? t.prefix : [];
             var suf = Array.isArray(t.suffix) ? t.suffix : [];
             for (var mi = 0; mi < pre.length; mi++) {
-              if (!S.isModifier(pre[mi])) {
+              if (!S.isPrefixModifier(pre[mi])) {
                 tokenError = "Invalid prefix modifier: " + pre[mi];
                 break;
               }
             }
             if (tokenError) break;
             for (var mj = 0; mj < suf.length; mj++) {
-              if (!S.isModifier(suf[mj])) {
+              if (!S.isPostfixModifier(suf[mj])) {
                 tokenError = "Invalid suffix modifier: " + suf[mj];
                 break;
               }

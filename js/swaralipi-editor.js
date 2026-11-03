@@ -371,6 +371,7 @@
     switch (action) {
       case "toggle-group":
         this._setGroupMode(!this.groupMode);
+        this._saveSnapshot();
         this._focusProxy();
         return;
       case "delete":
@@ -846,10 +847,52 @@
 
     clearTimeout(this._bufferTimer);
 
-    // Space handling
+    // Space handling — Finalise position & advance cursor (Part 2)
     if (ch === " ") {
-      if (this.groupMode) return; // Spaces ignored in Group Mode (Rule 5.2.2)
-      this._commitBuffer();
+      if (this.groupMode) {
+        if (this.inputBuffer) {
+          if (S.bufferHasSwara(this.inputBuffer)) {
+            this._saveSnapshot();
+            this._commitBuffer();
+          } else {
+            // Buffer has modifier but no swara (e.g. : or - followed by Space)
+            this._toast("Modifier requires an associated swara.");
+            this.inputBuffer = "";
+            this._repositionCursor();
+          }
+        }
+        // Finalise the group and automatically turn Group Mode OFF
+        this._setGroupMode(false);
+        if (this.undoMgr._undo.length > 0) {
+          this.undoMgr._undo[this.undoMgr._undo.length - 1].groupMode = false;
+        }
+        this._newPositionPending = true;
+        return;
+      }
+
+      // Normal Mode (Group Mode OFF)
+      if (this.inputBuffer) {
+        if (S.bufferHasSwara(this.inputBuffer)) {
+          this._commitBuffer();
+        } else {
+          // Incomplete prefix before Space (e.g. : or - followed by Space)
+          this._toast("Modifier requires an associated swara.");
+          this.inputBuffer = "";
+          this._repositionCursor();
+        }
+      } else {
+        // Buffer was empty: advance cursor to next rhythmic position without creating empty positions
+        var sec = this._activeSection();
+        if (sec) {
+          if (this.cursor.charOffset > 0) {
+            this.cursor = { posIndex: this.cursor.posIndex + 1, charOffset: 0 };
+            this._repositionCursor();
+          } else if (this.cursor.posIndex < sec.positions.length) {
+            this.cursor.posIndex++;
+            this._repositionCursor();
+          }
+        }
+      }
       this._newPositionPending = true;
       return;
     }
@@ -874,9 +917,9 @@
       return;
     }
 
-    // Modifier Input (-, ', ,, :)
+    // Modifier Input (-, :, ', ,)
     if (S.isModifier(ch)) {
-      // 1. If inputBuffer already has a swara (e.g. accumulating in Group Mode or within timer window)
+      // 1. If inputBuffer already has a swara (accumulating in Group Mode or within timer window)
       if (S.bufferHasSwara(this.inputBuffer)) {
         var testBuffer = this.inputBuffer + ch;
         var parsedTest = S.parsePositionText(testBuffer);
@@ -893,26 +936,50 @@
         }
       }
 
-      // 2. If inputBuffer is empty, attempt to attach as postfix to preceding swara:
+      // 2. If inputBuffer is empty:
       if (!this.inputBuffer) {
-        var isOctave = (ch === "'" || ch === ",");
-        if (isOctave || !this._newPositionPending) {
-          var attached = this._attachModifierToPrecedingSwara(ch);
-          if (attached) {
+        // If Space was just pressed, cursor advanced to a new position.
+        // Postfix modifiers cannot attach across space, and cannot begin a position as prefix.
+        if (this._newPositionPending) {
+          if (!S.isPrefixModifier(ch)) {
+            this._toast("Modifier '" + ch + "' is not allowed as a prefix and cannot follow space.");
             return;
           }
+          // Valid prefix modifier beginning a new position
+          this._newPositionPending = false;
+          this.inputBuffer = ch;
+          this._repositionCursor();
+          return;
         }
+
+        // Space was NOT just pressed: attempt to attach as postfix to preceding swara
+        var attached = this._attachModifierToPrecedingSwara(ch);
+        if (attached) {
+          return;
+        }
+
+        // Could not attach (e.g. at start of score). Check if valid prefix:
+        if (!S.isPrefixModifier(ch)) {
+          this._toast("Modifier '" + ch + "' is not allowed as a prefix.");
+          return;
+        }
+        this.inputBuffer = ch;
+        this._repositionCursor();
+        return;
       }
 
-      // 3. Otherwise treat as prefix modifier in buffer awaiting a swara
-      this._newPositionPending = false;
+      // 3. inputBuffer has prefix modifier(s) awaiting a swara:
+      if (!S.isPrefixModifier(ch)) {
+        this._toast("Modifier '" + ch + "' is not allowed as a prefix.");
+        return;
+      }
       this.inputBuffer += ch;
       this._repositionCursor();
       return;
     }
 
     // Invalid character
-    this._toast("Invalid character: " + ch + " (use S,r,R,g,G,M,m,P,d,D,n,N or - ' , :)");
+    this._toast("Invalid character: " + ch + " (use S,r,R,g,G,M,m,P,d,D,n,N or - : ' ,)");
   };
 
   P._startBufferTimer = function () {
@@ -1067,6 +1134,7 @@
   P._moveCursorLeft = function () {
     this._commitBuffer();
     this.selection = null;
+    this._newPositionPending = false;
     var sec = this._activeSection();
     if (sec.positions.length === 0) return;
 
@@ -1082,6 +1150,7 @@
   P._moveCursorRight = function () {
     this._commitBuffer();
     this.selection = null;
+    this._newPositionPending = false;
     var sec = this._activeSection();
     if (sec.positions.length === 0) return;
 
@@ -1437,7 +1506,8 @@
     var snap = {
       song: S.cloneSong(this.song),
       cursor: { posIndex: this.cursor.posIndex, charOffset: this.cursor.charOffset },
-      activeSectionIdx: this.activeSectionIdx
+      activeSectionIdx: this.activeSectionIdx,
+      groupMode: this.groupMode
     };
     this.undoMgr.push(snap);
   };
@@ -1456,6 +1526,13 @@
     this.activeSectionIdx = Math.min(snap.activeSectionIdx, this.song.sections.length - 1);
     this.selection = null;
     this.inputBuffer = "";
+    this._newPositionPending = false;
+    if (typeof snap.groupMode !== "undefined") {
+      this.groupMode = !!snap.groupMode;
+      var rSec = this._activeSection();
+      if (rSec) rSec.groupMode = this.groupMode;
+      this._updateGroupToggleUI();
+    }
     this.render();
   };
 

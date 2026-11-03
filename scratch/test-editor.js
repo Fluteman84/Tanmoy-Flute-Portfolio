@@ -386,5 +386,180 @@ editor._commitBuffer();
 editor._handleCharInput('’'); // right single quote
 test('Test J: Mobile smart quote ’ normalizes to \' producing S\'', S.positionToText(editor._activeSection().positions[0]) === "S'");
 
+// ════════════════════════════════════════════════════════════════════
+// REQUEST 10 TESTS: STRICT MODIFIER RULES AND SPACE-BAR POSITION NAVIGATION
+// ════════════════════════════════════════════════════════════════════
+
+// Test A — Modifier direction
+test('Req10 Test A: -S is valid', S.parsePositionText('-S').valid);
+test('Req10 Test A: :S is valid', S.parsePositionText(':S').valid);
+test('Req10 Test A: S- is valid', S.parsePositionText('S-').valid);
+test('Req10 Test A: S: is valid', S.parsePositionText('S:').valid);
+test('Req10 Test A: S\' is valid', S.parsePositionText("S'").valid);
+test('Req10 Test A: S, is valid', S.parsePositionText('S,').valid);
+test('Req10 Test A: G-: is valid', S.parsePositionText('G-:').valid);
+test('Req10 Test A: -S\' is valid', S.parsePositionText("-S'").valid);
+test('Req10 Test A: :G, is valid', S.parsePositionText(':G,').valid);
+test('Req10 Test A: \'S is invalid prefix', !S.parsePositionText("'S").valid);
+test('Req10 Test A: ,S is invalid prefix', !S.parsePositionText(",S").valid);
+test('Req10 Test A: \'-S is invalid prefix', !S.parsePositionText("'-S").valid);
+test('Req10 Test A: ,:S is invalid prefix', !S.parsePositionText(",:S").valid);
+
+// Test B — Delayed postfix
+editor._doReset();
+editor._handleCharInput('S');
+editor._commitBuffer(); // pause / commit
+editor._handleCharInput("'");
+test('Req10 Test B: Delayed postfix attaches to S -> S\'', S.positionToText(editor._activeSection().positions[0]) === "S'");
+
+// Test C — Cursor-based postfix: Given "S R G", cursor after "R", type ":" -> "S R: G"
+editor._doReset();
+editor._pasteText('S R G');
+editor.cursor = { posIndex: 1, charOffset: 1 }; // after R
+editor._handleCharInput(':');
+test('Req10 Test C: Cursor after R + : produces S R: G',
+  editor._activeSection().positions.length === 3 &&
+  S.positionToText(editor._activeSection().positions[0]) === 'S' &&
+  S.positionToText(editor._activeSection().positions[1]) === 'R:' &&
+  S.positionToText(editor._activeSection().positions[2]) === 'G'
+);
+
+// Test D — Ordinary Space navigation: "S" -> Space -> "R" -> Space -> "G"
+editor._doReset();
+editor._handleCharInput('S');
+editor._handleCharInput(' ');
+editor._handleCharInput('R');
+editor._handleCharInput(' ');
+editor._handleCharInput('G');
+editor._commitBuffer();
+test('Req10 Test D: Space navigation S -> Space -> R -> Space -> G creates 3 positions',
+  editor._activeSection().positions.length === 3 &&
+  S.positionToText(editor._activeSection().positions[0]) === 'S' &&
+  S.positionToText(editor._activeSection().positions[1]) === 'R' &&
+  S.positionToText(editor._activeSection().positions[2]) === 'G'
+);
+
+// Test E — Group finalisation: Group ON -> SRG -> Space -> M -> SRG M, Group Mode OFF after Space
+editor._doReset();
+editor._setGroupMode(true);
+test('Req10 Test E: Group Mode starts active', editor.groupMode === true);
+editor._handleCharInput('S');
+editor._handleCharInput('R');
+editor._handleCharInput('G');
+editor._handleCharInput(' '); // Space finalizes group and turns Group Mode OFF
+test('Req10 Test E: Space turns Group Mode OFF immediately', editor.groupMode === false);
+test('Req10 Test E: SRG committed as 1 position', editor._activeSection().positions.length === 1 && S.positionToText(editor._activeSection().positions[0]) === 'SRG');
+editor._handleCharInput('M');
+editor._commitBuffer();
+test('Req10 Test E: Next swara M enters as separate position -> SRG M',
+  editor._activeSection().positions.length === 2 &&
+  S.positionToText(editor._activeSection().positions[1]) === 'M'
+);
+
+// Test F — Consecutive groups: Group ON -> SR -> Space -> Group ON -> GM -> Space
+editor._doReset();
+editor._setGroupMode(true);
+editor._handleCharInput('S');
+editor._handleCharInput('R');
+editor._handleCharInput(' ');
+test('Req10 Test F: First group SR committed, Group Mode is OFF', editor._activeSection().positions.length === 1 && S.positionToText(editor._activeSection().positions[0]) === 'SR' && editor.groupMode === false);
+editor._setGroupMode(true);
+editor._handleCharInput('G');
+editor._handleCharInput('M');
+editor._handleCharInput(' ');
+test('Req10 Test F: Second group GM committed, Group Mode is OFF', editor._activeSection().positions.length === 2 && S.positionToText(editor._activeSection().positions[1]) === 'GM' && editor.groupMode === false);
+
+// Test G — Group modifiers: Group ON + SRG + '-' + '\'' -> SRG-''
+editor._doReset();
+editor._setGroupMode(true);
+editor._handleCharInput('S');
+editor._handleCharInput('R');
+editor._handleCharInput('G');
+editor._handleCharInput('-');
+editor._handleCharInput("'");
+editor._handleCharInput(' ');
+test('Req10 Test G: Group modifiers SRG-\' formed as 1 position',
+  editor._activeSection().positions.length === 1 &&
+  S.positionToText(editor._activeSection().positions[0]) === "SRG-'" &&
+  editor.groupMode === false
+);
+
+// Test H — Prefix validation: :S and -G accepted; incomplete : or - followed by Space discarded
+editor._doReset();
+editor._handleCharInput(':');
+editor._handleCharInput('S');
+editor._handleCharInput(' ');
+editor._handleCharInput('-');
+editor._handleCharInput('G');
+editor._handleCharInput(' ');
+test('Req10 Test H: :S and -G accepted as separate positions',
+  editor._activeSection().positions.length === 2 &&
+  S.positionToText(editor._activeSection().positions[0]) === ':S' &&
+  S.positionToText(editor._activeSection().positions[1]) === '-G'
+);
+
+// Incomplete : followed by Space
+editor._handleCharInput(':');
+editor._handleCharInput(' ');
+test('Req10 Test H: Incomplete : followed by Space does not create position', editor._activeSection().positions.length === 2);
+
+// Incomplete - followed by Space
+editor._handleCharInput('-');
+editor._handleCharInput(' ');
+test('Req10 Test H: Incomplete - followed by Space does not create position', editor._activeSection().positions.length === 2);
+
+// Test Space then ' must NOT attach to previous swara or become standalone
+editor._handleCharInput("'");
+test('Req10 Test H: Postfix \' following Space does not attach to preceding -G and creates no position',
+  editor._activeSection().positions.length === 2 &&
+  S.positionToText(editor._activeSection().positions[1]) === '-G'
+);
+
+// Repeated Space does not create empty positions or extra positions
+editor._handleCharInput(' ');
+editor._handleCharInput(' ');
+editor._handleCharInput(' ');
+test('Req10 Test H: Repeated spaces do not create empty positions', editor._activeSection().positions.length === 2);
+
+// Test I — Measure generation across 3/4, 4/4, 5/4, 7/4 with mixed positions
+editor.song.timeSignature = '4/4';
+editor._doReset();
+for (const p of ['S', 'R', 'GM', 'P']) {
+  editor._pasteText(p);
+}
+const m_check4 = S.buildMeasures(editor._activeSection().positions, '4/4');
+test('Req10 Test I: 4/4 S R GM P has 1 measure of 4 positions', m_check4.length === 1 && m_check4[0].positions.length === 4);
+
+editor._doReset();
+editor.song.timeSignature = '7/4';
+for (const p of ['-S', 'G-', ':P', "D'", 'M,', 'R:', 'N']) {
+  editor._pasteText(p);
+}
+const m_check7 = S.buildMeasures(editor._activeSection().positions, '7/4');
+test('Req10 Test I: 7/4 -S G- :P D\' M, R: N has 1 measure of 7 positions', m_check7.length === 1 && m_check7[0].positions.length === 7);
+
+// Test J — Space keydown preventDefault
+let prevented = false;
+editor._onKeyDown({
+  key: ' ',
+  length: 1,
+  ctrlKey: false,
+  metaKey: false,
+  preventDefault: function() { prevented = true; }
+});
+test('Req10 Test J: Space keydown calls preventDefault to avoid browser scrolling', prevented === true);
+
+// Test Undo / Redo with Group Mode state
+editor._doReset();
+editor._setGroupMode(true);
+editor._handleCharInput('S');
+editor._handleCharInput('R');
+editor._handleCharInput(' '); // commits SR, turns Group Mode OFF
+test('Req10 Undo prep: SR committed, groupMode is false', editor._activeSection().positions.length === 1 && editor.groupMode === false);
+editor._undo();
+test('Req10 Undo: restores Group Mode state (true)', editor.groupMode === true);
+editor._redo();
+test('Req10 Redo: restores SR and Group Mode state (false)', editor._activeSection().positions.length === 1 && editor.groupMode === false);
+
 console.log('Results: Passed ' + testsPassed + ', Failed ' + testsFailed);
 if (testsFailed > 0) process.exit(1);

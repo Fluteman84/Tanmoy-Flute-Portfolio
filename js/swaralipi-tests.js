@@ -439,11 +439,56 @@
     var combo1 = S.parsePositionText("-S'");
     var combo2 = S.parsePositionText("-r,");
     var combo3 = S.parsePositionText(":G-");
-    var combo4 = S.parsePositionText(",M:");
+    var combo4 = S.parsePositionText(":S,");
     assert("N04a", "-S' has prefix ['-'] and suffix ['\'']", combo1.valid && combo1.tokens[0].prefix[0] === "-" && combo1.tokens[0].suffix[0] === "'");
     assert("N04b", "-r, has prefix ['-'] and suffix [',']", combo2.valid && combo2.tokens[0].prefix[0] === "-" && combo2.tokens[0].suffix[0] === ",");
     assert("N04c", ":G- has prefix [':'] and suffix ['-']", combo3.valid && combo3.tokens[0].prefix[0] === ":" && combo3.tokens[0].suffix[0] === "-");
-    assert("N04d", ",M: has prefix [','] and suffix [':']", combo4.valid && combo4.tokens[0].prefix[0] === "," && combo4.tokens[0].suffix[0] === ":");
+    assert("N04d", ":S, has prefix [':'] and suffix [',']", combo4.valid && combo4.tokens[0].prefix[0] === ":" && combo4.tokens[0].suffix[0] === ",");
+
+    /* ────────────────────────────────────────────────────────
+       TEST GROUP O — STRICT MODIFIER DIRECTIONAL RULES (PART 3 TEST A)
+       Prefix Allowed: '-', ':'
+       Postfix Allowed: '-', ':', '\'', ','
+       Prefix NOT Allowed: '\'', ','
+       ──────────────────────────────────────────────────────── */
+    // Valid directional usages
+    assert("O_val_01", "-S is valid", S.parsePositionText("-S").valid);
+    assert("O_val_02", ":S is valid", S.parsePositionText(":S").valid);
+    assert("O_val_03", "S- is valid", S.parsePositionText("S-").valid);
+    assert("O_val_04", "S: is valid", S.parsePositionText("S:").valid);
+    assert("O_val_05", "S' is valid", S.parsePositionText("S'").valid);
+    assert("O_val_06", "S, is valid", S.parsePositionText("S,").valid);
+    assert("O_val_07", "G-: is valid", S.parsePositionText("G-:").valid);
+    assert("O_val_08", "-S' is valid", S.parsePositionText("-S'").valid);
+    assert("O_val_09", ":G, is valid", S.parsePositionText(":G,").valid);
+    assert("O_val_10", "-G: is valid", S.parsePositionText("-G:").valid);
+    assert("O_val_11", "S'- is valid", S.parsePositionText("S'-").valid);
+    assert("O_val_12", "S:, is valid", S.parsePositionText("S:,").valid);
+    assert("O_val_13", ":P' is valid", S.parsePositionText(":P'").valid);
+
+    // Invalid directional usages (must be rejected)
+    assert("O_inval_01", "'S is invalid prefix", !S.parsePositionText("'S").valid);
+    assert("O_inval_02", ",S is invalid prefix", !S.parsePositionText(",S").valid);
+    assert("O_inval_03", "'-S is invalid prefix", !S.parsePositionText("'-S").valid);
+    assert("O_inval_04", ",:S is invalid prefix", !S.parsePositionText(",:S").valid);
+    assert("O_inval_05", "',G is invalid prefix", !S.parsePositionText("',G").valid);
+
+    // Group modifiers (Test G)
+    var groupG = S.parsePositionText("SRG-'");
+    assert("O_group_G", "SRG-' is valid grouped notation", groupG.valid && groupG.tokens.length === 3 && S.positionToText(S.createPosition(groupG.tokens)) === "SRG-'");
+
+    // Prefix validation (Test H)
+    assert("O_pref_colS", ":S is valid prefix", S.parsePositionText(":S").valid);
+    assert("O_pref_hyG", "-G is valid prefix", S.parsePositionText("-G").valid);
+    assert("O_pref_incol", "Incomplete ':' has no swara", !S.parsePositionText(":").valid);
+    assert("O_pref_inhy", "Incomplete '-' has no swara", !S.parsePositionText("-").valid);
+
+    // Measure generation (Test I) in 4/4 and 7/4 with mixed notations
+    var testI_44 = S.buildMeasures(S.parseNotationString("S R GM P").positions, "4/4");
+    assert("O_meas_44", "4/4: 'S R GM P' forms exactly 1 measure of 4 positions", testI_44.length === 1 && testI_44[0].positions.length === 4);
+
+    var testI_74 = S.buildMeasures(S.parseNotationString("-S G- :P D' M, R: N").positions, "7/4");
+    assert("O_meas_74", "7/4: '-S G- :P D\\' M, R: N' forms exactly 1 measure of 7 positions", testI_74.length === 1 && testI_74[0].positions.length === 7);
 
     return results;
   }

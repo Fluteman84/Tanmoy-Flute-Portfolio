@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Tabla Taal Engine — Metronome-based Tabla Beat Counting and Classical Rhythm Accompaniment."
+    />
+    <title>Tabla Taal Engine | Metronome-based Beat Counting</title>
+    <!-- Google Fonts: Cormorant Garamond (Serif) & Manrope (Sans-serif) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Manrope:wght@500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <!-- Stylesheets -->
+    <link rel="stylesheet" href="css/style.css" />
+    <link rel="stylesheet" href="css/responsive.css" />
+  </head>
+  <body>
+    <!-- Standalone Card Container -->
+    <main class="taal-app" id="tablaTaalEngineApp">
+      <!-- ── Header Banner ────────────────────────────────────────────── -->
+      <header class="app-header">
+        <!-- Subtle Background Mandala Motif -->
+        <svg
+          class="header-decor-mandala"
+          viewBox="0 0 200 200"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+          aria-hidden="true"
+        >
+          <circle cx="100" cy="100" r="95" stroke="currentColor" stroke-width="1" stroke-dasharray="4 4" />
+          <circle cx="100" cy="100" r="75" stroke="currentColor" stroke-width="1.5" />
+          <circle cx="100" cy="100" r="55" stroke="currentColor" stroke-width="1" stroke-dasharray="3 3" />
+          <circle cx="100" cy="100" r="35" stroke="currentColor" stroke-width="1.5" />
+          <circle cx="100" cy="100" r="15" stroke="currentColor" stroke-width="2" />
+          <!-- 12 Petal rays -->
+          <path d="M100 5 L104 35 L100 55 L96 35 Z" fill="currentColor" opacity="0.4" />
+          <path d="M100 195 L104 165 L100 145 L96 165 Z" fill="currentColor" opacity="0.4" />
+          <path d="M5 100 L35 104 L55 100 L35 96 Z" fill="currentColor" opacity="0.4" />
+          <path d="M195 100 L165 104 L145 100 L165 96 Z" fill="currentColor" opacity="0.4" />
+          <path d="M33 33 L55 52 L69 69 L52 55 Z" fill="currentColor" opacity="0.4" />
+          <path d="M167 167 L145 148 L131 131 L148 145 Z" fill="currentColor" opacity="0.4" />
+          <path d="M33 167 L55 148 L69 131 L52 145 Z" fill="currentColor" opacity="0.4" />
+          <path d="M167 33 L145 52 L131 69 L148 55 Z" fill="currentColor" opacity="0.4" />
+        </svg>
+
+        <div class="header-content">
+          <!-- Classical Indian Tabla Illustration (Dayan & Bayan) -->
+          <div class="header-tabla-graphic" aria-hidden="true">
+            <svg viewBox="0 0 160 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <!-- Dayan Wood Gradient -->
+                <linearGradient id="dayanWood" x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%" stop-color="#4A1E0D" />
+                  <stop offset="25%" stop-color="#7B3E1C" />
+                  <stop offset="50%" stop-color="#9E5325" />
+                  <stop offset="85%" stop-color="#6B3315" />
+                  <stop offset="100%" stop-color="#3A1508" />
+                </linearGradient>
+                <!-- Bayan Metallic Gradient -->
+                <radialGradient id="bayanMetal" cx="40%" cy="40%" r="65%">
+                  <stop offset="0%" stop-color="#D9A873" />
+                  <stop offset="45%" stop-color="#9C6B38" />
+                  <stop offset="80%" stop-color="#623F1C" />
+                  <stop offset="100%" stop-color="#3D220E" />
+                </radialGradient>
+                <!-- Syahi Gradient -->
+                <radialGradient id="syahiShine" cx="45%" cy="40%" r="55%">
+                  <stop offset="0%" stop-color="#2C2B2A" />
+                  <stop offset="55%" stop-color="#141312" />
+                  <stop offset="100%" stop-color="#080706" />
+                </radialGradient>
+                <!-- Puri (Skin) Gradient -->
+                <radialGradient id="puriSkin" cx="50%" cy="50%" r="50%">
+                  <stop offset="0%" stop-color="#FFF8EE" />
+                  <stop offset="75%" stop-color="#EADBCC" />
+                  <stop offset="100%" stop-color="#C7B29B" />
+                </radialGradient>
+                <!-- Velvet Bira Base Gradient -->
+                <linearGradient id="biraVelvet" x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%" stop-color="#73151D" />
+                  <stop offset="50%" stop-color="#A82834" />
+                  <stop offset="100%" stop-color="#540D14" />
+                </linearGradient>
+              </defs>
+
+              <!-- === BAYAN (Left, Large Bass Drum) === -->
+              <!-- Velvet Ring Bira for Bayan -->
+              <ellipse cx="50" cy="100" rx="42" ry="14" fill="url(#biraVelvet)" stroke="#D4AF37" stroke-width="1.8" />
+              <!-- Bayan Bowl -->
+              <path
+                d="M14 62 C14 96, 32 102, 50 102 C68 102, 86 96, 86 62 C86 52, 14 52, 14 62 Z"
+                fill="url(#bayanMetal)"
+                stroke="#2B1508"
+                stroke-width="1.2"
+              />
+              <!-- Bayan Puri Head Rim -->
+              <ellipse cx="50" cy="54" rx="36" ry="14" fill="url(#puriSkin)" stroke="#6E5642" stroke-width="2" />
+              <ellipse cx="50" cy="54" rx="33" ry="12.5" fill="none" stroke="#A89480" stroke-width="1" />
+              <!-- Bayan Syahi (Offset black spot) -->
+              <ellipse cx="56" cy="54" rx="14" ry="7.5" fill="url(#syahiShine)" stroke="#38332E" stroke-width="0.8" />
+
+              <!-- === DAYAN (Right, Treble Drum) === -->
+              <!-- Velvet Ring Bira for Dayan -->
+              <ellipse cx="114" cy="102" rx="34" ry="12" fill="url(#biraVelvet)" stroke="#D4AF37" stroke-width="1.8" />
+              <!-- Dayan Wooden Body Shell -->
+              <path
+                d="M88 56 L94 98 C94 102, 134 102, 134 98 L140 56 Z"
+                fill="url(#dayanWood)"
+                stroke="#240D05"
+                stroke-width="1.2"
+              />
+              <!-- Tuning Pegs (Gatta) on Dayan -->
+              <rect x="91" y="70" width="8" height="5" rx="1.5" fill="#C29B38" stroke="#5E430B" stroke-width="0.8" />
+              <rect x="93" y="79" width="8" height="5" rx="1.5" fill="#C29B38" stroke="#5E430B" stroke-width="0.8" />
+              <rect x="130" y="73" width="8" height="5" rx="1.5" fill="#C29B38" stroke="#5E430B" stroke-width="0.8" />
+              <!-- Baddhi Leather Straps Lines -->
+              <line x1="96" y1="56" x2="98" y2="98" stroke="#2B1508" stroke-width="1" />
+              <line x1="108" y1="56" x2="108" y2="100" stroke="#2B1508" stroke-width="1" />
+              <line x1="120" y1="56" x2="120" y2="100" stroke="#2B1508" stroke-width="1" />
+              <line x1="132" y1="56" x2="130" y2="98" stroke="#2B1508" stroke-width="1" />
+              <!-- Dayan Puri Head Rim -->
+              <ellipse cx="114" cy="54" rx="26" ry="11" fill="url(#puriSkin)" stroke="#523924" stroke-width="2" />
+              <ellipse cx="114" cy="54" rx="23" ry="9.5" fill="none" stroke="#8A7662" stroke-width="0.8" />
+              <!-- Dayan Syahi (Central black spot) -->
+              <ellipse cx="114" cy="54" rx="11" ry="5.8" fill="url(#syahiShine)" stroke="#302C28" stroke-width="0.8" />
+            </svg>
+          </div>
+
+          <!-- Titles -->
+          <div class="header-titles">
+            <h1 class="app-title">Tabla Taal Engine</h1>
+            <div class="app-subtitle-wrap">
+              <span class="subtitle-dash" aria-hidden="true"></span>
+              <p class="app-subtitle">Metronome-based Tabla Beat Counting</p>
+              <span class="subtitle-dash" aria-hidden="true"></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Decorative Bottom Wavy Separator with Gold Stroke -->
+        <div class="header-wave-separator" aria-hidden="true">
+          <svg viewBox="0 0 740 22" preserveAspectRatio="none" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path
+              d="M0 0 C 180 20, 360 8, 540 18 C 640 22, 700 12, 740 6 L740 22 L0 22 Z"
+              fill="#FFFDF9"
+            />
+            <path
+              d="M0 0 C 180 20, 360 8, 540 18 C 640 22, 700 12, 740 6"
+              stroke="#D4AF37"
+              stroke-width="1.5"
+              fill="none"
+            />
+          </svg>
+        </div>
+      </header>
+
+      <!-- ── Controls Section ─────────────────────────────────────────── -->
+      <section class="controls-section" aria-label="Taal and Tempo Controls">
+        <div class="controls-row">
+          <!-- 1. Taal Selection Dropdown -->
+          <div class="taal-select-group">
+            <label class="control-label" for="taalSelect">Select Taal</label>
+            <div class="select-wrapper">
+              <select class="taal-dropdown" id="taalSelect" name="taalSelect" aria-label="Select Taal">
+                <option value="tintaal" selected>Tintaal (16 Beats)</option>
+                <option value="dadra">Dadra (6 Beats)</option>
+                <option value="ektaal">Ektaal (12 Beats)</option>
+                <option value="keharwa">Keharwa (8 Beats)</option>
+                <option value="rupak">Rupak (7 Beats)</option>
+                <option value="jhaptaal">Jhaptaal (10 Beats)</option>
+                <option value="deepchandi">Deepchandi (14 Beats)</option>
+              </select>
+              <span class="select-arrow" aria-hidden="true">
+                <svg width="14" height="9" viewBox="0 0 14 9" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M1 1.5L7 7.5L13 1.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                </svg>
+              </span>
+            </div>
+          </div>
+
+          <!-- 2. Tempo Controls -->
+          <div class="tempo-control-group">
+            <label class="control-label" for="tempoInput">Tempo</label>
+            <div class="tempo-controls-cluster">
+              <!-- Stepper input box -->
+              <div class="tempo-input-box">
+                <input
+                  type="number"
+                  class="tempo-input"
+                  id="tempoInput"
+                  name="tempoInput"
+                  value="80"
+                  min="30"
+                  max="360"
+                  step="1"
+                  aria-label="Tempo in BPM"
+                />
+                <div class="tempo-steppers" aria-hidden="true">
+                  <button type="button" class="stepper-arrow-btn" tabindex="-1" aria-label="Increase tempo">&#9650;</button>
+                  <button type="button" class="stepper-arrow-btn" tabindex="-1" aria-label="Decrease tempo">&#9660;</button>
+                </div>
+                <span class="tempo-unit-badge">BPM</span>
+              </div>
+
+              <!-- Multiplier Buttons: ÷2 and ×2 -->
+              <button
+                type="button"
+                class="tempo-btn-multiplier"
+                id="btnHalveTempo"
+                aria-label="Halve Tempo"
+                title="Halve Tempo (÷2)"
+              >
+                &divide;2
+              </button>
+              <button
+                type="button"
+                class="tempo-btn-multiplier"
+                id="btnDoubleTempo"
+                aria-label="Double Tempo"
+                title="Double Tempo (×2)"
+              >
+                &times;2
+              </button>
+            </div>
+          </div>
+
+          <!-- 3. Play Button -->
+          <div class="play-control-group">
+            <label class="control-label" style="visibility: hidden;" aria-hidden="true">Action</label>
+            <button type="button" class="btn-play" id="btnPlay" aria-label="Play Taal">
+              <svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                <path d="M4 2.5L13.5 8L4 13.5V2.5Z" />
+              </svg>
+              Play
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Subtle Divider Line -->
+      <div class="section-divider" role="separator" aria-hidden="true"></div>
+
+      <!-- ── Main Beat Display (Tintaal 16 Beats) ─────────────────────── -->
+      <section class="beat-display-section" aria-label="Beat Counting Display">
+        <div class="beat-grid-card">
+          <div class="beat-grid" id="beatGrid" role="region" aria-label="Beat Grid for Tintaal">
+            <!-- Beat 01 (Active Highlighted State) -->
+            <div class="beat-cell active" data-beat="1" id="beat-1" aria-current="step">
+              <span class="beat-number">01</span>
+              <span class="beat-bol">Dha</span>
+            </div>
+
+            <!-- Beat 02 -->
+            <div class="beat-cell" data-beat="2" id="beat-2">
+              <span class="beat-number">02</span>
+              <span class="beat-bol">Dhin</span>
+            </div>
+
+            <!-- Beat 03 -->
+            <div class="beat-cell" data-beat="3" id="beat-3">
+              <span class="beat-number">03</span>
+              <span class="beat-bol">Dhin</span>
+            </div>
+
+            <!-- Beat 04 -->
+            <div class="beat-cell" data-beat="4" id="beat-4">
+              <span class="beat-number">04</span>
+              <span class="beat-bol">Dha</span>
+            </div>
+
+            <!-- Beat 05 -->
+            <div class="beat-cell" data-beat="5" id="beat-5">
+              <span class="beat-number">05</span>
+              <span class="beat-bol">Dha</span>
+            </div>
+
+            <!-- Beat 06 -->
+            <div class="beat-cell" data-beat="6" id="beat-6">
+              <span class="beat-number">06</span>
+              <span class="beat-bol">Dhin</span>
+            </div>
+
+            <!-- Beat 07 -->
+            <div class="beat-cell" data-beat="7" id="beat-7">
+              <span class="beat-number">07</span>
+              <span class="beat-bol">Dhin</span>
+            </div>
+
+            <!-- Beat 08 -->
+            <div class="beat-cell" data-beat="8" id="beat-8">
+              <span class="beat-number">08</span>
+              <span class="beat-bol">Dha</span>
+            </div>
+
+            <!-- Beat 09 -->
+            <div class="beat-cell" data-beat="9" id="beat-9">
+              <span class="beat-number">09</span>
+              <span class="beat-bol">Na</span>
+            </div>
+
+            <!-- Beat 10 -->
+            <div class="beat-cell" data-beat="10" id="beat-10">
+              <span class="beat-number">10</span>
+              <span class="beat-bol">Tin</span>
+            </div>
+
+            <!-- Beat 11 -->
+            <div class="beat-cell" data-beat="11" id="beat-11">
+              <span class="beat-number">11</span>
+              <span class="beat-bol">Tin</span>
+            </div>
+
+            <!-- Beat 12 -->
+            <div class="beat-cell" data-beat="12" id="beat-12">
+              <span class="beat-number">12</span>
+              <span class="beat-bol">Ta</span>
+            </div>
+
+            <!-- Beat 13 -->
+            <div class="beat-cell" data-beat="13" id="beat-13">
+              <span class="beat-number">13</span>
+              <span class="beat-bol">Tete</span>
+            </div>
+
+            <!-- Beat 14 -->
+            <div class="beat-cell" data-beat="14" id="beat-14">
+              <span class="beat-number">14</span>
+              <span class="beat-bol">Dhin</span>
+            </div>
+
+            <!-- Beat 15 -->
+            <div class="beat-cell" data-beat="15" id="beat-15">
+              <span class="beat-number">15</span>
+              <span class="beat-bol">Dhin</span>
+            </div>
+
+            <!-- Beat 16 -->
+            <div class="beat-cell" data-beat="16" id="beat-16">
+              <span class="beat-number">16</span>
+              <span class="beat-bol">Dha</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── Playback Control Buttons ──────────────────────────────────── -->
+      <section class="playback-actions-section" aria-label="Playback Action Controls">
+        <div class="playback-buttons-row">
+          <!-- Button 1: STOP NOW (Crimson Red) -->
+          <button type="button" class="btn-stop-now" id="btnStopNow" aria-label="Stop Now">
+            <span class="btn-icon" aria-hidden="true">
+              <svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+                <rect x="2.5" y="2.5" width="11" height="11" rx="1.5" />
+              </svg>
+            </span>
+            STOP NOW
+          </button>
+
+          <!-- Button 2: STOP AFTER CYCLE (Navy Slate Blue) -->
+          <button type="button" class="btn-stop-cycle" id="btnStopCycle" aria-label="Stop After Cycle">
+            <span class="btn-icon" aria-hidden="true">
+              <svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+                <path d="M2.5 3L9.5 8L2.5 13V3Z" />
+                <rect x="11.5" y="3" width="2" height="10" rx="0.5" />
+              </svg>
+            </span>
+            STOP AFTER CYCLE
+          </button>
+        </div>
+      </section>
+    </main>
+
+    <!-- JavaScript Controller -->
+    <script src="js/app.js"></script>
+  </body>
+</html>

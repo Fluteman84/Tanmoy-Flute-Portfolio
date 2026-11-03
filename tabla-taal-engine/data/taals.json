@@ -1,0 +1,156 @@
+{
+  "version": "1.0.0",
+  "defaultTaalId": "tintaal",
+  "taals": [
+    {
+      "id": "tintaal",
+      "name": "Tintaal",
+      "displayName": "Tintaal (16 Beats)",
+      "beats": 16,
+      "vibhags": [4, 4, 4, 4],
+      "tali": [1, 5, 13],
+      "khali": [9],
+      "bols": [
+        { "beat": 1, "bol": "Dha", "sign": "X" },
+        { "beat": 2, "bol": "Dhin", "sign": "" },
+        { "beat": 3, "bol": "Dhin", "sign": "" },
+        { "beat": 4, "bol": "Dha", "sign": "" },
+        { "beat": 5, "bol": "Dha", "sign": "2" },
+        { "beat": 6, "bol": "Dhin", "sign": "" },
+        { "beat": 7, "bol": "Dhin", "sign": "" },
+        { "beat": 8, "bol": "Dha", "sign": "" },
+        { "beat": 9, "bol": "Na", "sign": "0" },
+        { "beat": 10, "bol": "Tin", "sign": "" },
+        { "beat": 11, "bol": "Tin", "sign": "" },
+        { "beat": 12, "bol": "Ta", "sign": "" },
+        { "beat": 13, "bol": "Tete", "sign": "3" },
+        { "beat": 14, "bol": "Dhin", "sign": "" },
+        { "beat": 15, "bol": "Dhin", "sign": "" },
+        { "beat": 16, "bol": "Dha", "sign": "" }
+      ]
+    },
+    {
+      "id": "dadra",
+      "name": "Dadra",
+      "displayName": "Dadra (6 Beats)",
+      "beats": 6,
+      "vibhags": [3, 3],
+      "tali": [1],
+      "khali": [4],
+      "bols": [
+        { "beat": 1, "bol": "Dha", "sign": "X" },
+        { "beat": 2, "bol": "Dhin", "sign": "" },
+        { "beat": 3, "bol": "Na", "sign": "" },
+        { "beat": 4, "bol": "Dha", "sign": "0" },
+        { "beat": 5, "bol": "Tin", "sign": "" },
+        { "beat": 6, "bol": "Na", "sign": "" }
+      ]
+    },
+    {
+      "id": "ektaal",
+      "name": "Ektaal",
+      "displayName": "Ektaal (12 Beats)",
+      "beats": 12,
+      "vibhags": [2, 2, 2, 2, 2, 2],
+      "tali": [1, 5, 9, 11],
+      "khali": [3, 7],
+      "bols": [
+        { "beat": 1, "bol": "Dhin", "sign": "X" },
+        { "beat": 2, "bol": "Dhin", "sign": "" },
+        { "beat": 3, "bol": "DhaGe", "sign": "0" },
+        { "beat": 4, "bol": "Tirakita", "sign": "" },
+        { "beat": 5, "bol": "Tu", "sign": "2" },
+        { "beat": 6, "bol": "Na", "sign": "" },
+        { "beat": 7, "bol": "Kat", "sign": "0" },
+        { "beat": 8, "bol": "Ta", "sign": "" },
+        { "beat": 9, "bol": "DhaGe", "sign": "3" },
+        { "beat": 10, "bol": "Tirakita", "sign": "" },
+        { "beat": 11, "bol": "Dhin", "sign": "4" },
+        { "beat": 12, "bol": "Na", "sign": "" }
+      ]
+    },
+    {
+      "id": "keharwa",
+      "name": "Keharwa",
+      "displayName": "Keharwa (8 Beats)",
+      "beats": 8,
+      "vibhags": [4, 4],
+      "tali": [1],
+      "khali": [5],
+      "bols": [
+        { "beat": 1, "bol": "Dha", "sign": "X" },
+        { "beat": 2, "bol": "Ge", "sign": "" },
+        { "beat": 3, "bol": "Na", "sign": "" },
+        { "beat": 4, "bol": "Tin", "sign": "" },
+        { "beat": 5, "bol": "Na", "sign": "0" },
+        { "beat": 6, "bol": "Ke", "sign": "" },
+        { "beat": 7, "bol": "Dhin", "sign": "" },
+        { "beat": 8, "bol": "Na", "sign": "" }
+      ]
+    },
+    {
+      "id": "rupak",
+      "name": "Rupak",
+      "displayName": "Rupak (7 Beats)",
+      "beats": 7,
+      "vibhags": [3, 2, 2],
+      "tali": [4, 6],
+      "khali": [1],
+      "bols": [
+        { "beat": 1, "bol": "Tin", "sign": "0" },
+        { "beat": 2, "bol": "Tin", "sign": "" },
+        { "beat": 3, "bol": "Na", "sign": "" },
+        { "beat": 4, "bol": "Dhi", "sign": "1" },
+        { "beat": 5, "bol": "Na", "sign": "" },
+        { "beat": 6, "bol": "Dhi", "sign": "2" },
+        { "beat": 7, "bol": "Na", "sign": "" }
+      ]
+    },
+    {
+      "id": "jhaptaal",
+      "name": "Jhaptaal",
+      "displayName": "Jhaptaal (10 Beats)",
+      "beats": 10,
+      "vibhags": [2, 3, 2, 3],
+      "tali": [1, 3, 8],
+      "khali": [6],
+      "bols": [
+        { "beat": 1, "bol": "Dhi", "sign": "X" },
+        { "beat": 2, "bol": "Na", "sign": "" },
+        { "beat": 3, "bol": "Dhi", "sign": "2" },
+        { "beat": 4, "bol": "Dhi", "sign": "" },
+        { "beat": 5, "bol": "Na", "sign": "" },
+        { "beat": 6, "bol": "Ti", "sign": "0" },
+        { "beat": 7, "bol": "Na", "sign": "" },
+        { "beat": 8, "bol": "Dhi", "sign": "3" },
+        { "beat": 9, "bol": "Dhi", "sign": "" },
+        { "beat": 10, "bol": "Na", "sign": "" }
+      ]
+    },
+    {
+      "id": "deepchandi",
+      "name": "Deepchandi",
+      "displayName": "Deepchandi (14 Beats)",
+      "beats": 14,
+      "vibhags": [3, 4, 3, 4],
+      "tali": [1, 4, 11],
+      "khali": [8],
+      "bols": [
+        { "beat": 1, "bol": "Dha", "sign": "X" },
+        { "beat": 2, "bol": "Dhin", "sign": "" },
+        { "beat": 3, "bol": "—", "sign": "" },
+        { "beat": 4, "bol": "Dha", "sign": "2" },
+        { "beat": 5, "bol": "Ge", "sign": "" },
+        { "beat": 6, "bol": "Tin", "sign": "" },
+        { "beat": 7, "bol": "—", "sign": "" },
+        { "beat": 8, "bol": "Ta", "sign": "0" },
+        { "beat": 9, "bol": "Tin", "sign": "" },
+        { "beat": 10, "bol": "—", "sign": "" },
+        { "beat": 11, "bol": "Dha", "sign": "3" },
+        { "beat": 12, "bol": "Ge", "sign": "" },
+        { "beat": 13, "bol": "Dhin", "sign": "" },
+        { "beat": 14, "bol": "—", "sign": "" }
+      ]
+    }
+  ]
+}

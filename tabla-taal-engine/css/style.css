@@ -1,0 +1,579 @@
+/* ==========================================================================
+   Tabla Taal Engine — Standalone Static Stylesheet
+   Design Language: Classical Indian Instrument Aesthetic (Burgundy, Gold, Cream)
+   ========================================================================== */
+
+/* ── Design Tokens ──────────────────────────────────────────────────────── */
+:root {
+  --bg-page: #F6F1E8;
+  --bg-card: #FFFDF9;
+  --bg-card-inner: #FDFBF7;
+  --bg-beat: #FAF7F0;
+  --bg-beat-active: #FDF1D3;
+  --bg-stepper-btn: #F7ECE6;
+
+  --border-card: #E8DFD0;
+  --border-beat: #E5DAC9;
+  --border-beat-active: #C87A1C;
+  --border-input: #D8CCBD;
+  --border-stepper: #E5D2C7;
+  --border-divider: #EFE7DB;
+
+  --color-header-start: #370B17;
+  --color-header-mid: #4C1123;
+  --color-header-end: #300813;
+  --color-header-text: #FFF7EB;
+  --color-header-sub: #E8D3B0;
+  --color-header-gold: #D4AF37;
+
+  --color-label: #5A2726;
+  --color-text-main: #1E1813;
+  --color-text-muted: #7C6E5E;
+  --color-text-active: #8A520E;
+
+  --color-play: #1E7D3A;
+  --color-play-hover: #17682F;
+  --color-stop-now: #A62B2B;
+  --color-stop-now-hover: #8C2222;
+  --color-stop-cycle: #134B70;
+  --color-stop-cycle-hover: #0E3955;
+
+  --font-serif: "Cormorant Garamond", Georgia, "Times New Roman", serif;
+  --font-sans: "Manrope", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+
+  --shadow-card: 0 16px 40px rgba(55, 11, 23, 0.08), 0 2px 10px rgba(0, 0, 0, 0.03);
+  --shadow-beat-active: 0 4px 14px rgba(200, 122, 28, 0.22);
+  --shadow-btn: 0 3px 10px rgba(0, 0, 0, 0.12);
+
+  --radius-card: 26px;
+  --radius-control: 10px;
+  --radius-beat: 14px;
+  --radius-btn: 12px;
+
+  --transition-fast: 160ms ease;
+  --transition-normal: 240ms ease;
+}
+
+/* ── Reset & Base Styles ────────────────────────────────────────────────── */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  min-height: 100vh;
+  background-color: var(--bg-page);
+  background-image: 
+    radial-gradient(circle at 10% 15%, rgba(212, 175, 55, 0.08) 0%, transparent 40%),
+    radial-gradient(circle at 90% 85%, rgba(76, 17, 35, 0.06) 0%, transparent 45%);
+  color: var(--color-text-main);
+  font-family: var(--font-sans);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem 1rem;
+}
+
+/* ── App Shell / Card Container ─────────────────────────────────────────── */
+.taal-app {
+  width: 100%;
+  max-width: 740px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Header Banner ──────────────────────────────────────────────────────── */
+.app-header {
+  position: relative;
+  background: linear-gradient(135deg, var(--color-header-start) 0%, var(--color-header-mid) 50%, var(--color-header-end) 100%);
+  color: var(--color-header-text);
+  padding: 1.6rem 1.8rem 2.6rem;
+  overflow: hidden;
+}
+
+.header-decor-mandala {
+  position: absolute;
+  top: -15px;
+  right: -25px;
+  width: 220px;
+  height: 220px;
+  opacity: 0.16;
+  pointer-events: none;
+  color: var(--color-header-gold);
+}
+
+.header-content {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1.6rem;
+}
+
+.header-tabla-graphic {
+  flex-shrink: 0;
+  width: 96px;
+  height: 72px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.header-tabla-graphic svg {
+  width: 100%;
+  height: 100%;
+  filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.45));
+}
+
+.header-titles {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.app-title {
+  font-family: var(--font-serif);
+  font-size: clamp(2rem, 4.5vw, 2.75rem);
+  font-weight: 700;
+  line-height: 1.1;
+  color: var(--color-header-text);
+  letter-spacing: 0.01em;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+}
+
+.app-subtitle-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  margin-top: 0.35rem;
+}
+
+.subtitle-dash {
+  display: inline-block;
+  width: 28px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--color-header-gold), transparent);
+}
+
+.app-subtitle {
+  font-size: clamp(0.78rem, 2vw, 0.92rem);
+  font-weight: 500;
+  color: var(--color-header-sub);
+  letter-spacing: 0.02em;
+}
+
+/* Decorative curved wave divider separating header and controls */
+.header-wave-separator {
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  width: 100%;
+  height: 22px;
+  pointer-events: none;
+  z-index: 3;
+}
+
+.header-wave-separator svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* ── Controls Section ───────────────────────────────────────────────────── */
+.controls-section {
+  padding: 1.5rem 1.8rem 1.3rem;
+  background: var(--bg-card);
+}
+
+.controls-row {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1.25rem;
+}
+
+.control-label {
+  display: block;
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-label);
+  margin-bottom: 0.45rem;
+}
+
+/* Taal Selector */
+.taal-select-group {
+  flex: 1 1 230px;
+  min-width: 180px;
+}
+
+.select-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.taal-dropdown {
+  width: 100%;
+  height: 44px;
+  padding: 0 2.4rem 0 0.95rem;
+  background-color: #FFFFFF;
+  border: 1.5px solid var(--border-input);
+  border-radius: var(--radius-control);
+  color: var(--color-text-main);
+  font-family: var(--font-sans);
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.taal-dropdown:focus {
+  outline: none;
+  border-color: #A13835;
+  box-shadow: 0 0 0 3px rgba(161, 56, 53, 0.15);
+}
+
+.select-arrow {
+  position: absolute;
+  right: 0.85rem;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  color: #55483F;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Tempo Control Group */
+.tempo-control-group {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.tempo-controls-cluster {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.tempo-input-box {
+  display: flex;
+  align-items: center;
+  height: 44px;
+  background: #FFFFFF;
+  border: 1.5px solid var(--border-input);
+  border-radius: var(--radius-control);
+  overflow: hidden;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.tempo-input-box:focus-within {
+  border-color: #A13835;
+  box-shadow: 0 0 0 3px rgba(161, 56, 53, 0.15);
+}
+
+.tempo-input {
+  width: 62px;
+  height: 100%;
+  border: none;
+  background: transparent;
+  text-align: center;
+  font-family: var(--font-sans);
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--color-text-main);
+  padding: 0 0.2rem;
+  -moz-appearance: textfield;
+}
+
+.tempo-input::-webkit-outer-spin-button,
+.tempo-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.tempo-input:focus {
+  outline: none;
+}
+
+.tempo-steppers {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  height: 100%;
+  border-left: 1px solid var(--border-divider);
+  padding: 0 0.2rem;
+}
+
+.stepper-arrow-btn {
+  background: none;
+  border: none;
+  color: #7C6E5E;
+  cursor: pointer;
+  padding: 2px 4px;
+  font-size: 0.6rem;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color var(--transition-fast);
+}
+
+.stepper-arrow-btn:hover {
+  color: var(--color-text-main);
+}
+
+.tempo-unit-badge {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  padding: 0 0.65rem;
+  background: #F3EFE9;
+  border-left: 1px solid var(--border-divider);
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  letter-spacing: 0.04em;
+  user-select: none;
+}
+
+/* Multiplier Buttons */
+.tempo-btn-multiplier {
+  height: 44px;
+  min-width: 44px;
+  padding: 0 0.7rem;
+  background: var(--bg-stepper-btn);
+  border: 1.5px solid var(--border-stepper);
+  border-radius: var(--radius-control);
+  font-family: var(--font-sans);
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #4D2622;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background var(--transition-fast), border-color var(--transition-fast), transform var(--transition-fast);
+}
+
+.tempo-btn-multiplier:hover {
+  background: #EED9CE;
+  border-color: #D6BCB0;
+  transform: translateY(-1px);
+}
+
+.tempo-btn-multiplier:active {
+  transform: translateY(0);
+}
+
+/* Play Button */
+.play-control-group {
+  flex: 0 0 auto;
+}
+
+.btn-play {
+  height: 44px;
+  padding: 0 1.5rem;
+  background: var(--color-play);
+  color: #FFFFFF;
+  border: none;
+  border-radius: var(--radius-control);
+  font-family: var(--font-sans);
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  box-shadow: var(--shadow-btn);
+  transition: background var(--transition-fast), transform var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.btn-play svg {
+  fill: currentColor;
+  width: 14px;
+  height: 14px;
+}
+
+.btn-play:hover {
+  background: var(--color-play-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 5px 14px rgba(30, 125, 58, 0.3);
+}
+
+.btn-play:active {
+  transform: translateY(0);
+}
+
+/* ── Section Divider ────────────────────────────────────────────────────── */
+.section-divider {
+  height: 1px;
+  background: var(--border-divider);
+  margin: 0 1.8rem;
+}
+
+/* ── Main Beat Display Grid ─────────────────────────────────────────────── */
+.beat-display-section {
+  padding: 1.4rem 1.8rem 1.6rem;
+  background: var(--bg-card);
+}
+
+.beat-grid-card {
+  background: var(--bg-card-inner);
+  border: 1.5px solid var(--border-card);
+  border-radius: 18px;
+  padding: 1.15rem;
+}
+
+.beat-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.8rem;
+}
+
+/* Beat Cell (Neutral State) */
+.beat-cell {
+  background: var(--bg-beat);
+  border: 1.5px solid var(--border-beat);
+  border-radius: var(--radius-beat);
+  padding: 0.85rem 0.5rem;
+  min-height: 84px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: default;
+  user-select: none;
+  transition: background var(--transition-normal), border-color var(--transition-normal), box-shadow var(--transition-normal);
+}
+
+.beat-number {
+  font-size: 0.86rem;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  line-height: 1;
+  margin-bottom: 0.35rem;
+  letter-spacing: 0.04em;
+}
+
+.beat-bol {
+  font-size: clamp(1.3rem, 2.5vw, 1.6rem);
+  font-weight: 800;
+  color: var(--color-text-main);
+  line-height: 1.1;
+  letter-spacing: 0.01em;
+}
+
+/* Beat Cell (Active State — Beat 1 in static demo) */
+.beat-cell.active {
+  background: var(--bg-beat-active);
+  border: 2px solid var(--border-beat-active);
+  box-shadow: var(--shadow-beat-active), inset 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+
+.beat-cell.active .beat-number {
+  color: var(--color-text-active);
+  font-weight: 800;
+}
+
+.beat-cell.active .beat-bol {
+  color: #120D08;
+}
+
+/* ── Playback Action Buttons ────────────────────────────────────────────── */
+.playback-actions-section {
+  padding: 0 1.8rem 1.8rem;
+  background: var(--bg-card);
+}
+
+.playback-buttons-row {
+  display: flex;
+  gap: 1rem;
+}
+
+.btn-stop-now,
+.btn-stop-cycle {
+  flex: 1 1 50%;
+  min-height: 48px;
+  padding: 0.85rem 1.25rem;
+  border: none;
+  border-radius: var(--radius-btn);
+  font-family: var(--font-sans);
+  font-size: 0.95rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  color: #FFFFFF;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.65rem;
+  box-shadow: var(--shadow-btn);
+  transition: background var(--transition-fast), transform var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+/* Stop Now */
+.btn-stop-now {
+  background: var(--color-stop-now);
+}
+
+.btn-stop-now:hover {
+  background: var(--color-stop-now-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 5px 14px rgba(166, 43, 43, 0.3);
+}
+
+.btn-stop-now:active {
+  transform: translateY(0);
+}
+
+/* Stop After Cycle */
+.btn-stop-cycle {
+  background: var(--color-stop-cycle);
+}
+
+.btn-stop-cycle:hover {
+  background: var(--color-stop-cycle-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 5px 14px rgba(19, 75, 112, 0.3);
+}
+
+.btn-stop-cycle:active {
+  transform: translateY(0);
+}
+
+.btn-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-icon svg {
+  fill: currentColor;
+  width: 15px;
+  height: 15px;
+}

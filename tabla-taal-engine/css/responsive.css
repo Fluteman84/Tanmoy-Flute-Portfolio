@@ -1,0 +1,250 @@
+/* ==========================================================================
+   Tabla Taal Engine — Responsive Stylesheet
+   Breakpoints: Tablet (<= 768px), Mobile (<= 640px), Mobile Small (<= 430px, 390px, 360px)
+   ========================================================================== */
+
+/* ── Tablet Adjustments (<= 768px) ──────────────────────────────────────── */
+@media (max-width: 768px) {
+  body {
+    padding: 1.5rem 0.85rem;
+  }
+
+  .app-header {
+    padding: 1.4rem 1.4rem 2.2rem;
+  }
+
+  .header-decor-mandala {
+    width: 170px;
+    height: 170px;
+    top: -10px;
+    right: -15px;
+  }
+
+  .header-tabla-graphic {
+    width: 84px;
+    height: 64px;
+  }
+
+  .controls-section {
+    padding: 1.35rem 1.4rem 1.15rem;
+  }
+
+  .beat-display-section {
+    padding: 1.25rem 1.4rem 1.4rem;
+  }
+
+  .playback-actions-section {
+    padding: 0 1.4rem 1.5rem;
+  }
+
+  .section-divider {
+    margin: 0 1.4rem;
+  }
+
+  .beat-grid {
+    gap: 0.65rem;
+  }
+}
+
+/* ── Mobile Layout (<= 640px) ───────────────────────────────────────────── */
+@media (max-width: 640px) {
+  body {
+    padding: 1rem 0.5rem;
+  }
+
+  .taal-app {
+    border-radius: 20px;
+  }
+
+  .header-content {
+    gap: 1rem;
+  }
+
+  .header-tabla-graphic {
+    width: 72px;
+    height: 56px;
+  }
+
+  .controls-row {
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+
+  .taal-select-group {
+    flex: 1 1 100%;
+    min-width: 100%;
+  }
+
+  .tempo-control-group {
+    flex: 1 1 auto;
+  }
+
+  .play-control-group {
+    flex: 0 0 auto;
+    align-self: flex-end;
+  }
+
+  .btn-play {
+    height: 44px;
+    padding: 0 1.35rem;
+  }
+
+  .beat-grid-card {
+    padding: 0.85rem;
+    border-radius: 15px;
+  }
+
+  .beat-grid {
+    gap: 0.5rem;
+  }
+
+  .beat-cell {
+    min-height: 74px;
+    padding: 0.65rem 0.3rem;
+    border-radius: 11px;
+  }
+
+  .beat-number {
+    font-size: 0.78rem;
+    margin-bottom: 0.25rem;
+  }
+
+  .beat-bol {
+    font-size: 1.25rem;
+  }
+}
+
+/* ── Mobile Small (<= 430px / 390px / 360px) ────────────────────────────── */
+@media (max-width: 430px) {
+  body {
+    padding: 0.5rem 0.35rem;
+  }
+
+  .app-header {
+    padding: 1.2rem 1rem 1.8rem;
+  }
+
+  .header-content {
+    gap: 0.75rem;
+  }
+
+  .header-tabla-graphic {
+    width: 60px;
+    height: 48px;
+  }
+
+  .app-subtitle-wrap {
+    gap: 0.4rem;
+  }
+
+  .subtitle-dash {
+    width: 16px;
+  }
+
+  .controls-section {
+    padding: 1rem 1rem 0.9rem;
+  }
+
+  .controls-row {
+    gap: 0.85rem;
+  }
+
+  .tempo-controls-cluster {
+    gap: 0.35rem;
+  }
+
+  .tempo-input {
+    width: 48px;
+    font-size: 1.15rem;
+  }
+
+  .tempo-unit-badge {
+    padding: 0 0.45rem;
+    font-size: 0.7rem;
+  }
+
+  .tempo-btn-multiplier {
+    min-width: 38px;
+    height: 44px;
+    padding: 0 0.5rem;
+    font-size: 0.95rem;
+  }
+
+  .btn-play {
+    padding: 0 1rem;
+    font-size: 0.92rem;
+  }
+
+  .section-divider {
+    margin: 0 1rem;
+  }
+
+  .beat-display-section {
+    padding: 0.9rem 1rem 1.1rem;
+  }
+
+  .beat-grid-card {
+    padding: 0.65rem 0.5rem;
+    border-radius: 13px;
+  }
+
+  .beat-grid {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0.4rem;
+  }
+
+  .beat-cell {
+    min-height: 68px;
+    padding: 0.5rem 0.2rem;
+    border-radius: 9px;
+  }
+
+  .beat-number {
+    font-size: 0.74rem;
+    margin-bottom: 0.15rem;
+  }
+
+  .beat-bol {
+    font-size: 1.12rem;
+  }
+
+  .playback-actions-section {
+    padding: 0 1rem 1.2rem;
+  }
+
+  .playback-buttons-row {
+    flex-direction: column;
+    gap: 0.65rem;
+  }
+
+  .btn-stop-now,
+  .btn-stop-cycle {
+    width: 100%;
+    min-height: 46px;
+    font-size: 0.88rem;
+    padding: 0.75rem 1rem;
+  }
+}
+
+/* Extra support for ultra narrow screens (<= 360px) */
+@media (max-width: 360px) {
+  .header-tabla-graphic {
+    display: none;
+  }
+
+  .tempo-controls-cluster {
+    flex-wrap: wrap;
+  }
+
+  .beat-grid {
+    gap: 0.32rem;
+  }
+
+  .beat-cell {
+    min-height: 62px;
+  }
+
+  .beat-bol {
+    font-size: 1.05rem;
+  }
+}

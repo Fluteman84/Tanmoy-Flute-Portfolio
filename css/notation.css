@@ -5,8 +5,12 @@
    ============================================================ */
 
 /* -----------------------------------------------
-   Page Structure
+   Page Structure & Spacing
    ----------------------------------------------- */
+.notes-main {
+  padding-top: 1.5rem;
+}
+
 .swaralipi-app {
   max-width: var(--container);
   margin: 0 auto;
@@ -15,7 +19,7 @@
 
 .swaralipi-hero {
   text-align: center;
-  padding: 3.5rem 0 2rem;
+  padding: 1rem 0 1.5rem;
 }
 
 .swaralipi-hero h1 {
@@ -761,6 +765,14 @@
    Responsive — Tablet & Small Screens
    ----------------------------------------------- */
 @media (max-width: 760px) {
+  .notes-main {
+    padding-top: 1rem;
+  }
+
+  .swaralipi-hero {
+    padding: 0.75rem 0 1.25rem;
+  }
+
   .four-bar-block.bars-per-row-4 .sw-measure {
     flex: 0 0 calc(50% - 2px);
     max-width: calc(50% - 2px);

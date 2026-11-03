@@ -1,2 +1,51 @@
+# Operating System Files
 Thumbs.db
+ehthumbs.db
+desktop.ini
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+
+# Editor & IDE Configuration
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+*.swp
+*.swo
+*~
+
+# Generated Audit and Report Files
+*REPORT*.md
+*report*.md
+*AUDIT*.md
+*audit*.md
+reports/
+audit-reports/
+*_report.html
+*_audit.html
+*.report.json
+*.audit.json
+
+# Scratch, Debug, Screenshots & Local Testing Files
+scratch/
+temp/
+tmp/
+
+# Logs & Runtime Output
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Node Dependencies & Package Caches
+node_modules/
+.npm
+.cache/
+
+# Local Environment Variables & Secrets
+.env
+.env.local
+.env.*.local

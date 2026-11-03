@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Hindustani Classical Tabla Taal Engine by Tanmoy Flute. Rhythm accompaniment, practice beats, and thekas for bansuri and Indian classical music."
+    />
+    <title>Tabla Taal Engine | Tanmoy Flute</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="css/style.css" />
+    <link rel="stylesheet" href="css/responsive.css" />
+    <link rel="stylesheet" href="css/notes.css" />
+  </head>
+  <body class="notes-page">
+    <header class="site-header">
+      <div class="container nav-shell">
+        <a class="brand" href="index.html">
+          <span class="brand-mark">TANMOY</span>
+          <span class="brand-sub">Flute</span>
+        </a>
+
+        <div style="display:flex; align-items:center; gap:1rem;">
+          <div class="nav-dropdown" id="toolsDropdown">
+            <button class="nav-dropdown-toggle" aria-haspopup="true" aria-expanded="false" id="toolsToggle">
+              Tools <span class="dropdown-arrow" aria-hidden="true">▾</span>
+            </button>
+            <div class="nav-dropdown-menu" role="menu">
+              <a href="notes.html" role="menuitem">
+                <span class="dropdown-item-label">Palta Generator</span>
+                <span class="dropdown-item-desc">Aroha &amp; Avaroha practice sheets</span>
+              </a>
+              <a href="notation.html" role="menuitem">
+                <span class="dropdown-item-label">Notation Generator</span>
+                <span class="dropdown-item-desc">Hindustani Classical Notation Editor</span>
+              </a>
+              <a href="tabla.html" role="menuitem">
+                <span class="dropdown-item-label">Tabla Taal Engine</span>
+                <span class="dropdown-item-desc">Rhythm accompaniment &amp; practice beats</span>
+              </a>
+            </div>
+          </div>
+          <a class="notes-back-link" href="index.html">Back to Stage</a>
+        </div>
+      </div>
+    </header>
+
+    <main class="notes-main">
+      <section class="notes-hero">
+        <div class="container">
+          <p class="eyebrow">Tools / Rhythm Studio</p>
+          <h1>Hindustani Classical <span>Tabla Taal Engine</span></h1>
+          <p class="notes-subtitle">Rhythm accompaniment, thekas &amp; practice beats for bansuri and classical music.</p>
+        </div>
+      </section>
+
+      <section class="container" style="max-width: 900px; margin: 0 auto; padding: 1rem;">
+        <div class="glass-card" style="padding: clamp(2rem, 5vw, 3.5rem) clamp(1.25rem, 4vw, 2.5rem); text-align: center; border-radius: 28px; border: 1px solid rgba(216, 168, 93, 0.3); background: linear-gradient(150deg, rgba(255, 255, 255, 0.06), rgba(9, 19, 25, 0.75)); box-shadow: var(--shadow-soft);">
+          <div style="font-size: 3.2rem; margin-bottom: 1.25rem; line-height: 1;">🥁</div>
+          <h2 style="font-family: 'Cormorant Garamond', serif; font-size: clamp(2rem, 4vw, 2.8rem); margin: 0 0 0.85rem; color: var(--accent-bright);">Tabla Taal Engine Workspace</h2>
+          <p style="color: var(--text-secondary); max-width: 560px; margin: 0 auto 1.5rem; line-height: 1.6; font-size: 1.05rem;">
+            This module is ready for development. Rhythm accompaniment, interactive thekas (Teentaal, Ektaal, Jhaptal, Keherwa, Dadra, Rupak), tempo BPM controls, and audio playback features will be built here.
+          </p>
+          <div id="tablaApp" class="tabla-app"></div>
+        </div>
+      </section>
+    </main>
+
+    <script>
+      (function () {
+        var toolsDropdown = document.getElementById("toolsDropdown");
+        var toolsToggle = document.getElementById("toolsToggle");
+        if (toolsDropdown && toolsToggle) {
+          toolsToggle.addEventListener("click", function (e) {
+            e.stopPropagation();
+            var isOpen = toolsDropdown.classList.toggle("is-open");
+            toolsToggle.setAttribute("aria-expanded", String(isOpen));
+          });
+          document.addEventListener("click", function (e) {
+            if (!toolsDropdown.contains(e.target)) {
+              toolsDropdown.classList.remove("is-open");
+              toolsToggle.setAttribute("aria-expanded", "false");
+            }
+          });
+          document.addEventListener("keydown", function (e) {
+            if (e.key === "Escape") {
+              toolsDropdown.classList.remove("is-open");
+              toolsToggle.setAttribute("aria-expanded", "false");
+            }
+          });
+        }
+      })();
+    </script>
+  </body>
+</html>

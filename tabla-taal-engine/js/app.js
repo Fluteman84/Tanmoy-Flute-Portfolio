@@ -14,12 +14,13 @@
   "use strict";
 
   const TablaTaalEngine = {
-    version: "3.0.0",
-    stage: "Complete Visual Engine (Parts 3, 4, 5)",
+    version: "3.1.0",
+    stage: "Audio Playback & Metronome Synchronization",
     elements: {},
     taals: [],
     currentTaal: null,
     metronome: null,
+    audioEngine: null,
 
     /**
      * Initializes the application once the DOM is ready.
@@ -30,11 +31,46 @@
       this.initialized = true;
 
       this.cacheDOMElements();
+      this.initAudioEngine();
       this.initMetronomeEngine();
       this.setupControlEventListeners();
 
       const resolvedPath = dataPath || window.__TABLA_DATA_PATH__ || "data/taals.json";
       await this.loadAndInitializeData(resolvedPath);
+
+      // Preload audio samples in background without playing sound
+      if (this.audioEngine) {
+        this.audioEngine.loadSamples().catch((err) => {
+          console.warn("[TablaTaalEngine] Background audio preload notice:", err);
+        });
+      }
+    },
+
+    /**
+     * Initializes and binds the AudioEngine module.
+     */
+    initAudioEngine: function () {
+      this.audioEngine = window.AudioEngine || null;
+      if (!this.audioEngine) {
+        console.warn("[TablaTaalEngine] AudioEngine module missing.");
+        return;
+      }
+
+      this.audioEngine.onStatusChange = (status, errorMsg) => {
+        this.updatePlaybackInfoDisplay(
+          this.metronome ? this.metronome.currentBeat : 1,
+          this.metronome ? this.metronome.currentCycle : 1,
+          this.metronome ? this.metronome.state : "STOPPED"
+        );
+
+        if (status === "ERROR" && errorMsg && this.elements.statusNotice && window.TaalRenderer) {
+          window.TaalRenderer.renderStatusNotice(
+            this.elements.statusNotice,
+            ["Audio Notice: " + errorMsg],
+            []
+          );
+        }
+      };
     },
 
     /**
@@ -66,6 +102,8 @@
         console.error("[TablaTaalEngine] MetronomeEngine module missing.");
         return;
       }
+
+      this.metronome.audioEngine = this.audioEngine || window.AudioEngine || null;
 
       // 1. On every beat progression
       this.metronome.onBeat = (beatNumber, cycleNumber, state) => {
@@ -131,7 +169,8 @@
         currentCycle: cycleNumber,
         currentVibhag: currentVibhag,
         totalVibhags: totalVibhags,
-        state: state
+        state: state,
+        soundStatus: this.audioEngine ? this.audioEngine.status : "READY"
       });
     },
 
@@ -152,9 +191,45 @@
 
       // Play button
       if (btnPlay) {
-        btnPlay.addEventListener("click", (e) => {
+        btnPlay.addEventListener("click", async (e) => {
           e.preventDefault();
+          if (!this.metronome) return;
+          if (this.metronome.state === "PLAYING" || this.metronome.state === "STOPPING_AFTER_CYCLE") {
+            return;
+          }
+
+          // Audio initialization & user-gesture resumption
+          if (this.audioEngine) {
+            if (this.audioEngine.status === "UNINITIALIZED" || this.audioEngine.status === "LOADING") {
+              this.updatePlaybackInfoDisplay(1, 1, "LOADING");
+              const loaded = await this.audioEngine.loadSamples();
+              if (!loaded) {
+                if (this.elements.statusNotice && window.TaalRenderer) {
+                  window.TaalRenderer.renderStatusNotice(
+                    this.elements.statusNotice,
+                    [this.audioEngine.errorMessage || "Audio initialization failed. Check Sounds/ directory."],
+                    []
+                  );
+                }
+                return;
+              }
+            } else if (this.audioEngine.status === "ERROR") {
+              if (this.elements.statusNotice && window.TaalRenderer) {
+                window.TaalRenderer.renderStatusNotice(
+                  this.elements.statusNotice,
+                  [this.audioEngine.errorMessage || "Audio files are unavailable."],
+                  []
+                );
+              }
+              return;
+            }
+
+            // Ensure AudioContext is actively running
+            await this.audioEngine.ensureContext();
+          }
+
           if (this.metronome) {
+            this.metronome.setTaal(this.currentTaal);
             this.metronome.start();
           }
         });
@@ -307,7 +382,7 @@
 
       this.currentTaal = defaultTaal;
       if (this.metronome) {
-        this.metronome.setTotalBeats(this.currentTaal.beats);
+        this.metronome.setTaal(this.currentTaal);
       }
 
       // 1. Render dynamic Taal selector
@@ -361,9 +436,9 @@
 
       this.currentTaal = chosenTaal;
 
-      // 2. Configure metronome total beats
+      // 2. Configure metronome active Taal and total beats
       if (this.metronome) {
-        this.metronome.setTotalBeats(this.currentTaal.beats);
+        this.metronome.setTaal(this.currentTaal);
       }
 
       // 3. Re-render beat grid

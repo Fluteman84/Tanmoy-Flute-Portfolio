@@ -1,0 +1,58 @@
+const fs = require('fs');
+const path = require('path');
+const { spawnSync } = require('child_process');
+
+const testHtml = `
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><title>Audio Test</title></head>
+<body>
+<script>
+async function testAudio() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    await ctx.resume();
+
+    const res1 = await fetch('../Sounds/Sound1.wav');
+    const ab1 = await res1.arrayBuffer();
+    // decodeAudioData with callback or promise
+    ctx.decodeAudioData(ab1, (buf1) => {
+      console.log('Sound1 decoded SUCCESS:', buf1.duration, 'sec');
+      
+      fetch('../Sounds/Sound2.wav').then(r => r.arrayBuffer()).then(ab2 => {
+        ctx.decodeAudioData(ab2, (buf2) => {
+          console.log('Sound2 decoded SUCCESS:', buf2.duration, 'sec');
+          console.log('ALL_AUDIO_DECODED_SUCCESS');
+        });
+      });
+    }, (err) => {
+      console.error('Decode 1 failed:', err);
+    });
+  } catch (err) {
+    console.error('AUDIO_DECODE_ERROR:', err.message || err);
+  }
+}
+testAudio();
+</script>
+</body>
+</html>
+`;
+
+fs.writeFileSync('scratch/test-audio-decode.html', testHtml);
+
+const chromePath = "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe";
+const fileUrl = "file:///" + path.resolve('scratch/test-audio-decode.html').replace(/\\/g, '/');
+
+// Run with node spawn and wait 2 seconds real time
+const res = spawnSync(chromePath, [
+  '--headless=new',
+  '--no-sandbox',
+  '--disable-gpu',
+  '--allow-file-access-from-files',
+  '--enable-logging=stderr',
+  '--autoplay-policy=no-user-gesture-required',
+  fileUrl
+], { encoding: 'utf-8', timeout: 5000 });
+
+console.log('Chrome output:');
+(res.stderr || '').split('\n').filter(l => l.includes('CONSOLE')).forEach(l => console.log(l));

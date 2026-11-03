@@ -252,6 +252,20 @@
         statusClass = "status-stopping";
       }
 
+      let soundLabel = "READY";
+      let soundClass = "sound-ready";
+      const soundStatus = info.soundStatus || (window.AudioEngine ? window.AudioEngine.status : "READY");
+      if (soundStatus === "LOADING") {
+        soundLabel = "LOADING";
+        soundClass = "sound-loading";
+      } else if (soundStatus === "ERROR") {
+        soundLabel = "ERROR";
+        soundClass = "sound-error";
+      } else if (soundStatus === "UNINITIALIZED") {
+        soundLabel = "READY";
+        soundClass = "sound-ready";
+      }
+
       barEl.innerHTML = `
         <div class="info-metric">
           <span class="metric-label">Taal</span>
@@ -276,6 +290,10 @@
         <div class="info-metric status-metric">
           <span class="metric-label">Status</span>
           <span class="playback-status-pill ${statusClass}">${statusLabel}</span>
+        </div>
+        <div class="info-metric sound-metric">
+          <span class="metric-label">Sound</span>
+          <span class="sound-status-pill ${soundClass}">${soundLabel}</span>
         </div>
       `;
     },

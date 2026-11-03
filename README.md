@@ -8,6 +8,14 @@ Standalone static website for **Tanmoy Flute**, built as a premium cinematic por
 - emotional bansuri presentation
 - gallery, testimonials, and booking contact
 
+## Tools & Modules
+
+The platform includes three specialized Hindustani classical music modules:
+
+1. **Palta Generator** (`notes.html`): Aroha and Avaroha classical flute pattern generator.
+2. **Swaralipi Notation Editor** (`notation.html`): Hindustani classical notation editor with import, export, and PDF preview.
+3. **Tabla Taal Engine** (`tabla.html` / `tabla-taal-engine/`): Visual & audio metronome rhythm accompaniment engine featuring Web Audio sample playback (`Sound1.wav`, `Sound2.wav`), dynamic Taal JSON mapping, and drift-free timing.
+
 ## Folder Structure
 
 ```text

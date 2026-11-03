@@ -20,6 +20,7 @@ function verifyFilesExist() {
     { name: "data/taals.json", path: rootDataPath },
     { name: "tabla-taal-engine/data/taals.json", path: engineDataPath },
     { name: "css/tabla.css", path: tablaCssPath },
+    { name: "tabla-taal-engine/js/audio-engine.js", path: path.join(rootDir, "tabla-taal-engine", "js", "audio-engine.js") },
     { name: "tabla-taal-engine/js/taal-loader.js", path: path.join(rootDir, "tabla-taal-engine", "js", "taal-loader.js") },
     { name: "tabla-taal-engine/js/taal-renderer.js", path: path.join(rootDir, "tabla-taal-engine", "js", "taal-renderer.js") },
     { name: "tabla-taal-engine/js/metronome-engine.js", path: path.join(rootDir, "tabla-taal-engine", "js", "metronome-engine.js") },
@@ -115,6 +116,7 @@ function verifyHtmlComponents() {
 
   // Check script tags
   const requiredScripts = [
+    "tabla-taal-engine/js/audio-engine.js",
     "tabla-taal-engine/js/taal-loader.js",
     "tabla-taal-engine/js/taal-renderer.js",
     "tabla-taal-engine/js/metronome-engine.js",
@@ -242,21 +244,48 @@ async function testFullDOMSimulation() {
       createDocumentFragment: () => ({ isFragment: true, _children: [], appendChild: function(c) { this._children.push(c); } }),
       addEventListener: () => {}
     },
+    AudioContext: class MockAudioContext {
+      constructor() {
+        this.state = "running";
+        this.currentTime = 0;
+      }
+      createGain() { return { gain: { value: 0.75 }, connect: () => {} }; }
+      createBufferSource() {
+        return {
+          buffer: null,
+          playbackRate: { value: 1.0 },
+          connect: () => {},
+          start: () => {},
+          stop: () => {},
+          disconnect: () => {}
+        };
+      }
+      decodeAudioData(ab, resolve) {
+        if (resolve) resolve({ duration: 0.22, numberOfChannels: 1, sampleRate: 44100 });
+        return Promise.resolve({ duration: 0.22, numberOfChannels: 1, sampleRate: 44100 });
+      }
+      resume() { return Promise.resolve(); }
+    },
     fetch: async (url) => {
-      // Mock fetch to read actual disk json
+      // Mock fetch to read actual disk files
       let resolvedDiskPath;
       if (url === "data/taals.json") {
         resolvedDiskPath = rootDataPath;
       } else if (url === "tabla-taal-engine/data/taals.json") {
         resolvedDiskPath = engineDataPath;
+      } else if (url.includes("Sound1.wav")) {
+        resolvedDiskPath = path.join(rootDir, "Sounds", "Sound1.wav");
+      } else if (url.includes("Sound2.wav")) {
+        resolvedDiskPath = path.join(rootDir, "Sounds", "Sound2.wav");
       } else {
         return { ok: false, status: 404 };
       }
-      const rawText = fs.readFileSync(resolvedDiskPath, "utf-8");
+      const rawBuf = fs.readFileSync(resolvedDiskPath);
       return {
         ok: true,
         status: 200,
-        json: async () => JSON.parse(rawText)
+        arrayBuffer: async () => rawBuf.buffer,
+        json: async () => JSON.parse(rawBuf.toString("utf-8"))
       };
     }
   };
@@ -266,6 +295,7 @@ async function testFullDOMSimulation() {
   global.window.__TABLA_DATA_PATH__ = "data/taals.json";
 
   // Load modules into node environment
+  require(path.join(rootDir, "tabla-taal-engine", "js", "audio-engine.js"));
   require(path.join(rootDir, "tabla-taal-engine", "js", "taal-loader.js"));
   require(path.join(rootDir, "tabla-taal-engine", "js", "taal-renderer.js"));
   require(path.join(rootDir, "tabla-taal-engine", "js", "metronome-engine.js"));
@@ -327,6 +357,7 @@ async function testFullDOMSimulation() {
 
   // Check 5: Play button starts playback
   elementsMap.btnPlay.dispatchEvent({ type: "click", preventDefault: () => {} });
+  await new Promise((r) => setTimeout(r, 50));
   if (App.metronome.state === "PLAYING" && elementsMap.btnPlay.classList.contains("is-playing")) {
     console.log(`[PASS] Play button successfully started metronome engine.`);
   } else {
@@ -359,6 +390,7 @@ async function testFullDOMSimulation() {
 
   // Check 7: STOP AFTER CYCLE
   elementsMap.btnPlay.dispatchEvent({ type: "click", preventDefault: () => {} });
+  await new Promise((r) => setTimeout(r, 50));
   elementsMap.btnStopCycle.dispatchEvent({ type: "click", preventDefault: () => {} });
   if (App.metronome.state === "STOPPING_AFTER_CYCLE" && elementsMap.btnStopCycle.classList.contains("is-pending")) {
     console.log(`[PASS] STOP AFTER CYCLE set state to STOPPING_AFTER_CYCLE with is-pending class.`);

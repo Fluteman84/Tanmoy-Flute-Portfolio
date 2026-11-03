@@ -1,21 +1,10 @@
 # Tabla Taal Engine
 
-A standalone, lightweight web application module providing **Visual Metronome-based Tabla Beat Counting** and rhythm accompaniment for Hindustani classical music practice.
-
-> **Strict Audio Policy:** The engine is purely a **visual metronome**. It produces zero sound, zero metronome clicks, and plays no audio samples.
+A standalone, lightweight web application module providing **Visual & Audio Metronome-based Tabla Beat Counting** and rhythm accompaniment for Hindustani classical music practice.
 
 ---
 
-## Combined Development Phase (Parts 3, 4, 5)
-
-This release completes the visual Tabla beat-counting engine, combining:
-- **Part 3**: High-resolution, drift-resistant metronome timing engine.
-- **Part 4**: Comprehensive playback state management (Manual Play, STOP NOW, STOP AFTER CYCLE, in-flight tempo changes).
-- **Part 5**: Advanced classical Tabla practice features (Sam, Tali, Khali markers, Vibhag boundary separation, live cycle counter, and playback metrics bar).
-
----
-
-## Directory Structure & Modular Architecture
+## Architecture & Modular Design
 
 ```text
 tabla-taal-engine/
@@ -24,9 +13,10 @@ tabla-taal-engine/
 │   ├── style.css         # Design tokens, classical theme, markers, active states
 │   └── responsive.css    # Fluid layout scaling (desktop, tablet, 430px, 390px, 360px)
 ├── js/
+│   ├── audio-engine.js   # Web Audio API engine, sample decoding, buffer scheduling
 │   ├── taal-loader.js    # Asynchronous JSON fetcher and strict schema validator
 │   ├── taal-renderer.js  # Dynamic dropdown, beat grid, Sam/Tali/Khali badges, live bar
-│   ├── metronome-engine.js # Monotonic timing engine, state machine, background tab recovery
+│   ├── metronome-engine.js # Monotonic timing engine, state machine, audio sync
 │   └── app.js            # Main application coordinator, event binding, and public API
 ├── data/
 │   └── taals.json        # Single source of truth for all classical Taals
@@ -35,91 +25,71 @@ tabla-taal-engine/
 
 ---
 
-## Timing Architecture (Part 3)
+## Audio Engine & Sound Playback
 
-1. **Monotonic Clock**:
-   - Timing calculations are anchored to `performance.now()`, eliminating system wall-clock jitter.
-   - Beat intervals are calculated strictly by:
-     $$\text{Interval (ms)} = \frac{60{,}000}{\text{BPM}}$$
-2. **Drift-Resistant Deadline Scheduling**:
-   - Rather than relying on simple `setInterval()`, the engine maintains an absolute expected timestamp for each beat deadline:
-     $$\text{ExpectedTime}_{k+1} = \text{TimelineStart} + (k + 1) \times \text{Interval}$$
-   - Scheduled via adaptive `setTimeout()` deadlines with sub-millisecond precision.
-3. **Decoupled Visual Rendering**:
-   - State progression is computed on monotonic ticks, while DOM updates are dispatched cleanly through `requestAnimationFrame()`.
-4. **Background Tab Synchronization**:
-   - Listens to the `visibilitychange` event. When the user returns from a background tab, the engine calculates the exact logical beat position from elapsed monotonic time and updates the visual state once without bursting through missed callbacks.
+The engine features a dedicated, decoupled Web Audio API engine (`js/audio-engine.js`) utilizing two authentic, external sound recordings stored in the `Sounds/` directory:
 
----
+| Sound Category | Audio File | Format & Specs | Applied To |
+|:---|:---|:---|:---|
+| **Sound1** | `Sounds/Sound1.wav` | 16-bit PCM WAV, 44.1 kHz, mono (~0.21s) | **Sam**, **Tali**, and **Khali** beats |
+| **Sound2** | `Sounds/Sound2.wav` | 32-bit Float WAV, 44.1 kHz, mono (~0.23s) | **Ordinary / Normal** beats |
 
-## Playback State Management (Part 4)
+### Dynamic Sound Mapping Rules
 
-The engine enforces three discrete playback states:
-- `STOPPED`: Idle state. Beat position at Beat 1, cycle at 1. Play button is enabled; STOP NOW and STOP AFTER CYCLE buttons are inactive.
-- `PLAYING`: Metronome actively progressing. Play button reflects active state without creating duplicate loops. Both stop buttons are fully active.
-- `STOPPING_AFTER_CYCLE`: Triggered when the user requests a graceful stop. The engine continues until the final beat of the ongoing cycle, then terminates cleanly before Beat 1 of the next cycle can run.
+All audio mapping is evaluated dynamically from the selected Taal's JSON metadata without hardcoded beat indices:
+- **Sound1**: Triggered whenever the current beat represents `Sam` (`taal.sam === beatNumber`), `Tali` (`taal.tali.includes(beatNumber)`), or `Khali` (`taal.khali.includes(beatNumber)`).
+- **Sound2**: Triggered for all other ordinary beats.
+- **Multiple Markers**: If a beat possesses multiple special markers simultaneously (e.g., Beat 1 in Tintaal is both Sam and Tali), Sound1 is triggered **strictly once**. Both sounds are never played simultaneously on the same beat.
+- **Missing Metadata Fallback**: If a Taal has incomplete or omitted metadata (e.g. `sam: null`, empty `tali`/`khali`, or `notation: null`), the engine safely defaults to Sound2 for all beats without error.
 
-### In-Flight Tempo Adjustments
-- Changing the tempo via numeric input (20–300 BPM), `÷2`, or `×2` while playback is active **does not reset the current beat or cycle**, and **does not restart playback**.
-- The new interval is applied seamlessly at the very next beat boundary by re-anchoring the monotonic timeline.
+### Audio Scheduling & Metronome Synchronization
 
-### Safe Taal Switching
-- Selecting a different Taal while playback is active terminates the previous session immediately, invalidates all pending timers, resets the beat counter, loads the new Taal, and remains in the `STOPPED` state. The BPM setting is preserved.
-
----
-
-## Advanced Practice Features (Part 5)
-
-1. **Sam (`SAM (X)`)**:
-   - Prominently marks the principal starting beat (`taal.sam`) with a royal burgundy and gold-trimmed badge.
-2. **Tali (`TALI`)**:
-   - Visual clap positions (`taal.tali`) are badged with warm amber markers.
-3. **Khali (`KHALI (0)`)**:
-   - Empty/wave beats (`taal.khali`) are clearly identified with cool slate-blue markers.
-4. **Vibhag Boundaries**:
-   - Subtly accents section boundaries (`.vibhag-boundary-end`) dynamically based on `taal.vibhags` without hardcoding.
-5. **Cycle Counter & Live Playback Bar**:
-   - Displays real-time metrics: Current Taal, Tempo BPM, Beat progress (`BEAT 07 / 16`), Vibhag (`VIBHAG 2 / 4`), Cycle number (`CYCLE 03`), and live status pill.
-   - Cycle count resets to `01` when stopped.
+1. **Shared Beat Scheduler**:
+   - `MetronomeEngine` and `AudioEngine` share the identical absolute timeline.
+   - Audio events are scheduled at the exact hardware audio boundary (`AudioContext.currentTime`) synchronously within the scheduler tick.
+   - Audio is **never delayed** behind visual `requestAnimationFrame()` paint callbacks.
+2. **Web Audio Precision**:
+   - Audio is preloaded and decoded into reusable `AudioBuffer`s.
+   - Playback is triggered using `AudioBufferSourceNode` with `playbackRate = 1.0` to preserve original acoustic pitch.
+   - Master volume is calibrated to **75%** (`GainNode = 0.75`).
+3. **In-Flight Tempo Changes**:
+   - Changing BPM during active playback applies the new interval at the next scheduled beat deadline without resetting the beat count, cycle count, or audio session.
+4. **Immediate Stop (`STOP NOW`)**:
+   - Immediately stops the metronome loop and calls `AudioEngine.stopAll()`, which iterates through all actively playing and queued `AudioBufferSourceNode` instances, calling `.stop(0)` and `.disconnect()` to produce instantaneous silence.
+5. **Deferred Stop (`STOP AFTER CYCLE`)**:
+   - Completes the ongoing Taal cycle, allowing the final beat's sample to ring out naturally, and terminates cleanly before Beat 1 of the subsequent cycle can be scheduled.
+6. **Autoplay Restrictions & Resilience**:
+   - AudioContext is activated / resumed strictly upon user interaction (Play button).
+   - If audio assets fail to load or are unavailable, an informative notice is displayed in the diagnostic strip and playback does not falsely simulate active audio.
 
 ---
 
 ## How to Run the Application
 
-Because this application uses standard asynchronous `fetch()` to load [`data/taals.json`](data/taals.json), modern browsers enforce CORS security restrictions when opened directly via the `file://` protocol. 
-
-Therefore, **serve the application through a local HTTP server**:
+Because the application uses modern asynchronous `fetch()` to load [`data/taals.json`](data/taals.json) and external audio files (`Sounds/Sound1.wav`, `Sounds/Sound2.wav`), serve the repository through a local HTTP server:
 
 ```bash
-# Navigate to the project directory
-cd tabla-taal-engine
+# Navigate to the workspace root
+cd Tanmoy-Flute-Portfolio
 
-# Start the local server
+# Start a local HTTP server
 python -m http.server 8000
 ```
-Then visit:
-```text
-http://localhost:8000
-```
+
+Then open in your browser:
+- Main Website Module: `http://localhost:8000/tabla.html`
+- Standalone Engine: `http://localhost:8000/tabla-taal-engine/index.html`
 
 ---
 
-## Validation & JSON Editing
+## Automated Verification Suite
 
-Taal metadata is stored exclusively in [`data/taals.json`](data/taals.json).
+Run the complete verification test suite in Node.js:
 
-To add a new Taal, add an entry to the `taals` array:
-```json
-{
-  "id": "rupak",
-  "name": "Rupak",
-  "beats": 7,
-  "vibhags": [3, 2, 2],
-  "sam": 4,
-  "tali": [4, 6],
-  "khali": [1],
-  "notation": null
-}
+```bash
+# Run audio engine & metronome unit checks (Test A through Test J)
+node scratch/verify-audio-engine.js
+
+# Run full DOM integration checks
+node scratch/verify-integration.js
 ```
-- If notation is not yet supplied, keep `"notation": null`. The engine will render the subdued placeholder `"Bol not supplied"`.
-- If notation is provided, its length must **strictly match** the declared `beats`.

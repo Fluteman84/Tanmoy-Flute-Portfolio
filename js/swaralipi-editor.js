@@ -1558,7 +1558,7 @@
     h += '<div class="sw-print-sheet" id="swPrintSheet">';
     h += '<h2>' + this._escHtml(song.name || "Untitled Composition") + '</h2>';
     h += '<div class="print-meta">';
-    h += '<span><strong>Scale:</strong> Sa = ' + song.scale + '</span>';
+    h += '<span><strong>Scale:</strong> ' + (song.scale === 'Any Scale' ? 'Any Scale' : 'Sa = ' + song.scale) + '</span>';
     h += '<span><strong>Music Bars:</strong> ' + song.timeSignature + '</span>';
     h += '<span><strong>Sections:</strong> ' + song.sections.length + '</span>';
     h += '</div>';

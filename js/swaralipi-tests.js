@@ -357,6 +357,54 @@
       txt7.indexOf("Music Bars: 7/4") !== -1 && txt7.indexOf("S R G M P D N | S R G M P D N") !== -1
     );
 
+    /* ────────────────────────────────────────────────────────
+       TEST GROUP M — ANY SCALE OPTION (USER SPECIFIED TESTS A–E)
+       ──────────────────────────────────────────────────────── */
+    // Test M01 — Scale list contains "Any Scale"
+    assert("M01", "'Any Scale' is present in S.SCALES", S.SCALES.indexOf("Any Scale") !== -1);
+
+    // Test M02 (Test A) — Song with "Any Scale" retains exact value without fallback
+    var songAny = S.createSong("Bhairavi Piece", "Any Scale", "4/4");
+    assert("M_TestA", "Test A: Song scale is explicitly 'Any Scale' and not C", songAny.scale === "Any Scale");
+
+    // Test M03 (Test B) — Switching scales preserves notation unchanged
+    songAny.sections[0].positions = S.parseNotationString("S r G m P d n S'").positions;
+    var originalNotation = songAny.sections[0].positions.map(S.positionToText).join(" ");
+    songAny.scale = "C";
+    var afterC = songAny.sections[0].positions.map(S.positionToText).join(" ");
+    songAny.scale = "Any Scale";
+    var afterAny = songAny.sections[0].positions.map(S.positionToText).join(" ");
+    assert("M_TestB", "Test B: Switching scale does not modify swara notation", originalNotation === afterC && afterC === afterAny);
+
+    // Test M04 (Test C) — Group Mode and modifiers under Any Scale
+    var groupedPos = S.parseNotationString("S' r, GM- P:").positions;
+    assert("M_TestC", "Test C: Modifiers and groups are preserved under Any Scale",
+      groupedPos.length === 4 &&
+      S.positionToText(groupedPos[0]) === "S'" &&
+      S.positionToText(groupedPos[1]) === "r," &&
+      S.positionToText(groupedPos[2]) === "GM-" &&
+      S.positionToText(groupedPos[3]) === "P:"
+    );
+
+    // Test M05 (Test D) — Project persistence with Any Scale
+    songAny.sections[0].positions = groupedPos;
+    var serAny = S.serialize(songAny);
+    var deserAny = S.deserialize(serAny);
+    assert("M_TestD", "Test D: Project with 'Any Scale' serializes and deserializes preserving 'Any Scale'",
+      deserAny.valid && deserAny.song.scale === "Any Scale" && deserAny.song.sections[0].positions.length === 4
+    );
+
+    // Test M06 (Test E) — Existing pitches remain unchanged
+    ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"].forEach(function (pitch, pIdx) {
+      var songPitch = S.createSong("Song " + pitch, pitch, "4/4");
+      var deserPitch = S.deserialize(S.serialize(songPitch));
+      assert("M_TestE_" + pIdx, "Test E: Pitch " + pitch + " preserved without fallback", deserPitch.valid && deserPitch.song.scale === pitch);
+    });
+
+    // Test M07 — TXT export displays "Scale: Any Scale"
+    var txtAny = S.toTxt(songAny);
+    assert("M_TestG_txt", "TXT export displays 'Scale: Any Scale'", txtAny.indexOf("Scale: Any Scale") !== -1);
+
     return results;
   }
 

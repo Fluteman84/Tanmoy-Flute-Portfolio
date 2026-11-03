@@ -221,5 +221,17 @@ test('Test J: Repeating measure in 7/4 duplicates 7 positions', editor._activeSe
 editor._showPdfPreview();
 test('Test J: PDF preview contains Music Bars: 7/4', editor._printEl.innerHTML.indexOf('7/4') !== -1);
 
+// Test K — Any Scale in Editor
+editor.song.scale = 'Any Scale';
+editor._scaleEl.value = 'Any Scale';
+editor.render();
+test('Test K: Song scale updated to Any Scale', editor.song.scale === 'Any Scale');
+editor._showPdfPreview();
+test('Test K: PDF preview displays Scale: Any Scale', editor._printEl.innerHTML.indexOf('Scale:</strong> Any Scale') !== -1);
+
+// Test K2 — Reset restores default scale C
+editor._doReset();
+test('Test K: Reset restores default scale C', editor.song.scale === 'C');
+
 console.log('Results: Passed ' + testsPassed + ', Failed ' + testsFailed);
 if (testsFailed > 0) process.exit(1);

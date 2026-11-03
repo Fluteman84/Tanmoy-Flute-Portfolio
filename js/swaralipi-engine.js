@@ -11,7 +11,7 @@
   /* ── Constants ──────────────────────────────────── */
   S.VALID_SWARAS = ["S", "r", "R", "g", "G", "M", "m", "P", "d", "D", "n", "N"];
   S.VALID_MODIFIERS = ["-", "'", ",", ":"];
-  S.SCALES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+  S.SCALES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B", "Any Scale"];
   S.TIME_SIGNATURES = ["3/4", "4/4", "5/4", "7/4"];
   S.POSITIONS_PER_MEASURE = { "3/4": 3, "4/4": 4, "5/4": 5, "7/4": 7 };
   S.DEFAULT_SECTIONS = ["Sthayi", "Antara", "Sanchari", "Abhog"];

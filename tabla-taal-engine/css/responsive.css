@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Tabla Taal Engine — Responsive Stylesheet
+   Tabla Taal Engine — Responsive Stylesheet (Part 2: Dynamic Notation)
    Breakpoints: Tablet (<= 768px), Mobile (<= 640px), Mobile Small (<= 430px, 390px, 360px)
    ========================================================================== */
 
@@ -23,6 +23,10 @@
   .header-tabla-graphic {
     width: 84px;
     height: 64px;
+  }
+
+  .taal-status-notice {
+    margin: 0.75rem 1.4rem 0;
   }
 
   .controls-section {
@@ -65,6 +69,10 @@
     height: 56px;
   }
 
+  .taal-status-notice {
+    margin: 0.65rem 1rem 0;
+  }
+
   .controls-row {
     flex-wrap: wrap;
     gap: 1rem;
@@ -98,6 +106,10 @@
     gap: 0.5rem;
   }
 
+  .beat-grid[data-total-beats="10"] {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
   .beat-cell {
     min-height: 74px;
     padding: 0.65rem 0.3rem;
@@ -110,7 +122,11 @@
   }
 
   .beat-bol {
-    font-size: 1.25rem;
+    font-size: 1.2rem;
+  }
+
+  .beat-bol.empty-bol {
+    font-size: 0.75rem;
   }
 }
 
@@ -193,6 +209,14 @@
     gap: 0.4rem;
   }
 
+  .beat-grid[data-total-beats="6"] {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .beat-grid[data-total-beats="10"] {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
   .beat-cell {
     min-height: 68px;
     padding: 0.5rem 0.2rem;
@@ -205,7 +229,11 @@
   }
 
   .beat-bol {
-    font-size: 1.12rem;
+    font-size: 1.1rem;
+  }
+
+  .beat-bol.empty-bol {
+    font-size: 0.7rem;
   }
 
   .playback-actions-section {
@@ -245,6 +273,10 @@
   }
 
   .beat-bol {
-    font-size: 1.05rem;
+    font-size: 1.02rem;
+  }
+
+  .beat-bol.empty-bol {
+    font-size: 0.65rem;
   }
 }

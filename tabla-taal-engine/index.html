@@ -159,21 +159,18 @@
         </div>
       </header>
 
+      <!-- ── Diagnostic Status Notice Container ──────────────────────── -->
+      <div id="taalStatusNotice" class="taal-status-notice" role="status" aria-live="polite"></div>
+
       <!-- ── Controls Section ─────────────────────────────────────────── -->
       <section class="controls-section" aria-label="Taal and Tempo Controls">
         <div class="controls-row">
-          <!-- 1. Taal Selection Dropdown -->
+          <!-- 1. Taal Selection Dropdown (Dynamically Populated) -->
           <div class="taal-select-group">
             <label class="control-label" for="taalSelect">Select Taal</label>
             <div class="select-wrapper">
               <select class="taal-dropdown" id="taalSelect" name="taalSelect" aria-label="Select Taal">
-                <option value="tintaal" selected>Tintaal (16 Beats)</option>
-                <option value="dadra">Dadra (6 Beats)</option>
-                <option value="ektaal">Ektaal (12 Beats)</option>
-                <option value="keharwa">Keharwa (8 Beats)</option>
-                <option value="rupak">Rupak (7 Beats)</option>
-                <option value="jhaptaal">Jhaptaal (10 Beats)</option>
-                <option value="deepchandi">Deepchandi (14 Beats)</option>
+                <option value="">Loading Taals...</option>
               </select>
               <span class="select-arrow" aria-hidden="true">
                 <svg width="14" height="9" viewBox="0 0 14 9" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -245,105 +242,11 @@
       <!-- Subtle Divider Line -->
       <div class="section-divider" role="separator" aria-hidden="true"></div>
 
-      <!-- ── Main Beat Display (Tintaal 16 Beats) ─────────────────────── -->
+      <!-- ── Main Beat Display (Dynamically Populated) ────────────────── -->
       <section class="beat-display-section" aria-label="Beat Counting Display">
         <div class="beat-grid-card">
-          <div class="beat-grid" id="beatGrid" role="region" aria-label="Beat Grid for Tintaal">
-            <!-- Beat 01 (Active Highlighted State) -->
-            <div class="beat-cell active" data-beat="1" id="beat-1" aria-current="step">
-              <span class="beat-number">01</span>
-              <span class="beat-bol">Dha</span>
-            </div>
-
-            <!-- Beat 02 -->
-            <div class="beat-cell" data-beat="2" id="beat-2">
-              <span class="beat-number">02</span>
-              <span class="beat-bol">Dhin</span>
-            </div>
-
-            <!-- Beat 03 -->
-            <div class="beat-cell" data-beat="3" id="beat-3">
-              <span class="beat-number">03</span>
-              <span class="beat-bol">Dhin</span>
-            </div>
-
-            <!-- Beat 04 -->
-            <div class="beat-cell" data-beat="4" id="beat-4">
-              <span class="beat-number">04</span>
-              <span class="beat-bol">Dha</span>
-            </div>
-
-            <!-- Beat 05 -->
-            <div class="beat-cell" data-beat="5" id="beat-5">
-              <span class="beat-number">05</span>
-              <span class="beat-bol">Dha</span>
-            </div>
-
-            <!-- Beat 06 -->
-            <div class="beat-cell" data-beat="6" id="beat-6">
-              <span class="beat-number">06</span>
-              <span class="beat-bol">Dhin</span>
-            </div>
-
-            <!-- Beat 07 -->
-            <div class="beat-cell" data-beat="7" id="beat-7">
-              <span class="beat-number">07</span>
-              <span class="beat-bol">Dhin</span>
-            </div>
-
-            <!-- Beat 08 -->
-            <div class="beat-cell" data-beat="8" id="beat-8">
-              <span class="beat-number">08</span>
-              <span class="beat-bol">Dha</span>
-            </div>
-
-            <!-- Beat 09 -->
-            <div class="beat-cell" data-beat="9" id="beat-9">
-              <span class="beat-number">09</span>
-              <span class="beat-bol">Na</span>
-            </div>
-
-            <!-- Beat 10 -->
-            <div class="beat-cell" data-beat="10" id="beat-10">
-              <span class="beat-number">10</span>
-              <span class="beat-bol">Tin</span>
-            </div>
-
-            <!-- Beat 11 -->
-            <div class="beat-cell" data-beat="11" id="beat-11">
-              <span class="beat-number">11</span>
-              <span class="beat-bol">Tin</span>
-            </div>
-
-            <!-- Beat 12 -->
-            <div class="beat-cell" data-beat="12" id="beat-12">
-              <span class="beat-number">12</span>
-              <span class="beat-bol">Ta</span>
-            </div>
-
-            <!-- Beat 13 -->
-            <div class="beat-cell" data-beat="13" id="beat-13">
-              <span class="beat-number">13</span>
-              <span class="beat-bol">Tete</span>
-            </div>
-
-            <!-- Beat 14 -->
-            <div class="beat-cell" data-beat="14" id="beat-14">
-              <span class="beat-number">14</span>
-              <span class="beat-bol">Dhin</span>
-            </div>
-
-            <!-- Beat 15 -->
-            <div class="beat-cell" data-beat="15" id="beat-15">
-              <span class="beat-number">15</span>
-              <span class="beat-bol">Dhin</span>
-            </div>
-
-            <!-- Beat 16 -->
-            <div class="beat-cell" data-beat="16" id="beat-16">
-              <span class="beat-number">16</span>
-              <span class="beat-bol">Dha</span>
-            </div>
+          <div class="beat-grid" id="beatGrid" role="region" aria-label="Beat Grid">
+            <!-- Beat cells rendered dynamically by js/taal-renderer.js -->
           </div>
         </div>
       </section>
@@ -375,7 +278,9 @@
       </section>
     </main>
 
-    <!-- JavaScript Controller -->
+    <!-- JavaScript Modules (Loader -> Renderer -> App Controller) -->
+    <script src="js/taal-loader.js"></script>
+    <script src="js/taal-renderer.js"></script>
     <script src="js/app.js"></script>
   </body>
 </html>

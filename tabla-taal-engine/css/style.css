@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Tabla Taal Engine — Standalone Static Stylesheet
+   Tabla Taal Engine — Standalone Stylesheet (Part 2: Dynamic Notation)
    Design Language: Classical Indian Instrument Aesthetic (Burgundy, Gold, Cream)
    ========================================================================== */
 
@@ -30,6 +30,7 @@
   --color-text-main: #1E1813;
   --color-text-muted: #7C6E5E;
   --color-text-active: #8A520E;
+  --color-text-placeholder: #9C8F80;
 
   --color-play: #1E7D3A;
   --color-play-hover: #17682F;
@@ -194,6 +195,40 @@ body {
   display: block;
   width: 100%;
   height: 100%;
+}
+
+/* ── Diagnostic Status Notices ──────────────────────────────────────────── */
+.taal-status-notice {
+  margin: 0.85rem 1.8rem 0;
+  display: none;
+}
+
+.taal-status-alert {
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius-control);
+  font-size: 0.85rem;
+  line-height: 1.4;
+}
+
+.taal-status-alert.alert-warning {
+  background: #FFFDF0;
+  border: 1px solid #ECC94B;
+  color: #744210;
+}
+
+.taal-status-alert.alert-error {
+  background: #FFF5F5;
+  border: 1px solid #FEB2B2;
+  color: #9B2C2C;
+}
+
+.taal-status-alert .alert-header {
+  margin-bottom: 0.3rem;
+}
+
+.taal-status-alert .alert-list {
+  margin-left: 1.2rem;
+  font-size: 0.8rem;
 }
 
 /* ── Controls Section ───────────────────────────────────────────────────── */
@@ -449,10 +484,30 @@ body {
   padding: 1.15rem;
 }
 
+/* Dynamic Beat Grid (Default 4 Columns) */
 .beat-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 0.8rem;
+}
+
+/* Natural Grid Layout Adaptations based on beat count */
+.beat-grid[data-total-beats="6"] {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.beat-grid[data-total-beats="10"] {
+  grid-template-columns: repeat(5, 1fr);
+}
+
+/* Empty or Error Message inside Grid */
+.beat-grid-empty-message {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 2.5rem 1rem;
+  color: var(--color-text-muted);
+  font-size: 0.95rem;
+  line-height: 1.5;
 }
 
 /* Beat Cell (Neutral State) */
@@ -481,14 +536,25 @@ body {
 }
 
 .beat-bol {
-  font-size: clamp(1.3rem, 2.5vw, 1.6rem);
+  font-size: clamp(1.2rem, 2.3vw, 1.55rem);
   font-weight: 800;
   color: var(--color-text-main);
   line-height: 1.1;
   letter-spacing: 0.01em;
+  text-align: center;
 }
 
-/* Beat Cell (Active State — Beat 1 in static demo) */
+/* Subdued Placeholder for Taals without supplied notation */
+.beat-bol.empty-bol {
+  font-size: clamp(0.72rem, 1.4vw, 0.82rem);
+  font-weight: 600;
+  font-style: italic;
+  color: var(--color-text-placeholder);
+  letter-spacing: 0;
+  line-height: 1.25;
+}
+
+/* Beat Cell (Active State — Currently selected active beat) */
 .beat-cell.active {
   background: var(--bg-beat-active);
   border: 2px solid var(--border-beat-active);
@@ -500,7 +566,7 @@ body {
   font-weight: 800;
 }
 
-.beat-cell.active .beat-bol {
+.beat-cell.active .beat-bol:not(.empty-bol) {
   color: #120D08;
 }
 

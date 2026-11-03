@@ -140,7 +140,7 @@
     h += '<button class="add-section-btn" data-action="add-section" style="margin-top:1.5rem;">+ Add Section</button>';
 
     // Hidden proxy caret trap for desktop & mobile virtual keyboard
-    h += '<input type="text" id="swProxyInput" class="sw-proxy-input" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" aria-hidden="true" style="position:fixed; opacity:0; width:1px; height:1px; top:50%; left:50%; border:0; padding:0; pointer-events:none; z-index:-1;" />';
+    h += '<input type="text" id="swProxyInput" class="sw-proxy-input" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" aria-hidden="true" style="position:fixed; opacity:0; width:1px; height:1px; top:0; left:0; border:0; padding:0; pointer-events:none; z-index:-1;" />';
 
     // Floating UI Elements
     h += '<div class="sw-cursor" id="swCursor"></div>';
@@ -317,19 +317,10 @@
    *  PROXY INPUT FOCUS
    * ════════════════════════════════════════════════════════════ */
   P._focusProxy = function () {
-    if (!this._proxyInput) return;
-
-    // iOS may ignore preventScroll for hidden inputs. Preserve the reader's place.
-    var scrollX = window.scrollX;
-    var scrollY = window.scrollY;
-    this._proxyInput.value = "";
-    this._proxyInput.focus({ preventScroll: true });
-    this._restoreViewport(scrollX, scrollY);
-    window.setTimeout(function () {
-      if (window.scrollX !== scrollX || window.scrollY !== scrollY) {
-        window.scrollTo(scrollX, scrollY);
-      }
-    }, 80);
+    if (this._proxyInput) {
+      this._proxyInput.value = "";
+      this._proxyInput.focus({ preventScroll: true });
+    }
   };
 
   /* ════════════════════════════════════════════════════════════ *
@@ -449,9 +440,6 @@
    *  RENDERING
    * ════════════════════════════════════════════════════════════ */
   P.render = function () {
-    // Rebuilding notation should never re-anchor the mobile viewport.
-    var scrollX = window.scrollX;
-    var scrollY = window.scrollY;
     var self = this;
     var secs = this.song.sections;
     var html = "";
@@ -477,18 +465,6 @@
     this._repositionCursor();
     this._updateGroupToggleUI();
     this._hidePopup();
-    this._restoreViewport(scrollX, scrollY);
-  };
-
-  P._restoreViewport = function (scrollX, scrollY) {
-    var restore = function () {
-      if (window.scrollX !== scrollX || window.scrollY !== scrollY) {
-        window.scrollTo(scrollX, scrollY);
-      }
-    };
-
-    restore();
-    window.requestAnimationFrame(restore);
   };
 
   P._renderSection = function (sec, si) {

@@ -821,17 +821,3 @@
     font-size: 1.3rem;
   }
 }
-
-/* Keep the notation heading close to the shared site header. */
-.notation-page .notes-main {
-  padding-top: 1.5rem;
-}
-
-.notation-page .swaralipi-hero {
-  padding-top: 1rem;
-}
-/* Avoid browser scroll anchoring when notation rows are rebuilt on mobile. */
-.notation-page .swaralipi-sections,
-.notation-page .notation-area {
-  overflow-anchor: none;
-}

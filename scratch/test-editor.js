@@ -53,8 +53,11 @@ function getOrCreate(id, tag = 'div') {
 }
 
 // Pre-create IDs expected by editor
-['swSongName', 'swScale', 'swTime', 'swSections', 'swCursor', 'swBuffer', 'swPopup', 'swContext', 'swGroupToggle', 'swToast', 'swModal', 'swPrint', 'swFileInput', 'swProxyInput'].forEach(id => {
+['swSongName', 'swScale', 'swTime', 'swSections', 'swCursor', 'swBuffer', 'swPopup', 'swContext', 'swGroupToggle', 'swToast', 'swModal', 'swPrint', 'swFileInput', 'swProxyInput', 'swRuleBookBtn', 'swRuleBookModal', 'swRuleBookBody', 'swRuleBookClose', 'swRuleBookCloseBtn', 'swRuleBookTitle', 'swRuleBookRetryBtn'].forEach(id => {
   getOrCreate(id);
+});
+['swPopup', 'swContext', 'swModal', 'swPrint', 'swRuleBookModal'].forEach(id => {
+  getOrCreate(id).classList.add('is-hidden');
 });
 
 global.window = {
@@ -561,5 +564,107 @@ test('Req10 Undo: restores Group Mode state (true)', editor.groupMode === true);
 editor._redo();
 test('Req10 Redo: restores SR and Group Mode state (false)', editor._activeSection().positions.length === 1 && editor.groupMode === false);
 
-console.log('Results: Passed ' + testsPassed + ', Failed ' + testsFailed);
+// ════════════════════════════════════════════════════════════════════
+// RULE BOOK FEATURE TESTS
+// ════════════════════════════════════════════════════════════════════
+
+// Test RB1: Button placement and markup in song-info-bar
+const songInfoHtml = editor.root.innerHTML;
+test('RuleBook: Button exists in editor DOM', songInfoHtml.indexOf('id="swRuleBookBtn"') !== -1);
+test('RuleBook: Button has action open-rulebook', songInfoHtml.indexOf('data-action="open-rulebook"') !== -1);
+test('RuleBook: Button has label Rule Book', songInfoHtml.indexOf('Rule Book') !== -1);
+
+// Test RB2: Modal overlay exists in DOM
+test('RuleBook: Modal overlay exists in DOM', songInfoHtml.indexOf('id="swRuleBookModal"') !== -1);
+test('RuleBook: Modal starts hidden', editor._ruleBookModalEl.classList.contains('is-hidden') === true);
+
+// Test RB3: open-rulebook action triggers _showRuleBook
+editor._handleAction('open-rulebook');
+test('RuleBook: Opening removes is-hidden from modal', editor._ruleBookModalEl.classList.contains('is-hidden') === false);
+
+// Test RB4: Closing via _hideRuleBook hides modal
+editor._hideRuleBook();
+test('RuleBook: _hideRuleBook adds is-hidden back', editor._ruleBookModalEl.classList.contains('is-hidden') === true);
+
+// Test RB5: Escape key closes Rule Book modal
+editor._showRuleBook();
+test('RuleBook: Modal open before Escape', editor._ruleBookModalEl.classList.contains('is-hidden') === false);
+editor._onKeyDown({
+  key: 'Escape',
+  preventDefault: function() {}
+});
+test('RuleBook: Escape closes Rule Book modal', editor._ruleBookModalEl.classList.contains('is-hidden') === true);
+
+(async function() {
+  // Test RB6: rulebook.txt content loading
+  let fetchedContent = null;
+  let fetchError = null;
+  global.fetch = function(url, options) {
+    return Promise.resolve({
+      ok: true,
+      status: 200,
+      text: function() {
+        return Promise.resolve(fs.readFileSync('rulebook.txt', 'utf8'));
+      }
+    });
+  };
+
+  editor._ruleBookCache = null;
+  await new Promise(resolve => {
+    editor._fetchRuleBook(function(err, text) {
+      fetchError = err;
+      fetchedContent = text;
+      resolve();
+    });
+  });
+
+  test('RuleBook: rulebook.txt fetched successfully without error', fetchError === null && typeof fetchedContent === 'string');
+  test('RuleBook: Content contains SWARALIPI — USER RULE BOOK', fetchedContent && fetchedContent.indexOf('SWARALIPI — USER RULE BOOK') !== -1);
+  test('RuleBook: Content contains Section A Understanding Swaras', fetchedContent && fetchedContent.indexOf('A. Understanding Swaras') !== -1);
+  test('RuleBook: Content contains Section B Modifier Rules', fetchedContent && fetchedContent.indexOf('B. Modifier Rules') !== -1);
+  test('RuleBook: Content contains Section C Rhythmic Positions', fetchedContent && fetchedContent.indexOf('C. Rhythmic Positions and Measures') !== -1);
+  test('RuleBook: Content contains Section D Group Mode', fetchedContent && fetchedContent.indexOf('D. Group Mode') !== -1);
+  test('RuleBook: Content contains Section E Space Bar Functionality', fetchedContent && fetchedContent.indexOf('E. Space Bar Functionality') !== -1);
+  test('RuleBook: Content contains Section F Scale (Sa)', fetchedContent && fetchedContent.indexOf('F. Scale (Sa)') !== -1);
+  test('RuleBook: Content contains Section G Sections', fetchedContent && fetchedContent.indexOf('G. Sections') !== -1);
+  test('RuleBook: Content contains Section H Editing and Cursor', fetchedContent && fetchedContent.indexOf('H. Editing and Cursor') !== -1);
+  test('RuleBook: Content contains Section I Selection and Copy/Paste', fetchedContent && fetchedContent.indexOf('I. Selection and Copy/Paste') !== -1);
+  test('RuleBook: Content contains Section J Project Import and Export', fetchedContent && fetchedContent.indexOf('J. Project Import and Export') !== -1);
+
+  // Test RB7: Cache prevents repeated network requests
+  let secondFetchRan = false;
+  editor._fetchRuleBook(function(err, text) {
+    secondFetchRan = true;
+  });
+  test('RuleBook: In-session caching returns cached text immediately', secondFetchRan === true && editor._ruleBookCache === fetchedContent);
+
+  // Test RB8: Error handling when rulebook.txt is unavailable
+  editor._ruleBookCache = null;
+  global.fetch = function() {
+    return Promise.resolve({
+      ok: false,
+      status: 404,
+      statusText: 'Not Found'
+    });
+  };
+  let loadFailed = false;
+  await new Promise(resolve => {
+    editor._fetchRuleBook(function(err, text) {
+      if (err) loadFailed = true;
+      resolve();
+    });
+  });
+  test('RuleBook: Returns error when file unavailable (no silent stale fallback)', loadFailed === true);
+
+  // Test RB9: Opening and closing Rule Book does not corrupt notation state
+  editor._doReset();
+  editor._pasteText('S R G M');
+  const posCountBefore = editor._activeSection().positions.length;
+  editor._showRuleBook();
+  editor._hideRuleBook();
+  test('RuleBook: Notation state intact after open/close cycle', editor._activeSection().positions.length === posCountBefore && S.positionToText(editor._activeSection().positions[0]) === 'S');
+
+  console.log('Results: Passed ' + testsPassed + ', Failed ' + testsFailed);
+  if (testsFailed > 0) process.exit(1);
+})();
 if (testsFailed > 0) process.exit(1);

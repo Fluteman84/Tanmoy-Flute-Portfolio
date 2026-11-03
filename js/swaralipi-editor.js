@@ -118,6 +118,11 @@
     });
     h += '</select>';
     h += '</div>';
+    h += '<div class="song-info-actions">';
+    h += '<button type="button" class="sw-btn rulebook-btn" id="swRuleBookBtn" data-action="open-rulebook" title="Open Swaralipi User Rule Book">';
+    h += '<span class="rulebook-btn-icon">📖</span> Rule Book';
+    h += '</button>';
+    h += '</div>';
     h += '</div>';
 
     // Project controls bar
@@ -150,6 +155,20 @@
     h += '<div class="sw-toast" id="swToast"></div>';
     h += '<div class="sw-modal-overlay is-hidden" id="swModal"><div class="sw-modal"></div></div>';
     h += '<div class="sw-print-overlay is-hidden" id="swPrint"></div>';
+    h += '<div class="sw-rulebook-overlay is-hidden" id="swRuleBookModal">';
+    h += '<div class="sw-rulebook-modal" role="dialog" aria-modal="true" aria-labelledby="swRuleBookTitle">';
+    h += '<div class="sw-rulebook-header">';
+    h += '<h2 id="swRuleBookTitle" class="sw-rulebook-title"><span class="sw-rulebook-title-icon">📖</span> Swaralipi Rule Book</h2>';
+    h += '<button type="button" class="sw-rulebook-close" id="swRuleBookClose" title="Close Rule Book (Esc)" aria-label="Close">✕</button>';
+    h += '</div>';
+    h += '<div class="sw-rulebook-body" id="swRuleBookBody">';
+    h += '<div class="sw-rulebook-loading">Loading Rule Book...</div>';
+    h += '</div>';
+    h += '<div class="sw-rulebook-footer">';
+    h += '<button type="button" class="sw-btn" id="swRuleBookCloseBtn">Close</button>';
+    h += '</div>';
+    h += '</div>';
+    h += '</div>';
 
     this.root.innerHTML = h;
 
@@ -167,6 +186,9 @@
     this._printEl = document.getElementById("swPrint");
     this._fileInput = document.getElementById("swFileInput");
     this._proxyInput = document.getElementById("swProxyInput");
+    this._ruleBookModalEl = document.getElementById("swRuleBookModal");
+    this._ruleBookBodyEl = document.getElementById("swRuleBookBody");
+    this._ruleBookCache = null;
   };
 
   /* ════════════════════════════════════════════════════════════ *
@@ -224,6 +246,12 @@
 
     // Global keyboard listener for shortcut fallback
     document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape") {
+        if (self._ruleBookModalEl && !self._ruleBookModalEl.classList.contains("is-hidden")) {
+          self._hideRuleBook();
+          return;
+        }
+      }
       var active = document.activeElement;
       if (active && (active.tagName === "INPUT" || active.tagName === "SELECT" || active.tagName === "TEXTAREA")) {
         if (active !== self._proxyInput) return;
@@ -342,6 +370,7 @@
       case "import-swar": this._fileInput.click(); break;
       case "export-txt": this._exportTxt(); break;
       case "export-pdf": this._showPdfPreview(); break;
+      case "open-rulebook": this._showRuleBook(); break;
       case "add-section": this._addSection(); break;
     }
   };
@@ -700,6 +729,10 @@
 
     if (e.key === "Escape") {
       e.preventDefault();
+      if (this._ruleBookModalEl && !this._ruleBookModalEl.classList.contains("is-hidden")) {
+        this._hideRuleBook();
+        return;
+      }
       this._hidePopup();
       this._hideContextMenu();
       if (this.selection) {
@@ -1799,6 +1832,113 @@
 
   P._hidePdfPreview = function () {
     this._printEl.classList.add("is-hidden");
+  };
+
+  /* ════════════════════════════════════════════════════════════ *
+   *  USER RULE BOOK (External rulebook.txt loader)
+   * ════════════════════════════════════════════════════════════ */
+  P._fetchRuleBook = function (callback) {
+    if (this._ruleBookCache) {
+      callback(null, this._ruleBookCache);
+      return;
+    }
+
+    var self = this;
+    var url = "rulebook.txt";
+
+    if (typeof fetch === "function") {
+      fetch(url, { cache: "no-cache" })
+        .then(function (res) {
+          if (!res.ok) {
+            throw new Error("HTTP " + res.status + " " + res.statusText);
+          }
+          return res.text();
+        })
+        .then(function (text) {
+          self._ruleBookCache = text;
+          callback(null, text);
+        })
+        .catch(function (err) {
+          callback(err || new Error("Unable to load rulebook.txt"));
+        });
+    } else {
+      try {
+        var xhr = new XMLHttpRequest();
+        xhr.open("GET", url, true);
+        xhr.onreadystatechange = function () {
+          if (xhr.readyState === 4) {
+            if (xhr.status >= 200 && xhr.status < 300) {
+              self._ruleBookCache = xhr.responseText;
+              callback(null, xhr.responseText);
+            } else {
+              callback(new Error("HTTP " + xhr.status + " " + (xhr.statusText || "Error")));
+            }
+          }
+        };
+        xhr.onerror = function () {
+          callback(new Error("Network error loading rulebook.txt"));
+        };
+        xhr.send();
+      } catch (e) {
+        callback(e);
+      }
+    }
+  };
+
+  P._showRuleBook = function () {
+    var self = this;
+    if (!this._ruleBookModalEl || !this._ruleBookBodyEl) return;
+
+    this._commitBuffer();
+    this._ruleBookModalEl.classList.remove("is-hidden");
+    this._ruleBookBodyEl.innerHTML = '<div class="sw-rulebook-loading">Loading Rule Book...</div>';
+
+    var closeBtn = document.getElementById("swRuleBookClose");
+    var closeBtnFooter = document.getElementById("swRuleBookCloseBtn");
+
+    var closeHandler = function () {
+      self._hideRuleBook();
+    };
+
+    if (closeBtn) closeBtn.onclick = closeHandler;
+    if (closeBtnFooter) closeBtnFooter.onclick = closeHandler;
+
+    this._ruleBookModalEl.onclick = function (e) {
+      if (e.target === self._ruleBookModalEl) {
+        self._hideRuleBook();
+      }
+    };
+
+    this._fetchRuleBook(function (err, text) {
+      if (err) {
+        self._ruleBookBodyEl.innerHTML =
+          '<div class="sw-rulebook-error">' +
+          '<h3>Unable to Load Rule Book</h3>' +
+          '<p>The user instructions could not be retrieved from <code>rulebook.txt</code> (' + self._escHtml(err.message || "File unavailable") + ').</p>' +
+          '<p>Please verify that <code>rulebook.txt</code> is deployed in the site root directory.</p>' +
+          '<button type="button" class="sw-btn" id="swRuleBookRetryBtn">Retry</button>' +
+          '</div>';
+
+        var retry = document.getElementById("swRuleBookRetryBtn");
+        if (retry) {
+          retry.onclick = function () {
+            self._ruleBookCache = null;
+            self._showRuleBook();
+          };
+        }
+        return;
+      }
+
+      self._ruleBookBodyEl.innerHTML =
+        '<pre class="sw-rulebook-content">' + self._escHtml(text) + '</pre>';
+    });
+  };
+
+  P._hideRuleBook = function () {
+    if (this._ruleBookModalEl) {
+      this._ruleBookModalEl.classList.add("is-hidden");
+    }
+    this._focusProxy();
   };
 
   /* ════════════════════════════════════════════════════════════ *

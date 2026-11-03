@@ -1,0 +1,203 @@
+SWARALIPI — USER RULE BOOK
+
+A. Understanding Swaras
+
+Swaralipi supports the following Hindustani swara notation:
+
+"S, r, R, g, G, M, m, P, d, D, n, N"
+
+The notation is case-sensitive, with two special normalisation rules:
+
+- "s" and "S" are both interpreted as "S".
+- "p" and "P" are both interpreted as "P".
+- All other swaras retain their original case.
+
+Examples:
+
+- "s" becomes "S".
+- "p" becomes "P".
+- "r" remains "r".
+- "R" remains "R".
+- "g" remains "g".
+- "G" remains "G".
+
+B. Modifier Rules
+
+Swaralipi supports four modifiers:
+
+"-", ":", "'", ","
+
+Their allowed directions are:
+
+Modifier | Prefix      | Postfix
+"-"      | Allowed     | Allowed
+":"      | Allowed     | Allowed
+"'"      | Not allowed | Allowed
+","      | Not allowed | Allowed
+
+Valid examples:
+
+- "-S"
+- ":S"
+- "S-"
+- "S:"
+- "S'"
+- "S,"
+- "-S'"
+- ":G,"
+- "G-:"
+- "S'-"
+
+Invalid examples:
+
+- "'S"
+- ",S"
+- "'-S"
+- ",:S"
+
+Important:
+
+- Modifiers must always be associated with a swara.
+- A modifier cannot exist as an independent rhythmic position.
+- Multiple modifiers may coexist when their direction and combination are valid.
+- Postfix modifiers must be entered after their intended swara.
+
+C. Rhythmic Positions and Measures
+
+A rhythmic position is the basic unit counted by the measure engine.
+
+Supported time signatures:
+
+- 3/4 — 3 rhythmic positions per measure.
+- 4/4 — 4 rhythmic positions per measure.
+- 5/4 — 5 rhythmic positions per measure.
+- 7/4 — 7 rhythmic positions per measure.
+
+Rules:
+
+- One individual swara counts as one rhythmic position.
+- A multi-swara group counts as one rhythmic position.
+- Modifiers do not count as additional positions.
+- Space does not count as a rhythmic position.
+- Vertical barlines are generated automatically after the required number of positions.
+
+Examples:
+
+4/4:
+"S R G M | P D N S"
+
+7/4:
+"S R G M P D N |"
+
+D. Group Mode
+
+Group Mode allows multiple swaras to be combined into one rhythmic position.
+
+How to use it:
+
+1. Activate the Group button.
+2. Enter the desired swaras.
+3. The swaras accumulate into one group.
+4. Press Space to finalise the group.
+
+Example:
+
+"S", "R", "G" entered in Group Mode produce:
+"SRG"
+
+This entire group counts as one rhythmic position.
+
+Important:
+
+- Group Mode must be explicitly activated using the Group button.
+- Pressing Space finalises the current group.
+- Pressing Space automatically turns Group Mode OFF.
+- The next swara becomes a separate rhythmic position unless Group Mode is activated again.
+- Modifiers remain associated with their respective swaras inside a group.
+
+E. Space Bar Functionality
+
+The Space bar has one specific function:
+
+Move to the next rhythmic position.
+
+When Group Mode is OFF:
+- Pressing Space finalises the current position and advances the cursor.
+
+When Group Mode is ON:
+- Pressing Space finalises the current group.
+- The cursor advances.
+- Group Mode automatically switches OFF.
+
+Space does not:
+- Insert a visible space into the musical notation.
+- Create an empty rhythmic position.
+- Count towards a measure.
+- Replace automatic barline generation.
+
+F. Scale (Sa)
+
+The Scale selector represents the Hindustani tonic Sa.
+
+Available specific pitches:
+"C, C#, D, D#, E, F, F#, G, G#, A, A#, B"
+
+An additional option is available:
+"Any Scale"
+
+When Any Scale is selected:
+- No specific tonic Sa is assigned.
+- The notation remains unchanged.
+- The editor continues to support all normal input and editing operations.
+
+Changing the selected scale does not automatically transpose the notation.
+
+G. Sections
+
+The editor provides independent musical sections:
+- Sthayi
+- Antara
+- Sanchari
+- Abhog
+
+Users can add, rename, delete and reorder sections.
+Each section maintains its own notation and editing state while inheriting the song-level Scale and Time Signature.
+
+H. Editing and Cursor
+
+The cursor identifies the current insertion position.
+
+Users can:
+- Insert notation at the cursor.
+- Navigate using keyboard arrows.
+- Delete characters before or after the cursor.
+- Select notation.
+- Copy and paste notation.
+- Undo and redo supported editing operations.
+
+Postfix modifiers can be attached to an already committed swara when the cursor is immediately after that swara.
+
+I. Selection and Copy/Paste
+
+Users can select notation and use contextual actions such as:
+- Copy
+- Select Bar
+- Select Row
+- Select Section
+
+Keyboard shortcuts:
+- Ctrl+C — Copy
+- Ctrl+V — Paste
+- Ctrl+A — Select all notation in the active section
+- Escape — Clear selection or dismiss the contextual popup
+
+Mobile users can use touch selection and the available contextual actions.
+
+J. Project Import and Export
+
+Swaralipi supports:
+- ".swar" project files for saving and reopening editable compositions.
+- TXT export for plain-text notation.
+- PDF export for printable notation sheets.
+
+The ".swar" project file preserves the composition's musical structure, including its sections, scale, time signature, groups, modifiers and rhythmic positions.

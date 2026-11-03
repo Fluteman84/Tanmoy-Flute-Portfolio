@@ -1,35 +1,33 @@
 # Tabla Taal Engine
 
-A standalone, lightweight web application module providing **Metronome-based Tabla Beat Counting** and rhythm accompaniment for Hindustani classical music practice.
+A standalone, lightweight web application module providing **Visual Metronome-based Tabla Beat Counting** and rhythm accompaniment for Hindustani classical music practice.
+
+> **Strict Audio Policy:** The engine is purely a **visual metronome**. It produces zero sound, zero metronome clicks, and plays no audio samples.
 
 ---
 
-## Part 2 — Taal Data Management & Dynamic Notation Engine
+## Combined Development Phase (Parts 3, 4, 5)
 
-In **Part 2**, the application transitions from a static prototype to a **data-driven dynamic notation system**:
-- **Single Source of Truth**: All Taal metadata, beat counts, vibhags, and bol sequences reside entirely in [`data/taals.json`](data/taals.json).
-- **Dynamic Dropdown Selection**: The Taal dropdown selector is populated dynamically on load with the format `Name (N Beats)`.
-- **Dynamic Beat Grid**: Beat cells (`01`, `02`, ...) are dynamically constructed based on the selected Taal's beat count.
-- **Subdued Missing-Bol Placeholder**: For Taals where notation has not yet been supplied, the system renders the subdued placeholder `"Bol not supplied"`. No fabricated bols are ever displayed.
-- **Strict Data Validation & Fault Isolation**: Enforces schema rules (unique IDs, non-empty names, positive beat counts, and strict invariant `notation.length === beats`). Malformed Taals are safely isolated with diagnostic logging without crashing the application.
-- **Extensible Architecture**: Adding a new Taal to `data/taals.json` requires zero modifications to JavaScript or HTML.
-- **Prepared Vibhag & Sam/Tali/Khali Metadata**: Every beat cell receives machine-readable data attributes (`data-vibhag`, `data-vibhag-start`, `data-vibhag-end`, `data-is-sam`, `data-is-tali`, `data-is-khali`) ready for future styling.
-- **Strictly Non-Autonomous Playback**: Changing the Taal selection never triggers playback or metronome loops.
+This release completes the visual Tabla beat-counting engine, combining:
+- **Part 3**: High-resolution, drift-resistant metronome timing engine.
+- **Part 4**: Comprehensive playback state management (Manual Play, STOP NOW, STOP AFTER CYCLE, in-flight tempo changes).
+- **Part 5**: Advanced classical Tabla practice features (Sam, Tali, Khali markers, Vibhag boundary separation, live cycle counter, and playback metrics bar).
 
 ---
 
-## Directory Structure
+## Directory Structure & Modular Architecture
 
 ```text
 tabla-taal-engine/
-├── index.html            # Standalone semantic markup (no hardcoded options or beats)
+├── index.html            # Standalone semantic markup with live info bar
 ├── css/
-│   ├── style.css         # Design tokens, classical theme, dynamic cell & status styles
-│   └── responsive.css    # Responsive grid and mobile layout adaptations
+│   ├── style.css         # Design tokens, classical theme, markers, active states
+│   └── responsive.css    # Fluid layout scaling (desktop, tablet, 430px, 390px, 360px)
 ├── js/
-│   ├── taal-loader.js    # Asynchronous JSON fetcher and schema validator
-│   ├── taal-renderer.js  # Dynamic dropdown, beat cell, and notice renderer
-│   └── app.js            # Main application controller and event coordinator
+│   ├── taal-loader.js    # Asynchronous JSON fetcher and strict schema validator
+│   ├── taal-renderer.js  # Dynamic dropdown, beat grid, Sam/Tali/Khali badges, live bar
+│   ├── metronome-engine.js # Monotonic timing engine, state machine, background tab recovery
+│   └── app.js            # Main application coordinator, event binding, and public API
 ├── data/
 │   └── taals.json        # Single source of truth for all classical Taals
 └── README.md             # Project documentation and guide
@@ -37,13 +35,61 @@ tabla-taal-engine/
 
 ---
 
+## Timing Architecture (Part 3)
+
+1. **Monotonic Clock**:
+   - Timing calculations are anchored to `performance.now()`, eliminating system wall-clock jitter.
+   - Beat intervals are calculated strictly by:
+     $$\text{Interval (ms)} = \frac{60{,}000}{\text{BPM}}$$
+2. **Drift-Resistant Deadline Scheduling**:
+   - Rather than relying on simple `setInterval()`, the engine maintains an absolute expected timestamp for each beat deadline:
+     $$\text{ExpectedTime}_{k+1} = \text{TimelineStart} + (k + 1) \times \text{Interval}$$
+   - Scheduled via adaptive `setTimeout()` deadlines with sub-millisecond precision.
+3. **Decoupled Visual Rendering**:
+   - State progression is computed on monotonic ticks, while DOM updates are dispatched cleanly through `requestAnimationFrame()`.
+4. **Background Tab Synchronization**:
+   - Listens to the `visibilitychange` event. When the user returns from a background tab, the engine calculates the exact logical beat position from elapsed monotonic time and updates the visual state once without bursting through missed callbacks.
+
+---
+
+## Playback State Management (Part 4)
+
+The engine enforces three discrete playback states:
+- `STOPPED`: Idle state. Beat position at Beat 1, cycle at 1. Play button is enabled; STOP NOW and STOP AFTER CYCLE buttons are inactive.
+- `PLAYING`: Metronome actively progressing. Play button reflects active state without creating duplicate loops. Both stop buttons are fully active.
+- `STOPPING_AFTER_CYCLE`: Triggered when the user requests a graceful stop. The engine continues until the final beat of the ongoing cycle, then terminates cleanly before Beat 1 of the next cycle can run.
+
+### In-Flight Tempo Adjustments
+- Changing the tempo via numeric input (20–300 BPM), `÷2`, or `×2` while playback is active **does not reset the current beat or cycle**, and **does not restart playback**.
+- The new interval is applied seamlessly at the very next beat boundary by re-anchoring the monotonic timeline.
+
+### Safe Taal Switching
+- Selecting a different Taal while playback is active terminates the previous session immediately, invalidates all pending timers, resets the beat counter, loads the new Taal, and remains in the `STOPPED` state. The BPM setting is preserved.
+
+---
+
+## Advanced Practice Features (Part 5)
+
+1. **Sam (`SAM (X)`)**:
+   - Prominently marks the principal starting beat (`taal.sam`) with a royal burgundy and gold-trimmed badge.
+2. **Tali (`TALI`)**:
+   - Visual clap positions (`taal.tali`) are badged with warm amber markers.
+3. **Khali (`KHALI (0)`)**:
+   - Empty/wave beats (`taal.khali`) are clearly identified with cool slate-blue markers.
+4. **Vibhag Boundaries**:
+   - Subtly accents section boundaries (`.vibhag-boundary-end`) dynamically based on `taal.vibhags` without hardcoding.
+5. **Cycle Counter & Live Playback Bar**:
+   - Displays real-time metrics: Current Taal, Tempo BPM, Beat progress (`BEAT 07 / 16`), Vibhag (`VIBHAG 2 / 4`), Cycle number (`CYCLE 03`), and live status pill.
+   - Cycle count resets to `01` when stopped.
+
+---
+
 ## How to Run the Application
 
 Because this application uses standard asynchronous `fetch()` to load [`data/taals.json`](data/taals.json), modern browsers enforce CORS security restrictions when opened directly via the `file://` protocol. 
 
-Therefore, **the application should be served through a local HTTP server**:
+Therefore, **serve the application through a local HTTP server**:
 
-### Option 1: Python HTTP Server (Recommended)
 ```bash
 # Navigate to the project directory
 cd tabla-taal-engine
@@ -51,102 +97,29 @@ cd tabla-taal-engine
 # Start the local server
 python -m http.server 8000
 ```
-Then open your browser at:
+Then visit:
 ```text
 http://localhost:8000
 ```
 
-### Option 2: Node.js (npx serve / http-server)
-```bash
-cd tabla-taal-engine
-npx serve .
-```
-
-### Option 3: VS Code Live Server Extension
-Right-click on `tabla-taal-engine/index.html` in VS Code and click **"Open with Live Server"**.
-
-*(If opened via `file://`, the application will display a clear diagnostic notice advising you to start a local HTTP server rather than failing silently).*
-
 ---
 
-## How to Edit and Add Taals
+## Validation & JSON Editing
 
-All Taal information is managed exclusively in [`data/taals.json`](data/taals.json).
+Taal metadata is stored exclusively in [`data/taals.json`](data/taals.json).
 
-### JSON Schema
+To add a new Taal, add an entry to the `taals` array:
 ```json
 {
-  "version": 1,
-  "taals": [
-    {
-      "id": "tintaal",
-      "name": "Tintaal",
-      "beats": 16,
-      "vibhags": [4, 4, 4, 4],
-      "sam": 1,
-      "tali": [1, 5, 13],
-      "khali": [9],
-      "notation": [
-        "Dha", "Dhin", "Dhin", "Dha",
-        "Dha", "Dhin", "Dhin", "Dha",
-        "Na",  "Tin",  "Tin",  "Ta",
-        "Tete", "Dhin", "Dhin", "Dha"
-      ]
-    }
-  ]
-}
-```
-
-### Adding a New Taal
-To add a new Taal (e.g. *Chautaal — 12 Beats*), simply append an entry to the `taals` array:
-```json
-{
-  "id": "chautaal",
-  "name": "Chautaal",
-  "beats": 12,
-  "vibhags": [2, 2, 2, 2, 2, 2],
-  "sam": 1,
-  "tali": [1, 5, 9, 11],
-  "khali": [3, 7],
-  "notation": [
-    "Dha", "Dha", "Dhin", "Ta", "Kit", "Dha", "Dhin", "Ta", "Tite", "Kata", "Gadi", "Gana"
-  ]
-}
-```
-If the notation is not yet finalized, set `"notation": null`:
-```json
-{
-  "id": "chautaal",
-  "name": "Chautaal",
-  "beats": 12,
-  "vibhags": null,
-  "sam": null,
-  "tali": [],
-  "khali": [],
+  "id": "rupak",
+  "name": "Rupak",
+  "beats": 7,
+  "vibhags": [3, 2, 2],
+  "sam": 4,
+  "tali": [4, 6],
+  "khali": [1],
   "notation": null
 }
 ```
-Reload the browser, and the new Taal will automatically appear in the selector and render its beat cells with the subdued `"Bol not supplied"` placeholder.
-
----
-
-## Validation Rules
-
-1. **`id`**: Unique string across all Taals (e.g. `"tintaal"`).
-2. **`name`**: Non-empty display string.
-3. **`beats`**: Positive integer greater than zero.
-4. **`notation`**: 
-   - May be `null` (renders `"Bol not supplied"`).
-   - If provided as an array, its length **must exactly equal** the declared `beats`. Mismatches trigger a validation error and isolation of the invalid entry.
-5. **`vibhags`** *(Optional)*: Array of positive integers whose sum should match `beats`.
-6. **`sam` / `tali` / `khali`** *(Optional)*: Valid beat numbers between `1` and `beats`.
-
----
-
-## Roadmap
-
-- **Part 1**: Static UI & Classical Aesthetics *(Completed)*
-- **Part 2**: Taal Data Management & Dynamic Notation Engine *(Completed)*
-- **Part 3**: Metronome Engine, Web Audio API synthesis / sample playback, precise BPM timing, and visual beat cursor progression
-- **Part 4**: Playback state machine, immediate stop, and graceful completion at cycle boundaries (`STOP AFTER CYCLE`)
-- **Part 5**: Advanced practice features (speed trainer, layakaari, tehai calculator)
+- If notation is not yet supplied, keep `"notation": null`. The engine will render the subdued placeholder `"Bol not supplied"`.
+- If notation is provided, its length must **strictly match** the declared `beats`.

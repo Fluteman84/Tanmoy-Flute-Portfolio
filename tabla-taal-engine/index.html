@@ -192,14 +192,14 @@
                   id="tempoInput"
                   name="tempoInput"
                   value="80"
-                  min="30"
-                  max="360"
+                  min="20"
+                  max="300"
                   step="1"
                   aria-label="Tempo in BPM"
                 />
                 <div class="tempo-steppers" aria-hidden="true">
-                  <button type="button" class="stepper-arrow-btn" tabindex="-1" aria-label="Increase tempo">&#9650;</button>
-                  <button type="button" class="stepper-arrow-btn" tabindex="-1" aria-label="Decrease tempo">&#9660;</button>
+                  <button type="button" class="stepper-arrow-btn" id="btnStepperUp" tabindex="-1" aria-label="Increase tempo">&#9650;</button>
+                  <button type="button" class="stepper-arrow-btn" id="btnStepperDown" tabindex="-1" aria-label="Decrease tempo">&#9660;</button>
                 </div>
                 <span class="tempo-unit-badge">BPM</span>
               </div>
@@ -244,6 +244,9 @@
 
       <!-- ── Main Beat Display (Dynamically Populated) ────────────────── -->
       <section class="beat-display-section" aria-label="Beat Counting Display">
+        <!-- Live Playback Information & Cycle Counter Section -->
+        <div id="playbackInfoBar" class="playback-info-bar" role="status" aria-live="polite"></div>
+
         <div class="beat-grid-card">
           <div class="beat-grid" id="beatGrid" role="region" aria-label="Beat Grid">
             <!-- Beat cells rendered dynamically by js/taal-renderer.js -->
@@ -255,7 +258,7 @@
       <section class="playback-actions-section" aria-label="Playback Action Controls">
         <div class="playback-buttons-row">
           <!-- Button 1: STOP NOW (Crimson Red) -->
-          <button type="button" class="btn-stop-now" id="btnStopNow" aria-label="Stop Now">
+          <button type="button" class="btn-stop-now" id="btnStopNow" aria-label="Stop Now" disabled>
             <span class="btn-icon" aria-hidden="true">
               <svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
                 <rect x="2.5" y="2.5" width="11" height="11" rx="1.5" />
@@ -265,7 +268,7 @@
           </button>
 
           <!-- Button 2: STOP AFTER CYCLE (Navy Slate Blue) -->
-          <button type="button" class="btn-stop-cycle" id="btnStopCycle" aria-label="Stop After Cycle">
+          <button type="button" class="btn-stop-cycle" id="btnStopCycle" aria-label="Stop After Cycle" disabled>
             <span class="btn-icon" aria-hidden="true">
               <svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
                 <path d="M2.5 3L9.5 8L2.5 13V3Z" />
@@ -278,9 +281,10 @@
       </section>
     </main>
 
-    <!-- JavaScript Modules (Loader -> Renderer -> App Controller) -->
+    <!-- JavaScript Modules (Loader -> Renderer -> Metronome Engine -> App Controller) -->
     <script src="js/taal-loader.js"></script>
     <script src="js/taal-renderer.js"></script>
+    <script src="js/metronome-engine.js"></script>
     <script src="js/app.js"></script>
   </body>
 </html>

@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Tabla Taal Engine — Responsive Stylesheet (Part 2: Dynamic Notation)
+   Tabla Taal Engine — Responsive Stylesheet (Combined Parts 3, 4, 5)
    Breakpoints: Tablet (<= 768px), Mobile (<= 640px), Mobile Small (<= 430px, 390px, 360px)
    ========================================================================== */
 
@@ -47,6 +47,10 @@
 
   .beat-grid {
     gap: 0.65rem;
+  }
+
+  .playback-info-bar {
+    padding: 0.65rem 0.95rem;
   }
 }
 
@@ -97,6 +101,32 @@
     padding: 0 1.35rem;
   }
 
+  /* Live Info Bar on Mobile */
+  .playback-info-bar {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.6rem 0.4rem;
+    padding: 0.65rem 0.75rem;
+  }
+
+  .info-metric {
+    align-items: center;
+    text-align: center;
+  }
+
+  .metric-label {
+    font-size: 0.6rem;
+  }
+
+  .metric-val {
+    font-size: 0.86rem;
+  }
+
+  .playback-status-pill {
+    font-size: 0.65rem;
+    padding: 0.15rem 0.45rem;
+  }
+
   .beat-grid-card {
     padding: 0.85rem;
     border-radius: 15px;
@@ -111,14 +141,18 @@
   }
 
   .beat-cell {
-    min-height: 74px;
-    padding: 0.65rem 0.3rem;
+    min-height: 76px;
+    padding: 0.6rem 0.35rem;
     border-radius: 11px;
   }
 
   .beat-number {
-    font-size: 0.78rem;
-    margin-bottom: 0.25rem;
+    font-size: 0.76rem;
+  }
+
+  .beat-marker {
+    font-size: 0.55rem;
+    padding: 0.12rem 0.3rem;
   }
 
   .beat-bol {
@@ -126,7 +160,7 @@
   }
 
   .beat-bol.empty-bol {
-    font-size: 0.75rem;
+    font-size: 0.72rem;
   }
 }
 
@@ -199,8 +233,22 @@
     padding: 0.9rem 1rem 1.1rem;
   }
 
+  .playback-info-bar {
+    grid-template-columns: repeat(3, 1fr);
+    padding: 0.55rem 0.5rem;
+    gap: 0.4rem 0.2rem;
+  }
+
+  .metric-label {
+    font-size: 0.56rem;
+  }
+
+  .metric-val {
+    font-size: 0.8rem;
+  }
+
   .beat-grid-card {
-    padding: 0.65rem 0.5rem;
+    padding: 0.65rem 0.45rem;
     border-radius: 13px;
   }
 
@@ -218,22 +266,30 @@
   }
 
   .beat-cell {
-    min-height: 68px;
-    padding: 0.5rem 0.2rem;
+    min-height: 72px;
+    padding: 0.45rem 0.25rem;
     border-radius: 9px;
   }
 
   .beat-number {
-    font-size: 0.74rem;
-    margin-bottom: 0.15rem;
+    font-size: 0.72rem;
+  }
+
+  .beat-marker {
+    font-size: 0.48rem;
+    padding: 0.1rem 0.22rem;
   }
 
   .beat-bol {
-    font-size: 1.1rem;
+    font-size: 1.08rem;
   }
 
   .beat-bol.empty-bol {
-    font-size: 0.7rem;
+    font-size: 0.66rem;
+  }
+
+  .vibhag-badge {
+    font-size: 0.52rem;
   }
 
   .playback-actions-section {
@@ -269,14 +325,14 @@
   }
 
   .beat-cell {
-    min-height: 62px;
+    min-height: 66px;
   }
 
   .beat-bol {
-    font-size: 1.02rem;
+    font-size: 1rem;
   }
 
   .beat-bol.empty-bol {
-    font-size: 0.65rem;
+    font-size: 0.62rem;
   }
 }

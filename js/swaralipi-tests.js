@@ -405,6 +405,46 @@
     var txtAny = S.toTxt(songAny);
     assert("M_TestG_txt", "TXT export displays 'Scale: Any Scale'", txtAny.indexOf("Scale: Any Scale") !== -1);
 
+    /* ────────────────────────────────────────────────────────
+       TEST GROUP N — PREFIX & POSTFIX MODIFIERS AND SMART QUOTES
+       ──────────────────────────────────────────────────────── */
+    // Test N01 — Mobile smart quotes normalized in parsePositionText
+    var sq1 = S.parsePositionText("S’");
+    var sq2 = S.parsePositionText("S‘");
+    var sq3 = S.parsePositionText("S′");
+    var sq4 = S.parsePositionText("S`");
+    assert("N01a", "Right curly quote S’ parses to S'", sq1.valid && S.positionToText(S.createPosition(sq1.tokens)) === "S'");
+    assert("N01b", "Left curly quote S‘ parses to S'", sq2.valid && S.positionToText(S.createPosition(sq2.tokens)) === "S'");
+    assert("N01c", "Prime S′ parses to S'", sq3.valid && S.positionToText(S.createPosition(sq3.tokens)) === "S'");
+    assert("N01d", "Backtick S` parses to S'", sq4.valid && S.positionToText(S.createPosition(sq4.tokens)) === "S'");
+
+    // Test N02 — Multiple postfix modifiers on single swara (S'-)
+    var multiMod = S.parsePositionText("S'-");
+    assert("N02", "S'- has 1 token with suffix ['\'', '-']",
+      multiMod.valid && multiMod.tokens.length === 1 &&
+      multiMod.tokens[0].base === "S" &&
+      multiMod.tokens[0].suffix[0] === "'" &&
+      multiMod.tokens[0].suffix[1] === "-"
+    );
+
+    // Test N03 — Group Mode multiple postfix modifiers (SRG'-)
+    var groupMulti = S.parsePositionText("SRG'-");
+    assert("N03", "SRG'- attaches modifiers to last swara G",
+      groupMulti.valid && groupMulti.tokens.length === 3 &&
+      groupMulti.tokens[2].base === "G" &&
+      groupMulti.tokens[2].suffix.join("") === "'-"
+    );
+
+    // Test N04 — Prefix and postfix combinations
+    var combo1 = S.parsePositionText("-S'");
+    var combo2 = S.parsePositionText("-r,");
+    var combo3 = S.parsePositionText(":G-");
+    var combo4 = S.parsePositionText(",M:");
+    assert("N04a", "-S' has prefix ['-'] and suffix ['\'']", combo1.valid && combo1.tokens[0].prefix[0] === "-" && combo1.tokens[0].suffix[0] === "'");
+    assert("N04b", "-r, has prefix ['-'] and suffix [',']", combo2.valid && combo2.tokens[0].prefix[0] === "-" && combo2.tokens[0].suffix[0] === ",");
+    assert("N04c", ":G- has prefix [':'] and suffix ['-']", combo3.valid && combo3.tokens[0].prefix[0] === ":" && combo3.tokens[0].suffix[0] === "-");
+    assert("N04d", ",M: has prefix [','] and suffix [':']", combo4.valid && combo4.tokens[0].prefix[0] === "," && combo4.tokens[0].suffix[0] === ":");
+
     return results;
   }
 

@@ -25,7 +25,13 @@
   };
 
   /* ── Validation & Normalization ────────────────── */
+  S.normalizeModifier = function (ch) {
+    if (ch === "’" || ch === "‘" || ch === "′" || ch === "`") return "'";
+    return ch;
+  };
+
   S.normalizeSwara = function (ch) {
+    ch = S.normalizeModifier(ch);
     if (ch === "s") return "S";
     if (ch === "p") return "P";
     return ch;
@@ -33,7 +39,10 @@
 
   S.normalizeNotationText = function (text) {
     if (typeof text !== "string") return text;
-    return text.replace(/s/g, "S").replace(/p/g, "P");
+    return text
+      .replace(/[\u2018\u2019\u2032`]/g, "'")
+      .replace(/s/g, "S")
+      .replace(/p/g, "P");
   };
 
   S.isSwara = function (ch) {

@@ -641,6 +641,7 @@
 
     this._commitBuffer();
     this.cursor = { posIndex: posIdx, charOffset: charOff };
+    this._newPositionPending = false;
     this.selection = null;
     this._hidePopup();
     this._repositionCursor();
@@ -651,6 +652,7 @@
     var sec = this._activeSection();
     this._commitBuffer();
     this.cursor = { posIndex: sec.positions.length, charOffset: 0 };
+    this._newPositionPending = false;
     this.selection = null;
     this._repositionCursor();
     this._focusProxy();
@@ -773,6 +775,66 @@
   };
 
   /* ════════════════════════════════════════════════════════════ *
+   *  MODIFIER ATTACHMENT TO PRECEDING SWARA
+   * ════════════════════════════════════════════════════════════ */
+  P._attachModifierToPrecedingSwara = function (ch) {
+    var sec = this._activeSection();
+    if (!sec || !sec.positions || sec.positions.length === 0) return false;
+
+    var posIdx = this.cursor.posIndex;
+    var charOff = this.cursor.charOffset;
+
+    // Case 1: Cursor is inside an existing position (charOff > 0)
+    if (charOff > 0 && posIdx < sec.positions.length) {
+      var pos = sec.positions[posIdx];
+      var text = S.positionToText(pos);
+      if (charOff > text.length) charOff = text.length;
+
+      var newText = text.slice(0, charOff) + ch + text.slice(charOff);
+      var reparsed = S.parsePositionText(newText);
+      if (reparsed.valid) {
+        pos.tokens = reparsed.tokens;
+        this.cursor = { posIndex: posIdx, charOffset: charOff + 1 };
+        this.inputBuffer = "";
+        this._newPositionPending = false;
+        this._saveSnapshot();
+        this.render();
+        this._focusProxy();
+        return true;
+      } else {
+        this._toast(reparsed.error || "Invalid modifier combination.");
+        return true;
+      }
+    }
+
+    // Case 2: Cursor is at a position boundary (charOff === 0)
+    if (charOff === 0 && posIdx > 0 && posIdx <= sec.positions.length) {
+      var prevPosIdx = posIdx - 1;
+      var prevPos = sec.positions[prevPosIdx];
+      if (prevPos) {
+        var prevText = S.positionToText(prevPos);
+        var newText2 = prevText + ch;
+        var reparsed2 = S.parsePositionText(newText2);
+        if (reparsed2.valid) {
+          prevPos.tokens = reparsed2.tokens;
+          this.cursor = { posIndex: posIdx, charOffset: 0 };
+          this.inputBuffer = "";
+          this._newPositionPending = false;
+          this._saveSnapshot();
+          this.render();
+          this._focusProxy();
+          return true;
+        } else {
+          this._toast(reparsed2.error || "Invalid modifier combination.");
+          return true;
+        }
+      }
+    }
+
+    return false;
+  };
+
+  /* ════════════════════════════════════════════════════════════ *
    *  INPUT DISPATCH & BUFFER COMMIT
    * ════════════════════════════════════════════════════════════ */
   P._handleCharInput = function (ch) {
@@ -788,17 +850,19 @@
     if (ch === " ") {
       if (this.groupMode) return; // Spaces ignored in Group Mode (Rule 5.2.2)
       this._commitBuffer();
+      this._newPositionPending = true;
       return;
     }
 
     // Base Swara Input
     if (S.isSwara(ch)) {
+      this._newPositionPending = false;
       if (this.groupMode) {
         // Accumulate into group buffer
         this.inputBuffer += ch;
         this._repositionCursor();
       } else {
-        // Normal Mode (Caps Lock OFF)
+        // Normal Mode
         if (S.bufferHasSwara(this.inputBuffer)) {
           // If buffer already held a completed swara (e.g. S'), commit it first
           this._commitBuffer();
@@ -812,11 +876,38 @@
 
     // Modifier Input (-, ', ,, :)
     if (S.isModifier(ch)) {
+      // 1. If inputBuffer already has a swara (e.g. accumulating in Group Mode or within timer window)
+      if (S.bufferHasSwara(this.inputBuffer)) {
+        var testBuffer = this.inputBuffer + ch;
+        var parsedTest = S.parsePositionText(testBuffer);
+        if (parsedTest.valid) {
+          this.inputBuffer = testBuffer;
+          this._repositionCursor();
+          if (!this.groupMode) {
+            this._startBufferTimer();
+          }
+          return;
+        } else {
+          this._toast(parsedTest.error || "Invalid modifier combination.");
+          return;
+        }
+      }
+
+      // 2. If inputBuffer is empty, attempt to attach as postfix to preceding swara:
+      if (!this.inputBuffer) {
+        var isOctave = (ch === "'" || ch === ",");
+        if (isOctave || !this._newPositionPending) {
+          var attached = this._attachModifierToPrecedingSwara(ch);
+          if (attached) {
+            return;
+          }
+        }
+      }
+
+      // 3. Otherwise treat as prefix modifier in buffer awaiting a swara
+      this._newPositionPending = false;
       this.inputBuffer += ch;
       this._repositionCursor();
-      if (!this.groupMode && S.bufferHasSwara(this.inputBuffer)) {
-        this._startBufferTimer();
-      }
       return;
     }
 
@@ -866,6 +957,7 @@
     sec.positions.splice(insertIdx, 0, pos);
     this.cursor = { posIndex: insertIdx + 1, charOffset: 0 };
     this.inputBuffer = "";
+    this._newPositionPending = false;
     this._saveSnapshot();
     this.render();
   };

@@ -233,5 +233,158 @@ test('Test K: PDF preview displays Scale: Any Scale', editor._printEl.innerHTML.
 editor._doReset();
 test('Test K: Reset restores default scale C', editor.song.scale === 'C');
 
+// ════════════════════════════════════════════════════════════════════
+// NEW SECTION 11 TESTS: RELIABLE PREFIX AND POSTFIX MODIFIER HANDLING
+// ════════════════════════════════════════════════════════════════════
+
+// Test A — Delayed Postfix: Type "S", wait (commit), type "'" -> "S'"
+editor._doReset();
+editor._handleCharInput('S');
+editor._commitBuffer(); // simulates 2-second pause / commit
+test('Test A: Position 0 committed as S', editor._activeSection().positions.length === 1 && S.positionToText(editor._activeSection().positions[0]) === 'S');
+editor._handleCharInput("'"); // user types apostrophe 2 seconds later
+test('Test A: Delayed postfix apostrophe updates S to S\'', S.positionToText(editor._activeSection().positions[0]) === "S'");
+test('Test A: Remains exactly 1 rhythmic position', editor._activeSection().positions.length === 1);
+
+// Test B — Every Postfix Modifier: S', S-, S,, S:
+editor._doReset();
+editor._handleCharInput('S');
+editor._commitBuffer();
+editor._handleCharInput('-');
+test('Test B: Postfix - attaches to S -> S-', S.positionToText(editor._activeSection().positions[0]) === 'S-');
+
+editor._doReset();
+editor._handleCharInput('S');
+editor._commitBuffer();
+editor._handleCharInput(',');
+test('Test B: Postfix , attaches to S -> S,', S.positionToText(editor._activeSection().positions[0]) === 'S,');
+
+editor._doReset();
+editor._handleCharInput('S');
+editor._commitBuffer();
+editor._handleCharInput(':');
+test('Test B: Postfix : attaches to S -> S:', S.positionToText(editor._activeSection().positions[0]) === 'S:');
+
+// Test C — Multiple Modifiers: S, then ', then - -> S'-
+editor._doReset();
+editor._handleCharInput('S');
+editor._commitBuffer();
+editor._handleCharInput("'");
+editor._handleCharInput('-');
+test('Test C: Multiple postfix modifiers attach -> S\'-', S.positionToText(editor._activeSection().positions[0]) === "S'-");
+test('Test C: Still occupies exactly 1 rhythmic position', editor._activeSection().positions.length === 1);
+
+// Test D — Cursor Insertion: Given "S R G", cursor after "S", type "'" -> "S' R G"
+editor._doReset();
+editor._pasteText('S R G');
+test('Test D prep: S R G has 3 positions', editor._activeSection().positions.length === 3);
+// Position cursor immediately after S (posIndex: 0, charOffset: 1)
+editor.cursor = { posIndex: 0, charOffset: 1 };
+editor._handleCharInput("'");
+test('Test D: Cursor insertion after S produces S\' R G',
+  S.positionToText(editor._activeSection().positions[0]) === "S'" &&
+  S.positionToText(editor._activeSection().positions[1]) === 'R' &&
+  S.positionToText(editor._activeSection().positions[2]) === 'G' &&
+  editor._activeSection().positions.length === 3
+);
+
+// Test D2: Cursor after G, type "-" -> "S' R G-"
+editor.cursor = { posIndex: 2, charOffset: 1 };
+editor._handleCharInput('-');
+test('Test D2: Cursor insertion after G produces S\' R G-',
+  S.positionToText(editor._activeSection().positions[2]) === 'G-' &&
+  editor._activeSection().positions.length === 3
+);
+
+// Test E — Group Mode: Type "S", "R", "G" in Group Mode, then type "'" -> "SRG'"
+editor._doReset();
+editor._setGroupMode(true);
+editor._handleCharInput('S');
+editor._handleCharInput('R');
+editor._handleCharInput('G');
+editor._handleCharInput("'");
+editor._setGroupMode(false); // commit group
+test('Test E: Group Mode SRG + \' produces SRG\'',
+  editor._activeSection().positions.length === 1 &&
+  S.positionToText(editor._activeSection().positions[0]) === "SRG'" &&
+  editor._activeSection().positions[0].tokens.length === 3 &&
+  editor._activeSection().positions[0].tokens[2].base === 'G' &&
+  editor._activeSection().positions[0].tokens[2].suffix[0] === "'"
+);
+
+// Test F — Group Mode with Multiple Postfix Modifiers: SRG, then ', then - -> SRG'-
+editor._doReset();
+editor._setGroupMode(true);
+editor._handleCharInput('S');
+editor._handleCharInput('R');
+editor._handleCharInput('G');
+editor._handleCharInput("'");
+editor._handleCharInput('-');
+editor._setGroupMode(false);
+test('Test F: Group Mode SRG + \' + - produces SRG\'-',
+  editor._activeSection().positions.length === 1 &&
+  S.positionToText(editor._activeSection().positions[0]) === "SRG'-" &&
+  editor._activeSection().positions[0].tokens[2].suffix.join('') === "'-"
+);
+
+// Test G — Prefix and Postfix Combination: -S', -r,
+editor._doReset();
+editor._handleCharInput('-');
+editor._handleCharInput('S');
+editor._handleCharInput("'");
+editor._commitBuffer();
+test('Test G: Prefix + postfix produces -S\'',
+  editor._activeSection().positions.length === 1 &&
+  S.positionToText(editor._activeSection().positions[0]) === "-S'" &&
+  editor._activeSection().positions[0].tokens[0].prefix[0] === '-' &&
+  editor._activeSection().positions[0].tokens[0].suffix[0] === "'"
+);
+
+editor._handleCharInput(' '); // space to separate
+editor._handleCharInput('-');
+editor._handleCharInput('r');
+editor._handleCharInput(',');
+editor._commitBuffer();
+test('Test G: Prefix + postfix produces -r, in position 1',
+  editor._activeSection().positions.length === 2 &&
+  S.positionToText(editor._activeSection().positions[1]) === "-r," &&
+  editor._activeSection().positions[1].tokens[0].prefix[0] === '-' &&
+  editor._activeSection().positions[1].tokens[0].suffix[0] === ','
+);
+
+// Test H — Undo and Redo: Type S, append ', undo -> S, redo -> S'
+editor._doReset();
+editor._handleCharInput('S');
+editor._commitBuffer();
+test('Test H step 1: S committed', S.positionToText(editor._activeSection().positions[0]) === 'S');
+editor._handleCharInput("'");
+test('Test H step 2: S updated to S\'', S.positionToText(editor._activeSection().positions[0]) === "S'");
+editor._undo();
+test('Test H step 3: Undo restores S', S.positionToText(editor._activeSection().positions[0]) === 'S');
+editor._redo();
+test('Test H step 4: Redo restores S\'', S.positionToText(editor._activeSection().positions[0]) === "S'");
+
+// Test I — Measure and Rhythmic Position Integrity
+editor._doReset();
+editor.song.timeSignature = '4/4';
+// Enter S' R G- M: P D' N, S (8 positions = 2 complete measures in 4/4)
+for (const token of ["S'", "R", "G-", "M:", "P", "D'", "N,", "S"]) {
+  editor._handleCharInput(token[0]);
+  for (let ti = 1; ti < token.length; ti++) {
+    editor._handleCharInput(token[ti]);
+  }
+  editor._commitBuffer();
+}
+test('Test I: 8 notes with modifiers create exactly 8 positions', editor._activeSection().positions.length === 8);
+const mI = S.buildMeasures(editor._activeSection().positions, editor.song.timeSignature);
+test('Test I: Exactly 2 measures in 4/4 (4 pos/bar)', mI.length === 2 && mI[0].positions.length === 4 && mI[1].positions.length === 4);
+
+// Test J — Mobile smart quote normalization (’ -> ')
+editor._doReset();
+editor._handleCharInput('S');
+editor._commitBuffer();
+editor._handleCharInput('’'); // right single quote
+test('Test J: Mobile smart quote ’ normalizes to \' producing S\'', S.positionToText(editor._activeSection().positions[0]) === "S'");
+
 console.log('Results: Passed ' + testsPassed + ', Failed ' + testsFailed);
 if (testsFailed > 0) process.exit(1);

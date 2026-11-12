@@ -829,7 +829,7 @@
 
   .site-header {
     width: 100% !important;
-    overflow-x: hidden !important;
+    overflow: visible !important;
   }
 
   .site-header .container {

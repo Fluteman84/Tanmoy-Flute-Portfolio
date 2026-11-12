@@ -56,9 +56,10 @@
       <div id="swaralipiApp" class="swaralipi-app"></div>
     </main>
 
-    <!-- Swaralipi Engine, Editor & Automated Test Suite -->
+    <!-- Swaralipi Engine, Editor, Mobile Keyboard & Automated Test Suite -->
     <script src="js/swaralipi-engine.js"></script>
     <script src="js/swaralipi-editor.js"></script>
+    <script src="js/swaralipi-keyboard.js"></script>
     <script src="js/swaralipi-tests.js"></script>
     <script>
       document.addEventListener("DOMContentLoaded", function () {
@@ -66,6 +67,9 @@
         var appEl = document.getElementById("swaralipiApp");
         if (appEl && window.Swaralipi && window.Swaralipi.Editor) {
           window.swaralipiEditor = new window.Swaralipi.Editor(appEl);
+          if (window.Swaralipi.MobileKeyboard && !window.swaralipiEditor._mobileKeyboard) {
+            window.swaralipiEditor._initMobileKeyboard();
+          }
         }
 
         // Tools Navigation Dropdown Toggle

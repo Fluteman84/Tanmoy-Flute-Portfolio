@@ -79,9 +79,18 @@
     this.savedSong = S.cloneSong(this.song);
     this._saveSnapshot();
     this.render();
+    this._initMobileKeyboard();
   }
 
   var P = SwaralipiEditor.prototype;
+
+  P._initMobileKeyboard = function () {
+    if (typeof window !== "undefined" && window.Swaralipi && window.Swaralipi.MobileKeyboard) {
+      if (!this._mobileKeyboard) {
+        this._mobileKeyboard = new window.Swaralipi.MobileKeyboard(this);
+      }
+    }
+  };
 
   /* ════════════════════════════════════════════════════════════ *
    *  DOM SHELL GENERATION
@@ -894,7 +903,8 @@
     var vvHeight = (window.visualViewport && window.visualViewport.height) ? window.visualViewport.height : window.innerHeight;
 
     var topMargin = 70; // Clearance below sticky header
-    var bottomMargin = 50; // Clearance above mobile virtual keyboard
+    var kbdHeight = (this._mobileKeyboard && this._mobileKeyboard.isExpanded) ? this._mobileKeyboard.getHeight() : 0;
+    var bottomMargin = Math.max(50, kbdHeight + 15); // Clearance above mobile virtual keyboard or custom musical keyboard
 
     var isAbove = rect.top < topMargin;
     var isBelow = rect.bottom > (vvHeight - bottomMargin);
@@ -1059,6 +1069,9 @@
     if (toggle) {
       toggle.classList.toggle("is-active", this.groupMode);
       toggle.textContent = this.groupMode ? "Group ●" : "Group";
+    }
+    if (this._mobileKeyboard && typeof this._mobileKeyboard.updateGroupState === "function") {
+      this._mobileKeyboard.updateGroupState(this.groupMode);
     }
   };
 

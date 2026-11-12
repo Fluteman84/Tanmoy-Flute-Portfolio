@@ -206,3 +206,14 @@ Swaralipi supports:
 - PDF export for printable notation sheets.
 
 The ".swar" project file preserves the composition's musical structure, including its sections, scale, time signature, groups, modifiers and rhythmic positions.
+
+K. Mobile Musical Keyboard
+
+On mobile devices (screen width ≤ 760px), Swaralipi provides a dedicated on-screen musical keyboard at the bottom of the viewport:
+
+- Tap the "Musical Keyboard" toolbar at the bottom of the screen to expand or collapse the keyboard.
+- The keyboard overlays the page and remains active after each keystroke without altering the notation layout.
+- Row 1 & 2: Direct one-tap entry of all 12 Hindustani swaras (S, r, R, g, G, M, m, P, d, D, n, N).
+- Row 3: Modifiers (-, :, ', ,) and Backspace.
+- Row 4: Undo, Redo, Cursor Navigation (←, →) and Delete.
+- Row 5: SPACE / NEXT POSITION (finalises the current rhythmic position or group and advances the cursor) and GROUP (toggles multi-swara Group Mode ON/OFF with persistent highlight).

@@ -163,7 +163,7 @@
 
       window.TaalRenderer.renderPlaybackInfo(this.elements.playbackInfoBar, {
         taalName: this.currentTaal.name,
-        bpm: this.metronome ? this.metronome.bpm : 80,
+        bpm: this.metronome ? this.metronome.bpm : 120,
         currentBeat: beatNumber,
         totalBeats: this.currentTaal.beats,
         currentCycle: cycleNumber,
@@ -279,7 +279,7 @@
         const handleTempoChange = () => {
           let val = parseInt(tempoInput.value, 10);
           if (isNaN(val)) {
-            val = this.metronome ? this.metronome.bpm : 80;
+            val = this.metronome ? this.metronome.bpm : 120;
           }
           const clamped = Math.max(20, Math.min(300, val));
           tempoInput.value = clamped;
@@ -300,7 +300,7 @@
         if (btnStepperUp) {
           btnStepperUp.addEventListener("click", (e) => {
             e.preventDefault();
-            const current = parseInt(tempoInput.value, 10) || 80;
+            const current = parseInt(tempoInput.value, 10) || 120;
             const updated = Math.min(300, current + 1);
             tempoInput.value = updated;
             handleTempoChange();
@@ -310,7 +310,7 @@
         if (btnStepperDown) {
           btnStepperDown.addEventListener("click", (e) => {
             e.preventDefault();
-            const current = parseInt(tempoInput.value, 10) || 80;
+            const current = parseInt(tempoInput.value, 10) || 120;
             const updated = Math.max(20, current - 1);
             tempoInput.value = updated;
             handleTempoChange();
@@ -322,7 +322,7 @@
       if (btnHalveTempo) {
         btnHalveTempo.addEventListener("click", (e) => {
           e.preventDefault();
-          const current = this.metronome ? this.metronome.bpm : 80;
+          const current = this.metronome ? this.metronome.bpm : 120;
           const halved = Math.max(20, Math.floor(current / 2));
           if (tempoInput) tempoInput.value = halved;
           if (this.metronome) this.metronome.setBpm(halved);
@@ -338,7 +338,7 @@
       if (btnDoubleTempo) {
         btnDoubleTempo.addEventListener("click", (e) => {
           e.preventDefault();
-          const current = this.metronome ? this.metronome.bpm : 80;
+          const current = this.metronome ? this.metronome.bpm : 120;
           const doubled = Math.min(300, current * 2);
           if (tempoInput) tempoInput.value = doubled;
           if (this.metronome) this.metronome.setBpm(doubled);

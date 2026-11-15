@@ -1,4 +1,6 @@
+# ==============================================================================
 # Operating System Files
+# ==============================================================================
 Thumbs.db
 ehthumbs.db
 desktop.ini
@@ -8,7 +10,9 @@ desktop.ini
 .Spotlight-V100
 .Trashes
 
+# ==============================================================================
 # Editor & IDE Configuration
+# ==============================================================================
 .vscode/
 .idea/
 *.sublime-project
@@ -17,35 +21,89 @@ desktop.ini
 *.swo
 *~
 
-# Generated Audit and Report Files
+# ==============================================================================
+# Screenshots & Visual Captures (Not Needed for Deployment)
+# ==============================================================================
+screenshots/
+captures/
+__screenshots__/
+*screenshot*
+*capture*.png
+*capture*.jpg
+*capture*.jpeg
+*capture*.webp
+
+# Ensure production assets remain tracked
+!assets/images/**
+
+# ==============================================================================
+# Generated Reports, Audits & Prompts (Not Needed for Deployment)
+# ==============================================================================
 *REPORT*.md
 *report*.md
 *AUDIT*.md
 *audit*.md
+*SUMMARY*.md
+*summary*.md
+*REPORT*.txt
+*report*.txt
+*AUDIT*.txt
+*audit*.txt
 reports/
 audit-reports/
+audits/
 *_report.html
 *_audit.html
 *.report.json
 *.audit.json
+*.audit.txt
+*_prompt.txt
 
-# Scratch, Debug, Screenshots & Local Testing Files
+# ==============================================================================
+# Scratch, Debug, Local Test Suites & Runners
+# ==============================================================================
 scratch/
 temp/
 tmp/
+*.tmp
+*.temp
+*.bak
+chrome-profile/
+.chrome-profile/
 
+# Standalone Node.js test runners and verification scripts
+/test-*.js
+/test_*.js
+/test*.js
+/verify-*.js
+/check-*.js
+/inspect-*.js
+*.test.js
+*.spec.js
+coverage/
+.nyc_output/
+test-results/
+playwright-report/
+
+# ==============================================================================
 # Logs & Runtime Output
+# ==============================================================================
 *.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
+# ==============================================================================
 # Node Dependencies & Package Caches
+# ==============================================================================
 node_modules/
 .npm
 .cache/
 
+# ==============================================================================
 # Local Environment Variables & Secrets
+# ==============================================================================
 .env
 .env.local
 .env.*.local
+!.env.example

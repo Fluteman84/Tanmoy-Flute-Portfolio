@@ -279,7 +279,7 @@
         </div>
         <div class="info-metric">
           <span class="metric-label">Tempo</span>
-          <span class="metric-val">${info.bpm || 80} BPM</span>
+          <span class="metric-val">${info.bpm || 120} BPM</span>
         </div>
         <div class="info-metric highlight-metric">
           <span class="metric-label">Beat</span>

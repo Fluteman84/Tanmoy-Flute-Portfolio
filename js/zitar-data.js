@@ -1,6 +1,7 @@
 /**
- * Zitar Tone Reference – Data Architecture & Presets Library
- * Supports multi-amplifier configuration with Gretex GT-15FX initial implementation.
+ * Zitar Tone Reference – Data Architecture & External JSON Loader
+ * Provides schema validation, data loading, and tone preset query utilities.
+ * Single source of truth is data/amplifier-presets.json.
  */
 (function (root, factory) {
   if (typeof module === "object" && module.exports) {
@@ -11,16 +12,22 @@
 })(typeof self !== "undefined" ? self : this, function () {
   "use strict";
 
+  // Dynamic amplifier registry (populated upon loading data/amplifier-presets.json)
+  var AMPLIFIERS = {};
+  var isLoadedFlag = false;
+  var lastLoadError = null;
+
   /**
    * Converts clock-face string (e.g. "1:30", "10 o'clock", "10–11 o'clock", "8:30")
-   * into a visual rotation angle in degrees where 12:00 is 0° (straight up)
-   * Clockwise is positive, counter-clockwise is negative.
-   * Arc range: 12:00 = 0°, 3:00 = +90°, 6:00 = +180°, 9:00 = -90° (270°), etc.
+   * into a visual rotation angle in degrees where 12:00 is 0° (straight up).
+   * Clockwise is positive, counter-clockwise is negative (-150° to +150°).
    *
    * @param {string|null} clockStr
+   * @param {Object} [preset] Optional preset object for explicit midpoint reference
+   * @param {string} [controlKey] Optional control key to lookup preset.midpoints
    * @returns {number|null} Degrees from 12 o'clock (-180 to +180), or null if inactive/null.
    */
-  function parseClockToDegrees(clockStr) {
+  function parseClockToDegrees(clockStr, preset, controlKey) {
     if (!clockStr || typeof clockStr !== "string") {
       return null;
     }
@@ -30,14 +37,18 @@
       return null;
     }
 
-    // Check for range like "10–11 o'clock" or "9-10 o'clock" or "9–10"
+    // Check if preset has an explicit midpoint defined for this control
+    if (preset && preset.midpoints && controlKey && preset.midpoints[controlKey]) {
+      var explicitDeg = parseSingleClock(preset.midpoints[controlKey]);
+      if (explicitDeg !== null) return explicitDeg;
+    }
+
+    // Check for range like "10–11 o'clock", "9-10 o'clock" or "10-11"
     var rangeMatch = clean.match(/^(\d+(?::\d+)?)\s*[–—-]\s*(\d+(?::\d+)?)(?:\s*o['’]clock)?$/i);
     if (rangeMatch) {
       var deg1 = parseSingleClock(rangeMatch[1]);
       var deg2 = parseSingleClock(rangeMatch[2]);
       if (deg1 !== null && deg2 !== null) {
-        // Compute midpoint angle
-        // Handle wraparound if necessary (though our ranges are 9–10 and 10–11)
         var diff = deg2 - deg1;
         if (diff < -180) diff += 360;
         if (diff > 180) diff -= 360;
@@ -52,11 +63,11 @@
   }
 
   /**
-   * Helper to parse single clock position
+   * Helper to parse single clock position into degrees relative to 12 o'clock
    */
   function parseSingleClock(str) {
     if (!str) return null;
-    var s = str.trim().toLowerCase();
+    var s = String(str).trim().toLowerCase();
 
     // Remove "o'clock" or "o’clock"
     s = s.replace(/\s*o['’]clock/g, "").trim();
@@ -86,707 +97,374 @@
   }
 
   /**
-   * Gretex GT-15FX Master Presets (20 Total)
+   * Returns explicit clock-face midpoint string for a range-based clock position
+   * E.g. "10–11 o'clock" -> "10:30", "9–10 o'clock" -> "9:30"
    */
-  var GRETEX_PRESETS = [
-    {
-      id: 1,
-      patchNumber: "01",
-      name: "Classical Clean Zitar",
-      category: "Classical and Indian Music",
-      character: "Pure, natural and articulate.",
-      description: "A clean, pristine tone that preserves the natural acoustic resonance and delicate harmonics of the Zitar strings, offering crisp note clarity across all octaves.",
-      applications: [
-        "Classical melodies",
-        "Fast taans",
-        "Clear note articulation",
-        "Alap"
-      ],
-      techniques: [
-        "Clean right-hand strokes",
-        "Precise finger placement",
-        "Delicate gamaks",
-        "Fast taan execution"
-      ],
-      settings: {
-        masterVolume: "10–11 o'clock",
-        overdrive: false,
-        gain: null,
-        overdriveVolume: null,
-        treble: "1 o'clock",
-        mid: "12 o'clock",
-        bass: "10:30",
-        reverb: true,
-        reverbAmount: "9:30"
-      }
-    },
-    {
-      id: 2,
-      patchNumber: "02",
-      name: "Fusion Zitar – Niladri Kumar-inspired",
-      category: "Classical and Indian Music",
-      character: "Bright, expressive and forward.",
-      description: "A bright and forward tone with enhanced midrange presence, suitable for expressive melodic passages.",
-      applications: [
-        "Contemporary Indian fusion",
-        "Expressive bends",
-        "Fast melodic phrases",
-        "Instrumental solos"
-      ],
-      techniques: [
-        "Expressive slides",
-        "Controlled bends",
-        "Fast picking",
-        "Melodic phrasing"
-      ],
-      settings: {
-        masterVolume: "10–11 o'clock",
-        overdrive: false,
-        gain: null,
-        overdriveVolume: null,
-        treble: "1:30",
-        mid: "1:30",
-        bass: "10:30",
-        reverb: true,
-        reverbAmount: "11 o'clock"
-      }
-    },
-    {
-      id: 3,
-      patchNumber: "03",
-      name: "Deep Alap Tone",
-      category: "Classical and Indian Music",
-      character: "Smooth, rounded and slightly darker.",
-      description: "A rich, darker timbre emphasizing lower midrange and bass warmth with spacious reverb, designed for meditative exploration.",
-      applications: [
-        "Slow alap",
-        "Lower-register melodies",
-        "Meditative compositions"
-      ],
-      techniques: [
-        "Slow meend (glissando)",
-        "Deep string pulls",
-        "Sustained resonance",
-        "Subtle microtonal shifts"
-      ],
-      settings: {
-        masterVolume: "10 o'clock",
-        overdrive: false,
-        gain: null,
-        overdriveVolume: null,
-        treble: "10 o'clock",
-        mid: "12:30",
-        bass: "1:30",
-        reverb: true,
-        reverbAmount: "1:30"
-      }
-    },
-    {
-      id: 4,
-      patchNumber: "04",
-      name: "Metallic Bright Sitar",
-      category: "Classical and Indian Music",
-      character: "Sharp attack with pronounced high frequencies.",
-      description: "Accentuates the metallic jawari bite and high-frequency sparkle of traditional sitar strings, cutting through any rhythm section.",
-      applications: [
-        "Fast picking",
-        "Rhythmic phrases",
-        "Bright melodic passages"
-      ],
-      techniques: [
-        "Firm mizrab/pick attack",
-        "Jhala rhythms",
-        "Crisp staccato plucking",
-        "High register flourishes"
-      ],
-      settings: {
-        masterVolume: "10 o'clock",
-        overdrive: false,
-        gain: null,
-        overdriveVolume: null,
-        treble: "2:30",
-        mid: "12 o'clock",
-        bass: "9 o'clock",
-        reverb: true,
-        reverbAmount: "9 o'clock"
-      }
-    },
-    {
-      id: 5,
-      patchNumber: "05",
-      name: "Vintage Warm Tone",
-      category: "Classical and Indian Music",
-      character: "Warm, mellow and rounded.",
-      description: "A golden, nostalgic tone with rolled-off highs and gentle low-end presence reminiscent of classic 70s Bollywood studio recordings.",
-      applications: [
-        "Romantic melodies",
-        "Old Bollywood-style instrumental passages",
-        "Soft compositions"
-      ],
-      techniques: [
-        "Gentle picking dynamics",
-        "Smooth legato bends",
-        "Fluid ornamentations",
-        "Tender touch"
-      ],
-      settings: {
-        masterVolume: "10 o'clock",
-        overdrive: false,
-        gain: null,
-        overdriveVolume: null,
-        treble: "10 o'clock",
-        mid: "1:30",
-        bass: "1 o'clock",
-        reverb: true,
-        reverbAmount: "10 o'clock"
-      }
-    },
-    {
-      id: 6,
-      patchNumber: "06",
-      name: "Meditative Drone Tone",
-      category: "Classical and Indian Music",
-      character: "Soft, warm and spacious.",
-      description: "Expansive and enveloping ambiance with rolled-off treble and elevated bass, perfect for sustained drones and contemplative ragas.",
-      applications: [
-        "Slow phrases",
-        "Meditative music",
-        "Sustained notes"
-      ],
-      techniques: [
-        "Continuous drone plucking",
-        "Long sustained vibrations",
-        "Slow breath-like dynamics",
-        "Minimalistic ornamentation"
-      ],
-      settings: {
-        masterVolume: "10 o'clock",
-        overdrive: false,
-        gain: null,
-        overdriveVolume: null,
-        treble: "10:30",
-        mid: "12 o'clock",
-        bass: "1:30",
-        reverb: true,
-        reverbAmount: "2 o'clock"
-      }
-    },
-    {
-      id: 7,
-      patchNumber: "07",
-      name: "Ambient Zitar",
-      category: "Cinematic and Atmospheric",
-      character: "Wide, floating and atmospheric.",
-      description: "A wash of lush, cinematic reverb that blends string attacks into an ethereal sonic cloud, creating broad soundscapes.",
-      applications: [
-        "Background melodies",
-        "Ambient compositions",
-        "Slow instrumental music"
-      ],
-      techniques: [
-        "Volume swells",
-        "Sparse note choices",
-        "Gentle sliding across frets",
-        "Atmospheric ringing notes"
-      ],
-      settings: {
-        masterVolume: "10 o'clock",
-        overdrive: false,
-        gain: null,
-        overdriveVolume: null,
-        treble: "12 o'clock",
-        mid: "11:30",
-        bass: "11 o'clock",
-        reverb: true,
-        reverbAmount: "3 o'clock"
-      }
-    },
-    {
-      id: 8,
-      patchNumber: "08",
-      name: "Cinematic Lead",
-      category: "Cinematic and Atmospheric",
-      character: "Focused, bright and spacious.",
-      description: "Enhanced midrange clarity combined with healthy ambient reverb, designed to float gracefully over cinematic orchestral arrangements.",
-      applications: [
-        "Movie themes",
-        "Emotional solos",
-        "Dramatic melodic passages"
-      ],
-      techniques: [
-        "Wide vibrato",
-        "Passionate meend pulls",
-        "Dynamic accentuation",
-        "Climactic note sustains"
-      ],
-      settings: {
-        masterVolume: "10 o'clock",
-        overdrive: false,
-        gain: null,
-        overdriveVolume: null,
-        treble: "1:30",
-        mid: "2 o'clock",
-        bass: "11 o'clock",
-        reverb: true,
-        reverbAmount: "2 o'clock"
-      }
-    },
-    {
-      id: 9,
-      patchNumber: "09",
-      name: "Dreamy Soft Tone",
-      category: "Cinematic and Atmospheric",
-      character: "Rounded highs with a soft ambient character.",
-      description: "Deeply soaked in reverb with softened transients, creating a gentle, tranquil atmosphere ideal for peaceful soundscapes.",
-      applications: [
-        "Dreamy melodies",
-        "Slow slides",
-        "Soft background arrangements"
-      ],
-      techniques: [
-        "Light finger touch",
-        "Slow gliding transitions",
-        "Harmonic tapping",
-        "Soft note releases"
-      ],
-      settings: {
-        masterVolume: "9:30",
-        overdrive: false,
-        gain: null,
-        overdriveVolume: null,
-        treble: "10 o'clock",
-        mid: "11 o'clock",
-        bass: "12:30",
-        reverb: true,
-        reverbAmount: "3:30"
-      }
-    },
-    {
-      id: 10,
-      patchNumber: "10",
-      name: "Sustained Lead Character",
-      category: "Cinematic and Atmospheric",
-      character: "Slightly saturated, smooth and expressive.",
-      description: "Gentle overdrive adds singing sustain and harmonic overtones to leads without harsh distortion, retaining smooth articulation.",
-      note: "Actual sustain depends on pickup, playing technique and amplifier response.",
-      applications: [
-        "Long melodic notes",
-        "Expressive lead playing"
-      ],
-      techniques: [
-        "Controlled multi-fret bends",
-        "Circular vibrato",
-        "Smooth string cross-overs",
-        "Sustained emotional holds"
-      ],
-      settings: {
-        masterVolume: "9:30",
-        overdrive: true,
-        gain: "9:30",
-        overdriveVolume: "11 o'clock",
-        treble: "11:30",
-        mid: "2 o'clock",
-        bass: "10:30",
-        reverb: true,
-        reverbAmount: "1:30"
-      }
-    },
-    {
-      id: 11,
-      patchNumber: "11",
-      name: "Rock Zitar",
-      category: "Rock and Fusion",
-      character: "Crunchy and aggressive.",
-      description: "Punchy drive with biting upper harmonics and solid midrange bite, giving the Zitar an electric guitar-like rock attitude.",
-      applications: [
-        "Rock fusion",
-        "Rhythmic riffs",
-        "Energetic solos"
-      ],
-      techniques: [
-        "Aggressive downstrokes",
-        "Heavy palm-muting",
-        "Rapid hammer-ons and pull-offs",
-        "Power riffing"
-      ],
-      settings: {
-        masterVolume: "9–10 o'clock",
-        overdrive: true,
-        gain: "10:30",
-        overdriveVolume: "11 o'clock",
-        treble: "1 o'clock",
-        mid: "1:30",
-        bass: "11 o'clock",
-        reverb: true,
-        reverbAmount: "9 o'clock"
-      }
-    },
-    {
-      id: 12,
-      patchNumber: "12",
-      name: "Singing Blues Lead",
-      category: "Rock and Fusion",
-      character: "Warm overdrive with focused mids.",
-      description: "Touch-sensitive crunch with rich, vocal midrange emphasis that sings on long bends and expressive melodic phrases.",
-      applications: [
-        "Expressive bends",
-        "Slides",
-        "Blues-inspired Zitar solos"
-      ],
-      techniques: [
-        "Blues curls and microtonal bends",
-        "Rhythmic vibrato pulses",
-        "Rake picking",
-        "Call-and-response phrases"
-      ],
-      settings: {
-        masterVolume: "9–10 o'clock",
-        overdrive: true,
-        gain: "9:30",
-        overdriveVolume: "11 o'clock",
-        treble: "11 o'clock",
-        mid: "2 o'clock",
-        bass: "11 o'clock",
-        reverb: true,
-        reverbAmount: "11 o'clock"
-      }
-    },
-    {
-      id: 13,
-      patchNumber: "13",
-      name: "High-Gain Fusion",
-      category: "Rock and Fusion",
-      character: "Strong distortion and aggressive attack.",
-      description: "Saturated overdrive channel with high gain saturation, producing intense sustain, rich harmonics, and crushing modern fusion energy.",
-      applications: [
-        "Experimental rock",
-        "Heavy fusion",
-        "Distorted melodic passages"
-      ],
-      techniques: [
-        "High-speed alternate picking",
-        "Sweep tapping",
-        "Controlled feedback manipulation",
-        "Aggressive bends"
-      ],
-      settings: {
-        masterVolume: "9 o'clock",
-        overdrive: true,
-        gain: "2 o'clock",
-        overdriveVolume: "10 o'clock",
-        treble: "12 o'clock",
-        mid: "1 o'clock",
-        bass: "11 o'clock",
-        reverb: true,
-        reverbAmount: "9:30"
-      }
-    },
-    {
-      id: 14,
-      patchNumber: "14",
-      name: "Classic Crunch",
-      category: "Rock and Fusion",
-      character: "Moderate breakup, less aggressive than high gain.",
-      description: "Classic vintage breakup that stays responsive to pick attack—clean when picked softly, biting and gritty when struck hard.",
-      applications: [
-        "Rock melodies",
-        "Rhythmic playing",
-        "Fusion accompaniment"
-      ],
-      techniques: [
-        "Dynamic velocity control",
-        "Rhythmic chordal strumming",
-        "Accented syncopated strikes",
-        "Steady drive grooves"
-      ],
-      settings: {
-        masterVolume: "9:30",
-        overdrive: true,
-        gain: "11 o'clock",
-        overdriveVolume: "11 o'clock",
-        treble: "12:30",
-        mid: "1:30",
-        bass: "12 o'clock",
-        reverb: true,
-        reverbAmount: "10 o'clock"
-      }
-    },
-    {
-      id: 15,
-      patchNumber: "15",
-      name: "Dark Distorted Zitar",
-      category: "Rock and Fusion",
-      character: "Darker highs and thick midrange.",
-      description: "Heavy, brooding distortion with rolled-off treble and boosted bass and mid, creating a massive, wall-of-sound resonance.",
-      applications: [
-        "Dark rock melodies",
-        "Heavy riffs",
-        "Experimental sounds"
-      ],
-      techniques: [
-        "Low-string riffing",
-        "Slow heavy bending",
-        "Aggressive chugging strokes",
-        "Modal dark scales"
-      ],
-      settings: {
-        masterVolume: "9 o'clock",
-        overdrive: true,
-        gain: "1:30",
-        overdriveVolume: "10 o'clock",
-        treble: "10:30",
-        mid: "2 o'clock",
-        bass: "1 o'clock",
-        reverb: true,
-        reverbAmount: "9 o'clock"
-      }
-    },
-    {
-      id: 16,
-      patchNumber: "16",
-      name: "Telephone / Radio Zitar",
-      category: "Experimental and Special-Purpose",
-      character: "Narrow, nasal, lo-fi character.",
-      description: "Extreme bandpass EQ effect with stripped bass and boosted midrange, simulating vintage telephone or transistor radio audio.",
-      applications: [
-        "Lo-fi effects",
-        "Radio-style transitions",
-        "Experimental compositions"
-      ],
-      techniques: [
-        "Dry staccato notes",
-        "Short percussive phrases",
-        "Minimalistic ornamentation",
-        "Intro/outro effect flourishes"
-      ],
-      settings: {
-        masterVolume: "9:30",
-        overdrive: false,
-        gain: null,
-        overdriveVolume: null,
-        treble: "2 o'clock",
-        mid: "3 o'clock",
-        bass: "8:30",
-        reverb: false,
-        reverbAmount: null
-      }
-    },
-    {
-      id: 17,
-      patchNumber: "17",
-      name: "Hollow / Thin Zitar",
-      category: "Experimental and Special-Purpose",
-      character: "Lightweight and slightly hollow.",
-      description: "Mid-scooped EQ curve with light bass and crisp top end, producing a delicate, airy acoustic texture that layers cleanly in dense mixes.",
-      applications: [
-        "Thin melodic arrangements",
-        "Contrasting layers"
-      ],
-      techniques: [
-        "Light finger-plucking",
-        "Rapid upper-register trills",
-        "Delicate chord arpeggiation",
-        "Airy melodic doubling"
-      ],
-      settings: {
-        masterVolume: "10 o'clock",
-        overdrive: false,
-        gain: null,
-        overdriveVolume: null,
-        treble: "1:30",
-        mid: "10 o'clock",
-        bass: "9 o'clock",
-        reverb: true,
-        reverbAmount: "10 o'clock"
-      }
-    },
-    {
-      id: 18,
-      patchNumber: "18",
-      name: "Thick Midrange Zitar",
-      category: "Experimental and Special-Purpose",
-      character: "Concentrated, powerful and prominent.",
-      description: "A punchy, mid-heavy tone with moderate overdrive that cuts right through dense band arrangements and heavy basslines.",
-      applications: [
-        "Lead melodies that need to stand out in a band mix"
-      ],
-      techniques: [
-        "Punchy melodic attacks",
-        "Sustained center-frequency bends",
-        "Syncopated lead lines",
-        "Articulate fast runs"
-      ],
-      settings: {
-        masterVolume: "10 o'clock",
-        overdrive: true,
-        gain: "10 o'clock",
-        overdriveVolume: "11 o'clock",
-        treble: "11 o'clock",
-        mid: "3 o'clock",
-        bass: "10 o'clock",
-        reverb: true,
-        reverbAmount: "10 o'clock"
-      }
-    },
-    {
-      id: 19,
-      patchNumber: "19",
-      name: "Bright Percussive Zitar",
-      category: "Experimental and Special-Purpose",
-      character: "Sharp attacks and crisp rhythmic notes.",
-      description: "High-definition treble with dry room response (reverb off), emphasizing the percussive click of the pick on the Chikari and main strings.",
-      applications: [
-        "Rhythmic picking",
-        "Fast patterns",
-        "Percussive compositions"
-      ],
-      techniques: [
-        "Rapid jhala strokes",
-        "Staccato muting",
-        "Rhythmic chikari tapping",
-        "Fast metric subdivisions"
-      ],
-      settings: {
-        masterVolume: "10 o'clock",
-        overdrive: false,
-        gain: null,
-        overdriveVolume: null,
-        treble: "2 o'clock",
-        mid: "1:30",
-        bass: "9:30",
-        reverb: false,
-        reverbAmount: null
-      }
-    },
-    {
-      id: 20,
-      patchNumber: "20",
-      name: "Warm Overdriven Fusion",
-      category: "Experimental and Special-Purpose",
-      character: "Warmth combined with moderate saturation.",
-      description: "Smooth, buttery saturation with elevated bass and low mids coupled with balanced reverb, creating a warm, singing fusion tone.",
-      applications: [
-        "Warm fusion solos",
-        "Expressive slides",
-        "Mellow distorted melodies"
-      ],
-      techniques: [
-        "Fluid legato slides",
-        "Warm sustained bends",
-        "Nuanced pick dynamics",
-        "Expressive microtonal ornamentations"
-      ],
-      settings: {
-        masterVolume: "9:30",
-        overdrive: true,
-        gain: "10 o'clock",
-        overdriveVolume: "11 o'clock",
-        treble: "10:30",
-        mid: "1:30",
-        bass: "1 o'clock",
-        reverb: true,
-        reverbAmount: "12 o'clock"
-      }
-    }
-  ];
+  function getClockMidpoint(clockStr) {
+    if (!clockStr || typeof clockStr !== "string") return null;
+    var clean = clockStr.trim();
+    var rangeMatch = clean.match(/^(\d+(?::\d+)?)\s*[–—-]\s*(\d+(?::\d+)?)(?:\s*o['’]clock)?$/i);
+    if (!rangeMatch) return clean;
+
+    var p1 = rangeMatch[1];
+    var p2 = rangeMatch[2];
+    var h1 = parseInt(p1.split(":")[0], 10);
+    var m1 = parseInt(p1.split(":")[1] || "0", 10);
+    var h2 = parseInt(p2.split(":")[0], 10);
+    var m2 = parseInt(p2.split(":")[1] || "0", 10);
+
+    var tot1 = (h1 % 12) * 60 + m1;
+    var tot2 = (h2 % 12) * 60 + m2;
+    var diff = tot2 - tot1;
+    if (diff < -360) diff += 720;
+    if (diff > 360) diff -= 720;
+    var midTot = (tot1 + diff / 2) % 720;
+    if (midTot < 0) midTot += 720;
+
+    var midH = Math.floor(midTot / 60);
+    if (midH === 0) midH = 12;
+    var midM = Math.round(midTot % 60);
+    var midMStr = midM < 10 ? "0" + midM : "" + midM;
+    return midH + ":" + midMStr;
+  }
 
   /**
-   * Amplifiers Registry
-   * Extensible architecture for future amplifier models
+   * Validates raw parsed JSON data according to the Tone Reference Schema.
+   *
+   * @param {Object} rawData Parsed JSON root object
+   * @returns {{ success: boolean, amplifiers: Object, errors: Array<string>, warnings: Array<string> }}
    */
-  var AMPLIFIERS = {
-    gretexGT15FX: {
-      id: "gretexGT15FX",
-      name: "Gretex GT-15FX",
-      subtitle: "15-Watt Guitar Amplifier with Overdrive & Spring Reverb",
-      controls: [
-        {
-          key: "masterVolume",
-          label: "Master Volume",
-          type: "dial",
-          group: "clean",
-          minClock: "7:00",
-          maxClock: "5:00"
-        },
-        {
-          key: "overdrive",
-          label: "Overdrive",
-          type: "switch",
-          group: "drive",
-          controlsLinked: ["gain", "overdriveVolume"]
-        },
-        {
-          key: "gain",
-          label: "Gain",
-          type: "dial",
-          group: "drive",
-          dependsOn: "overdrive",
-          minClock: "7:00",
-          maxClock: "5:00"
-        },
-        {
-          key: "overdriveVolume",
-          label: "Overdrive Volume",
-          type: "dial",
-          group: "drive",
-          dependsOn: "overdrive",
-          minClock: "7:00",
-          maxClock: "5:00"
-        },
-        {
-          key: "treble",
-          label: "Treble",
-          type: "dial",
-          group: "eq",
-          minClock: "7:00",
-          maxClock: "5:00"
-        },
-        {
-          key: "mid",
-          label: "Mid",
-          type: "dial",
-          group: "eq",
-          minClock: "7:00",
-          maxClock: "5:00"
-        },
-        {
-          key: "bass",
-          label: "Bass",
-          type: "dial",
-          group: "eq",
-          minClock: "7:00",
-          maxClock: "5:00"
-        },
-        {
-          key: "reverb",
-          label: "Reverb",
-          type: "switch",
-          group: "reverb",
-          controlsLinked: ["reverbAmount"]
-        },
-        {
-          key: "reverbAmount",
-          label: "Reverb Amount",
-          type: "dial",
-          group: "reverb",
-          dependsOn: "reverb",
-          minClock: "7:00",
-          maxClock: "5:00"
+  function validate(rawData) {
+    var errors = [];
+    var warnings = [];
+    var validAmplifiers = {};
+
+    // 1. Root structure
+    if (!rawData || typeof rawData !== "object" || Array.isArray(rawData)) {
+      errors.push("Root JSON must be a valid object.");
+      return { success: false, amplifiers: {}, errors: errors, warnings: warnings };
+    }
+
+    if (typeof rawData.schemaVersion !== "string" || !rawData.schemaVersion.trim()) {
+      errors.push("Missing or invalid 'schemaVersion' in root JSON.");
+    }
+
+    if (!Array.isArray(rawData.amplifiers) || rawData.amplifiers.length === 0) {
+      errors.push("Root JSON must contain a non-empty 'amplifiers' array.");
+      return { success: false, amplifiers: {}, errors: errors, warnings: warnings };
+    }
+
+    var seenAmpIds = {};
+
+    // 2. Iterate each amplifier
+    rawData.amplifiers.forEach(function (amp, aIdx) {
+      var ampPrefix = "Amplifier #" + (aIdx + 1);
+
+      if (!amp || typeof amp !== "object" || Array.isArray(amp)) {
+        errors.push(ampPrefix + ": Entry must be an object.");
+        return;
+      }
+
+      // Validate ID
+      if (typeof amp.id !== "string" || !amp.id.trim()) {
+        errors.push(ampPrefix + ": Missing or empty 'id'.");
+        return;
+      }
+      var ampId = amp.id.trim();
+      if (seenAmpIds[ampId]) {
+        errors.push(ampPrefix + ": Duplicate amplifier ID '" + ampId + "'.");
+        return;
+      }
+      seenAmpIds[ampId] = true;
+
+      // Validate Display Name
+      var displayName = amp.displayName || amp.name;
+      if (typeof displayName !== "string" || !displayName.trim()) {
+        errors.push("Amplifier '" + ampId + "': Missing or empty 'displayName'.");
+        displayName = ampId;
+      }
+
+      if (typeof amp.manufacturer !== "string" || !amp.manufacturer.trim()) {
+        warnings.push("Amplifier '" + ampId + "': Missing 'manufacturer'.");
+      }
+      if (typeof amp.modelName !== "string" || !amp.modelName.trim()) {
+        warnings.push("Amplifier '" + ampId + "': Missing 'modelName'.");
+      }
+
+      // Validate Controls
+      if (!Array.isArray(amp.controls) || amp.controls.length === 0) {
+        errors.push("Amplifier '" + ampId + "': Must define at least one control in 'controls'.");
+        return;
+      }
+
+      var controlMap = {};
+      amp.controls.forEach(function (ctrl, cIdx) {
+        var cLabel = "Amplifier '" + ampId + "' Control #" + (cIdx + 1);
+        if (!ctrl || typeof ctrl !== "object" || Array.isArray(ctrl)) {
+          errors.push(cLabel + ": Control must be an object.");
+          return;
         }
-      ],
-      presets: GRETEX_PRESETS
-    }
-  };
+
+        if (typeof ctrl.key !== "string" || !ctrl.key.trim()) {
+          errors.push(cLabel + ": Missing or empty control 'key'.");
+          return;
+        }
+        var cKey = ctrl.key.trim();
+        if (controlMap[cKey]) {
+          errors.push("Amplifier '" + ampId + "': Duplicate control key '" + cKey + "'.");
+          return;
+        }
+        if (typeof ctrl.label !== "string" || !ctrl.label.trim()) {
+          errors.push("Amplifier '" + ampId + "' control '" + cKey + "': Missing 'label'.");
+        }
+        if (ctrl.type !== "dial" && ctrl.type !== "switch") {
+          errors.push("Amplifier '" + ampId + "' control '" + cKey + "': 'type' must be 'dial' or 'switch'.");
+        }
+
+        controlMap[cKey] = ctrl;
+      });
+
+      // Verify dependsOn references
+      amp.controls.forEach(function (ctrl) {
+        if (ctrl.dependsOn) {
+          var parentCtrl = controlMap[ctrl.dependsOn];
+          if (!parentCtrl) {
+            errors.push("Amplifier '" + ampId + "' control '" + ctrl.key + "': dependsOn '" + ctrl.dependsOn + "' does not exist.");
+          } else if (parentCtrl.type !== "switch") {
+            errors.push("Amplifier '" + ampId + "' control '" + ctrl.key + "': dependsOn target '" + ctrl.dependsOn + "' must be a switch.");
+          }
+        }
+      });
+
+      // Validate Presets
+      if (!Array.isArray(amp.presets) || amp.presets.length === 0) {
+        errors.push("Amplifier '" + ampId + "': Missing or empty 'presets' array.");
+        return;
+      }
+
+      var seenPresetIds = {};
+      var validPresets = [];
+
+      amp.presets.forEach(function (p, pIdx) {
+        var pLabel = "Amplifier '" + ampId + "' Preset #" + (pIdx + 1);
+
+        if (!p || typeof p !== "object" || Array.isArray(p)) {
+          errors.push(pLabel + ": Entry must be an object.");
+          return;
+        }
+
+        if (typeof p.id === "undefined" || p.id === null) {
+          errors.push(pLabel + ": Missing 'id'.");
+          return;
+        }
+        var pIdKey = String(p.id);
+        if (seenPresetIds[pIdKey]) {
+          errors.push(pLabel + " (ID: " + p.id + "): Duplicate preset ID detected.");
+          return;
+        }
+        seenPresetIds[pIdKey] = true;
+
+        if (typeof p.patchNumber !== "string" || !p.patchNumber.trim()) {
+          errors.push(pLabel + " (ID: " + p.id + "): Missing or empty 'patchNumber'.");
+        }
+
+        var reqStrings = ["name", "category", "character", "description"];
+        reqStrings.forEach(function (f) {
+          if (typeof p[f] !== "string" || !p[f].trim()) {
+            errors.push("Preset '" + (p.name || p.id) + "': Missing required field '" + f + "'.");
+          }
+        });
+
+        if (!Array.isArray(p.applications)) {
+          errors.push("Preset '" + (p.name || p.id) + "': 'applications' must be an array.");
+        }
+        if (!Array.isArray(p.techniques)) {
+          errors.push("Preset '" + (p.name || p.id) + "': 'techniques' must be an array.");
+        }
+
+        if (!p.settings || typeof p.settings !== "object" || Array.isArray(p.settings)) {
+          errors.push("Preset '" + (p.name || p.id) + "': 'settings' must be an object.");
+          return;
+        }
+
+        // Validate each amplifier control in settings
+        amp.controls.forEach(function (ctrl) {
+          if (!(ctrl.key in p.settings)) {
+            errors.push("Preset '" + (p.name || p.id) + "': Missing control setting for '" + ctrl.key + "'.");
+            return;
+          }
+
+          var val = p.settings[ctrl.key];
+
+          if (ctrl.type === "switch") {
+            if (typeof val !== "boolean") {
+              errors.push("Preset '" + (p.name || p.id) + "': Switch '" + ctrl.key + "' must be boolean true or false.");
+            }
+          } else if (ctrl.type === "dial") {
+            var isDependent = !!ctrl.dependsOn;
+            var isParentOn = isDependent ? p.settings[ctrl.dependsOn] === true : true;
+
+            if (!isParentOn) {
+              if (val !== null) {
+                errors.push("Preset '" + (p.name || p.id) + "': Inactive control '" + ctrl.key + "' must be null when '" + ctrl.dependsOn + "' is OFF.");
+              }
+            } else {
+              if (val === null || val === undefined) {
+                errors.push("Preset '" + (p.name || p.id) + "': Active control '" + ctrl.key + "' cannot be null.");
+              } else if (typeof val !== "string" || !val.trim()) {
+                errors.push("Preset '" + (p.name || p.id) + "': Control '" + ctrl.key + "' must be a non-empty clock string.");
+              } else {
+                // Check range format
+                var isRange = /^(\d+(?::\d+)?)\s*[–—-]\s*(\d+(?::\d+)?)(?:\s*o['’]clock)?$/i.test(val.trim());
+                if (isRange) {
+                  // Ensure explicit midpoint is defined or calculated
+                  if (!p.midpoints || !p.midpoints[ctrl.key]) {
+                    if (!p.midpoints) p.midpoints = {};
+                    p.midpoints[ctrl.key] = getClockMidpoint(val);
+                  }
+                }
+              }
+            }
+          }
+        });
+
+        validPresets.push(p);
+      });
+
+      validAmplifiers[ampId] = {
+        id: ampId,
+        name: displayName,
+        displayName: displayName,
+        manufacturer: amp.manufacturer || "",
+        modelName: amp.modelName || "",
+        subtitle: amp.subtitle || "",
+        effects: Array.isArray(amp.effects) ? amp.effects : [],
+        controls: amp.controls,
+        presets: validPresets
+      };
+    });
+
+    return {
+      success: errors.length === 0,
+      amplifiers: validAmplifiers,
+      errors: errors,
+      warnings: warnings
+    };
+  }
 
   /**
-   * Search and filter presets by query across name, category, character, and applications
+   * Loads parsed data object into the runtime registry after validation
+   *
+   * @param {Object} rawData Parsed JSON data
+   * @returns {{ success: boolean, amplifiers: Object, errors: Array<string>, warnings: Array<string> }}
+   */
+  function loadData(rawData) {
+    var result = validate(rawData);
+    if (!result.success) {
+      lastLoadError = result.errors.join("; ");
+      console.error("[ZitarData] Validation failed with errors:", result.errors);
+      return result;
+    }
+
+    // Clear and populate AMPLIFIERS
+    for (var key in AMPLIFIERS) {
+      if (Object.prototype.hasOwnProperty.call(AMPLIFIERS, key)) {
+        delete AMPLIFIERS[key];
+      }
+    }
+    for (var ampId in result.amplifiers) {
+      if (Object.prototype.hasOwnProperty.call(result.amplifiers, ampId)) {
+        AMPLIFIERS[ampId] = result.amplifiers[ampId];
+      }
+    }
+
+    isLoadedFlag = true;
+    lastLoadError = null;
+    return result;
+  }
+
+  /**
+   * Loads JSON file asynchronously and initializes the amplifier registry.
+   *
+   * @param {string} [url="data/amplifier-presets.json"]
+   * @returns {Promise<{ success: boolean, amplifiers: Object, errors: Array<string>, warnings: Array<string> }>}
+   */
+  function load(url) {
+    var targetUrl = url || "data/amplifier-presets.json";
+
+    // Node.js environment support for QA suites & server-side scripts
+    var isNode = typeof process !== "undefined" && process.versions && !!process.versions.node;
+    if (isNode && typeof require === "function") {
+      try {
+        var fs = require("fs");
+        var path = require("path");
+        var filePath = path.resolve(process.cwd(), targetUrl);
+        if (!fs.existsSync(filePath)) {
+          var notFoundErr = "File not found: " + targetUrl;
+          lastLoadError = notFoundErr;
+          return Promise.resolve({
+            success: false,
+            amplifiers: {},
+            errors: [notFoundErr],
+            warnings: []
+          });
+        }
+        var fileContent = fs.readFileSync(filePath, "utf-8");
+        var parsed = JSON.parse(fileContent);
+        return Promise.resolve(loadData(parsed));
+      } catch (err) {
+        var readErr = "Failed reading JSON file '" + targetUrl + "': " + err.message;
+        lastLoadError = readErr;
+        return Promise.resolve({
+          success: false,
+          amplifiers: {},
+          errors: [readErr],
+          warnings: []
+        });
+      }
+    }
+
+    // Browser environment via fetch()
+    return fetch(targetUrl)
+      .then(function (res) {
+        if (!res.ok) {
+          throw new Error("HTTP " + res.status + " " + res.statusText + " while fetching " + targetUrl);
+        }
+        return res.json();
+      })
+      .then(function (jsonData) {
+        return loadData(jsonData);
+      })
+      .catch(function (fetchErr) {
+        var msg = "Failed to load '" + targetUrl + "': " + fetchErr.message;
+        if (typeof window !== "undefined" && window.location && window.location.protocol === "file:") {
+          msg += " (Local file CORS restriction: modern browsers block asynchronous fetch via file:// protocol. Serve using a local HTTP server e.g. python -m http.server 8000 or host on GitHub Pages).";
+        }
+        lastLoadError = msg;
+        console.error("[ZitarData]", msg);
+        return {
+          success: false,
+          amplifiers: {},
+          errors: [msg],
+          warnings: []
+        };
+      });
+  }
+
+  /**
+   * Search and filter presets by query across name, category, character, applications and techniques
    *
    * @param {string} query
-   * @param {string} [ampKey="gretexGT15FX"]
+   * @param {string} [ampKey]
    * @returns {Array} Filtered presets array
    */
   function searchPresets(query, ampKey) {
-    var amp = AMPLIFIERS[ampKey || "gretexGT15FX"];
+    var key = ampKey;
+    if (!key || !AMPLIFIERS[key]) {
+      var keys = Object.keys(AMPLIFIERS);
+      key = keys.length > 0 ? keys[0] : "gretexGT15FX";
+    }
+    var amp = AMPLIFIERS[key];
     if (!amp || !amp.presets) return [];
 
     var q = (query || "").trim().toLowerCase();
@@ -806,15 +484,32 @@
       ) {
         return true;
       }
+      if (
+        preset.techniques &&
+        preset.techniques.some(function (tech) {
+          return tech.toLowerCase().indexOf(q) !== -1;
+        })
+      ) {
+        return true;
+      }
       return false;
     });
   }
 
   /**
    * Retrieve a preset by its ID
+   *
+   * @param {number|string} id
+   * @param {string} [ampKey]
+   * @returns {Object|null}
    */
   function getPresetById(id, ampKey) {
-    var amp = AMPLIFIERS[ampKey || "gretexGT15FX"];
+    var key = ampKey;
+    if (!key || !AMPLIFIERS[key]) {
+      var keys = Object.keys(AMPLIFIERS);
+      key = keys.length > 0 ? keys[0] : "gretexGT15FX";
+    }
+    var amp = AMPLIFIERS[key];
     if (!amp || !amp.presets) return null;
     var targetId = parseInt(id, 10);
     for (var i = 0; i < amp.presets.length; i++) {
@@ -825,10 +520,68 @@
     return null;
   }
 
+  /**
+   * Get first preset of an amplifier
+   */
+  function getFirstPreset(ampKey) {
+    var key = ampKey;
+    if (!key || !AMPLIFIERS[key]) {
+      var keys = Object.keys(AMPLIFIERS);
+      key = keys.length > 0 ? keys[0] : "gretexGT15FX";
+    }
+    var amp = AMPLIFIERS[key];
+    if (!amp || !amp.presets || amp.presets.length === 0) return null;
+    return amp.presets[0];
+  }
+
+  /**
+   * Returns list of all loaded amplifier models
+   */
+  function getAmplifiers() {
+    var list = [];
+    for (var key in AMPLIFIERS) {
+      if (Object.prototype.hasOwnProperty.call(AMPLIFIERS, key)) {
+        list.push(AMPLIFIERS[key]);
+      }
+    }
+    return list;
+  }
+
+  /**
+   * Get specific amplifier by ID
+   */
+  function getAmplifier(id) {
+    return AMPLIFIERS[id] || null;
+  }
+
+  /**
+   * Check if data is loaded
+   */
+  function isLoaded() {
+    return isLoadedFlag;
+  }
+
+  /**
+   * Returns last load error string, if any
+   */
+  function getLastError() {
+    return lastLoadError;
+  }
+
   return {
     AMPLIFIERS: AMPLIFIERS,
-    parseClockToDegrees: parseClockToDegrees,
+    load: load,
+    loadData: loadData,
+    validate: validate,
+    isLoaded: isLoaded,
+    getLastError: getLastError,
+    getAmplifiers: getAmplifiers,
+    getAmplifier: getAmplifier,
+    getFirstPreset: getFirstPreset,
+    getPresetById: getPresetById,
     searchPresets: searchPresets,
-    getPresetById: getPresetById
+    parseClockToDegrees: parseClockToDegrees,
+    parseSingleClock: parseSingleClock,
+    getClockMidpoint: getClockMidpoint
   };
 });

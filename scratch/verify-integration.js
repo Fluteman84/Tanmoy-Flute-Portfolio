@@ -231,7 +231,7 @@ async function testFullDOMSimulation() {
     taalStatusNotice: createMockElement("div", "taalStatusNotice", "taal-status-notice"),
     tablaTaalEngineApp: createMockElement("div", "tablaTaalEngineApp", "taal-app")
   };
-  elementsMap.tempoInput.value = "80";
+  elementsMap.tempoInput.value = "120";
 
   global.window = {
     location: { protocol: "http:" },
@@ -340,16 +340,16 @@ async function testFullDOMSimulation() {
 
   // Check 4: Tempo control interactions
   elementsMap.btnDoubleTempo.dispatchEvent({ type: "click", preventDefault: () => {} });
-  if (Number(elementsMap.tempoInput.value) === 160 && App.metronome.bpm === 160) {
-    console.log(`[PASS] ×2 doubled tempo from 80 to 160 BPM.`);
+  if (Number(elementsMap.tempoInput.value) === 240 && App.metronome.bpm === 240) {
+    console.log(`[PASS] ×2 doubled tempo from 120 to 240 BPM.`);
   } else {
     console.error(`[FAIL] ×2 tempo failed. Input value: ${elementsMap.tempoInput.value}`);
     return false;
   }
 
   elementsMap.btnHalveTempo.dispatchEvent({ type: "click", preventDefault: () => {} });
-  if (Number(elementsMap.tempoInput.value) === 80 && App.metronome.bpm === 80) {
-    console.log(`[PASS] ÷2 halved tempo back to 80 BPM.`);
+  if (Number(elementsMap.tempoInput.value) === 120 && App.metronome.bpm === 120) {
+    console.log(`[PASS] ÷2 halved tempo back to 120 BPM.`);
   } else {
     console.error(`[FAIL] ÷2 tempo failed.`);
     return false;

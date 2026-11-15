@@ -100,7 +100,6 @@
 
     // Hero title
     h += '<section class="swaralipi-hero">';
-    h += '<p class="eyebrow">Tools / Notation Editor</p>';
     h += '<h1>Swar<span>alipi</span></h1>';
     h += '<p class="notes-subtitle">Hindustani Classical Music Notation Editor</p>';
     h += '</section>';

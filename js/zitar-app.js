@@ -1,6 +1,7 @@
 /**
  * Zitar Tone Reference – UI Controller & Renderer
- * Gretex GT-15FX Tone Visualisation & Preset Browser
+ * Multi-amplifier precision tone visualisation & preset browser.
+ * Loads amplifier configurations and presets dynamically from external JSON.
  */
 (function (root, factory) {
   if (typeof module === "object" && module.exports) {
@@ -16,6 +17,8 @@
   var currentPresetId = 1;
   var currentSearchQuery = "";
   var activeSuggestionIndex = -1;
+  var eventsInitialized = false;
+  var dataUrlLoaded = "data/amplifier-presets.json";
 
   // DOM Elements cache
   var elements = {};
@@ -72,10 +75,9 @@
   }
 
   /**
-   * Initialize Zitar App
+   * Cache DOM Elements
    */
-  function init() {
-    // Cache DOM Elements
+  function cacheElements() {
     elements.ampSelect = document.getElementById("ampSelect");
     elements.patchSearchInput = document.getElementById("patchSearchInput");
     elements.searchClearBtn = document.getElementById("searchClearBtn");
@@ -110,32 +112,142 @@
 
     // Amp control panel elements
     elements.ampControlPanel = document.getElementById("ampControlPanel");
-
-    if (!elements.ampSelect) {
-      console.warn("ZitarApp: Required DOM elements not found.");
-      return;
-    }
-
-    populateAmpDropdown();
-    setupControlsMarkup();
-    populateSidebarPatchList();
-    setupEventListeners();
-
-    // Default selection: Preset 1
-    selectPatch(1);
   }
 
   /**
-   * Populate Amp Selection Dropdown
+   * Initialize Zitar Tone Reference Application.
+   * Loads data asynchronously from external JSON database.
+   *
+   * @param {string} [dataUrl="data/amplifier-presets.json"]
+   * @returns {Promise<{ success: boolean, errors?: Array<string> }>}
+   */
+  function init(dataUrl) {
+    cacheElements();
+
+    if (dataUrl) {
+      dataUrlLoaded = dataUrl;
+    }
+
+    if (!elements.ampSelect || !elements.ampControlPanel) {
+      console.warn("ZitarApp: Required DOM container elements not found.");
+      return Promise.resolve({ success: false, errors: ["DOM elements missing"] });
+    }
+
+    // If a specific dataUrl is provided or data is not yet loaded, load from dataUrl
+    var loadPromise;
+    if (!dataUrl && ZitarData.isLoaded()) {
+      loadPromise = Promise.resolve({ success: true, amplifiers: ZitarData.AMPLIFIERS });
+    } else {
+      loadPromise = ZitarData.load(dataUrlLoaded);
+    }
+
+    return loadPromise
+      .then(function (result) {
+        if (!result.success) {
+          renderLoadError(result.errors || ["Unknown error loading preset database."]);
+          return { success: false, errors: result.errors };
+        }
+
+        // Remove any existing error banner
+        clearLoadError();
+
+        // Determine current amplifier key
+        var availableAmps = Object.keys(ZitarData.AMPLIFIERS);
+        if (availableAmps.length === 0) {
+          renderLoadError(["No amplifier models found in database."]);
+          return { success: false, errors: ["No amplifiers found"] };
+        }
+
+        if (availableAmps.indexOf(currentAmpKey) === -1) {
+          currentAmpKey = availableAmps[0];
+        }
+
+        populateAmpDropdown();
+        setupControlsMarkup();
+        populateSidebarPatchList();
+
+        if (!eventsInitialized) {
+          setupEventListeners();
+          eventsInitialized = true;
+        }
+
+        // Select first preset of active amplifier
+        var firstPreset = ZitarData.getFirstPreset(currentAmpKey);
+        if (firstPreset) {
+          selectPatch(firstPreset.id);
+        }
+
+        return { success: true };
+      })
+      .catch(function (fatalErr) {
+        var msg = "Initialization failed: " + fatalErr.message;
+        console.error("[ZitarApp]", fatalErr);
+        renderLoadError([msg]);
+        return { success: false, errors: [msg] };
+      });
+  }
+
+  /**
+   * Retry loading the preset database
+   */
+  function retryLoad() {
+    clearLoadError();
+    return init(dataUrlLoaded);
+  }
+
+  /**
+   * Renders an accessible error banner if the JSON database fails to load
+   */
+  function renderLoadError(errors) {
+    if (elements.ampControlPanel) {
+      var errorList = errors && errors.length ? errors.join("<br>") : "Unable to load presets from database.";
+      elements.ampControlPanel.innerHTML =
+        '<div class="zitar-error-banner" role="alert" aria-live="assertive">' +
+          '<div class="error-banner-icon">' +
+            '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+              '<circle cx="12" cy="12" r="10"></circle>' +
+              '<line x1="12" y1="8" x2="12" y2="12"></line>' +
+              '<line x1="12" y1="16" x2="12.01" y2="16"></line>' +
+            '</svg>' +
+          '</div>' +
+          '<div class="error-banner-content">' +
+            '<h3 class="error-banner-title">Unable to Load Preset Database</h3>' +
+            '<p class="error-banner-msg">' + errorList + '</p>' +
+            '<button type="button" class="error-retry-btn" id="zitarRetryBtn">Retry Loading</button>' +
+          '</div>' +
+        '</div>';
+
+      var retryBtn = document.getElementById("zitarRetryBtn");
+      if (retryBtn) {
+        retryBtn.addEventListener("click", retryLoad);
+      }
+    }
+
+    if (elements.sidebarPatchListScroll) {
+      elements.sidebarPatchListScroll.innerHTML =
+        '<div class="sidebar-load-error">Preset library currently unavailable.</div>';
+    }
+  }
+
+  /**
+   * Clears error banner
+   */
+  function clearLoadError() {
+    // Handled dynamically when setupControlsMarkup runs
+  }
+
+  /**
+   * Populate Amp Selection Dropdown dynamically from ZitarData.AMPLIFIERS
    */
   function populateAmpDropdown() {
+    if (!elements.ampSelect) return;
     elements.ampSelect.innerHTML = "";
     var amps = ZitarData.AMPLIFIERS;
     for (var key in amps) {
       if (Object.prototype.hasOwnProperty.call(amps, key)) {
         var opt = document.createElement("option");
         opt.value = key;
-        opt.textContent = amps[key].name;
+        opt.textContent = amps[key].displayName || amps[key].name;
         elements.ampSelect.appendChild(opt);
       }
     }
@@ -143,27 +255,42 @@
   }
 
   /**
-   * Builds the static markup for the 9 amplifier controls
+   * Builds the chassis header and control markup dynamically for current amplifier
    */
   function setupControlsMarkup() {
-    var amp = ZitarData.AMPLIFIERS[currentAmpKey];
+    var amp = ZitarData.getAmplifier(currentAmpKey);
     if (!amp || !amp.controls || !elements.ampControlPanel) return;
 
     var container = elements.ampControlPanel;
     container.innerHTML = "";
+
+    // Build chassis indicators dynamically from amplifier switch controls
+    var indicatorsHtml = '<div class="chassis-indicators">';
+    amp.controls.forEach(function (ctrl) {
+      if (ctrl.type === "switch") {
+        var badgeId = ctrl.key === "overdrive" ? "ampChannelBadge" :
+                      ctrl.key === "reverb" ? "ampReverbBadge" :
+                      ("ampBadge_" + ctrl.key);
+        var defaultClass = ctrl.key === "overdrive" ? "chassis-indicator-badge is-clean" :
+                           ctrl.key === "reverb" ? "chassis-indicator-badge is-reverb" :
+                           "chassis-indicator-badge";
+        var defaultText = ctrl.key === "overdrive" ? "CLEAN CHANNEL" :
+                          ctrl.key === "reverb" ? "REVERB: ON" :
+                          (ctrl.label.toUpperCase() + ": OFF");
+        indicatorsHtml += '<div id="' + badgeId + '" class="' + defaultClass + '">' + defaultText + '</div>';
+      }
+    });
+    indicatorsHtml += '</div>';
 
     // Header strip for amp
     var headerStrip = document.createElement("div");
     headerStrip.className = "amp-chassis-header";
     headerStrip.innerHTML =
       '<div class="chassis-brand">' +
-        '<span class="chassis-model-name">' + amp.name + '</span>' +
-        '<span class="chassis-tag">PRECISION TONE REFERENCE</span>' +
+        '<span class="chassis-model-name">' + (amp.displayName || amp.name) + '</span>' +
+        '<span class="chassis-tag">' + (amp.subtitle || "PRECISION TONE REFERENCE") + '</span>' +
       '</div>' +
-      '<div class="chassis-indicators">' +
-        '<div id="ampChannelBadge" class="chassis-indicator-badge is-clean">CLEAN CHANNEL</div>' +
-        '<div id="ampReverbBadge" class="chassis-indicator-badge is-reverb">REVERB: ON</div>' +
-      '</div>';
+      indicatorsHtml;
     container.appendChild(headerStrip);
 
     // Controls Grid
@@ -231,7 +358,7 @@
    * Populate Categorised Left Sidebar Patch List
    */
   function populateSidebarPatchList(filteredPresets) {
-    var amp = ZitarData.AMPLIFIERS[currentAmpKey];
+    var amp = ZitarData.getAmplifier(currentAmpKey);
     if (!amp || !amp.presets || !elements.sidebarPatchListScroll) return;
 
     var list = filteredPresets || amp.presets;
@@ -266,13 +393,28 @@
     }
     if (elements.noPatchesNotice) elements.noPatchesNotice.style.display = "none";
 
-    // Defined Categories in sequence
-    var categoryOrder = [
+    // Standard category sequence, augmented dynamically by any categories present in the data
+    var definedOrder = [
       "Classical and Indian Music",
       "Cinematic and Atmospheric",
       "Rock and Fusion",
       "Experimental and Special-Purpose"
     ];
+
+    var detectedCats = [];
+    list.forEach(function (p) {
+      if (p.category && detectedCats.indexOf(p.category) === -1) {
+        detectedCats.push(p.category);
+      }
+    });
+
+    var categoryOrder = [];
+    definedOrder.forEach(function (cat) {
+      if (detectedCats.indexOf(cat) !== -1) categoryOrder.push(cat);
+    });
+    detectedCats.forEach(function (cat) {
+      if (categoryOrder.indexOf(cat) === -1) categoryOrder.push(cat);
+    });
 
     // Group items by category
     var grouped = {};
@@ -394,7 +536,7 @@
     if (elements.aboutPatchBtn) {
       elements.aboutPatchBtn.setAttribute("aria-expanded", "true");
     }
-    if (elements.closeAboutModalBtn) {
+    if (elements.closeAboutModalBtn && typeof elements.closeAboutModalBtn.focus === "function") {
       elements.closeAboutModalBtn.focus();
     }
   }
@@ -405,7 +547,9 @@
     document.body.classList.remove("modal-open");
     if (elements.aboutPatchBtn) {
       elements.aboutPatchBtn.setAttribute("aria-expanded", "false");
-      elements.aboutPatchBtn.focus();
+      if (typeof elements.aboutPatchBtn.focus === "function") {
+        elements.aboutPatchBtn.focus();
+      }
     }
   }
 
@@ -459,81 +603,100 @@
    */
   function setupEventListeners() {
     // Amp change
-    elements.ampSelect.addEventListener("change", function (e) {
-      currentAmpKey = e.target.value;
-      setupControlsMarkup();
-      filterPatches(currentSearchQuery);
-      selectPatch(1);
-    });
+    if (elements.ampSelect) {
+      elements.ampSelect.addEventListener("change", function (e) {
+        currentAmpKey = e.target.value;
+        setupControlsMarkup();
+        filterPatches(currentSearchQuery);
+        var firstPreset = ZitarData.getFirstPreset(currentAmpKey);
+        if (firstPreset) {
+          selectPatch(firstPreset.id);
+        }
+      });
+    }
 
     // Search input typing & focus
-    elements.patchSearchInput.addEventListener("input", function (e) {
-      var q = e.target.value;
-      currentSearchQuery = q;
-      elements.searchClearBtn.style.display = q ? "block" : "none";
-      filterPatches(q);
-      showSuggestions(q);
-    });
-
-    elements.patchSearchInput.addEventListener("focus", function () {
-      showSuggestions(elements.patchSearchInput.value);
-    });
-
-    // Keyboard navigation in search suggestions
-    elements.patchSearchInput.addEventListener("keydown", function (e) {
-      if (!elements.searchSuggestionsDropdown || elements.searchSuggestionsDropdown.style.display === "none") {
-        if (e.key === "ArrowDown") {
-          showSuggestions(elements.patchSearchInput.value);
-          e.preventDefault();
+    if (elements.patchSearchInput) {
+      elements.patchSearchInput.addEventListener("input", function (e) {
+        var q = e.target.value;
+        currentSearchQuery = q;
+        if (elements.searchClearBtn) {
+          elements.searchClearBtn.style.display = q ? "block" : "none";
         }
-        return;
-      }
+        filterPatches(q);
+        showSuggestions(q);
+      });
 
-      var items = elements.searchSuggestionsDropdown.querySelectorAll(".suggestion-item");
-      if (items.length === 0) return;
+      elements.patchSearchInput.addEventListener("focus", function () {
+        showSuggestions(elements.patchSearchInput.value);
+      });
 
-      if (e.key === "ArrowDown") {
-        e.preventDefault();
-        activeSuggestionIndex = (activeSuggestionIndex + 1) % items.length;
-        items.forEach(function (el, idx) {
-          el.classList.toggle("is-focused", idx === activeSuggestionIndex);
-        });
-        items[activeSuggestionIndex].scrollIntoView({ block: "nearest" });
-      } else if (e.key === "ArrowUp") {
-        e.preventDefault();
-        activeSuggestionIndex = (activeSuggestionIndex - 1 + items.length) % items.length;
-        items.forEach(function (el, idx) {
-          el.classList.toggle("is-focused", idx === activeSuggestionIndex);
-        });
-        items[activeSuggestionIndex].scrollIntoView({ block: "nearest" });
-      } else if (e.key === "Enter") {
-        e.preventDefault();
-        if (activeSuggestionIndex >= 0 && items[activeSuggestionIndex]) {
-          var id = parseInt(items[activeSuggestionIndex].getAttribute("data-preset-id"), 10);
-          selectPatch(id);
+      // Keyboard navigation in search suggestions
+      elements.patchSearchInput.addEventListener("keydown", function (e) {
+        if (!elements.searchSuggestionsDropdown || elements.searchSuggestionsDropdown.style.display === "none") {
+          if (e.key === "ArrowDown") {
+            showSuggestions(elements.patchSearchInput.value);
+            e.preventDefault();
+          }
+          return;
+        }
+
+        var items = elements.searchSuggestionsDropdown.querySelectorAll(".suggestion-item");
+        if (items.length === 0) return;
+
+        if (e.key === "ArrowDown") {
+          e.preventDefault();
+          activeSuggestionIndex = (activeSuggestionIndex + 1) % items.length;
+          items.forEach(function (el, idx) {
+            el.classList.toggle("is-focused", idx === activeSuggestionIndex);
+          });
+          if (items[activeSuggestionIndex].scrollIntoView) {
+            items[activeSuggestionIndex].scrollIntoView({ block: "nearest" });
+          }
+        } else if (e.key === "ArrowUp") {
+          e.preventDefault();
+          activeSuggestionIndex = (activeSuggestionIndex - 1 + items.length) % items.length;
+          items.forEach(function (el, idx) {
+            el.classList.toggle("is-focused", idx === activeSuggestionIndex);
+          });
+          if (items[activeSuggestionIndex].scrollIntoView) {
+            items[activeSuggestionIndex].scrollIntoView({ block: "nearest" });
+          }
+        } else if (e.key === "Enter") {
+          e.preventDefault();
+          if (activeSuggestionIndex >= 0 && items[activeSuggestionIndex]) {
+            var id = parseInt(items[activeSuggestionIndex].getAttribute("data-preset-id"), 10);
+            selectPatch(id);
+            hideSuggestions();
+          }
+        } else if (e.key === "Escape") {
           hideSuggestions();
         }
-      } else if (e.key === "Escape") {
-        hideSuggestions();
-      }
-    });
+      });
+    }
 
     // Clear search button
-    elements.searchClearBtn.addEventListener("click", function () {
-      elements.patchSearchInput.value = "";
-      currentSearchQuery = "";
-      elements.searchClearBtn.style.display = "none";
-      filterPatches("");
-      hideSuggestions();
-      elements.patchSearchInput.focus();
-    });
+    if (elements.searchClearBtn) {
+      elements.searchClearBtn.addEventListener("click", function () {
+        if (elements.patchSearchInput) {
+          elements.patchSearchInput.value = "";
+          elements.patchSearchInput.focus();
+        }
+        currentSearchQuery = "";
+        elements.searchClearBtn.style.display = "none";
+        filterPatches("");
+        hideSuggestions();
+      });
+    }
 
     // Bottom "Search Presets" button
     if (elements.sidebarSearchFocusBtn) {
       elements.sidebarSearchFocusBtn.addEventListener("click", function () {
         if (elements.patchSearchInput) {
           elements.patchSearchInput.focus();
-          elements.patchSearchInput.scrollIntoView({ behavior: "smooth", block: "center" });
+          if (elements.patchSearchInput.scrollIntoView) {
+            elements.patchSearchInput.scrollIntoView({ behavior: "smooth", block: "center" });
+          }
           showSuggestions(elements.patchSearchInput.value);
         }
       });
@@ -608,7 +771,7 @@
 
   /**
    * Select a Patch and Update UI
-   * @param {number} patchId
+   * @param {number|string} patchId
    */
   function selectPatch(patchId) {
     var preset = ZitarData.getPresetById(patchId, currentAmpKey);
@@ -627,7 +790,7 @@
         var isSelected = id === preset.id;
         btn.classList.toggle("is-active", isSelected);
         btn.setAttribute("aria-selected", isSelected ? "true" : "false");
-        if (isSelected) {
+        if (isSelected && btn.scrollIntoView) {
           btn.scrollIntoView({ behavior: "smooth", block: "nearest" });
         }
       });
@@ -657,36 +820,35 @@
    * Render Amplifier Controls based on Selected Preset Settings
    */
   function renderAmpControls(preset) {
-    var amp = ZitarData.AMPLIFIERS[currentAmpKey];
+    var amp = ZitarData.getAmplifier(currentAmpKey);
     if (!amp || !amp.controls || !elements.ampControlPanel) return;
 
     var s = preset.settings;
 
-    // Update Chassis Indicators
-    var channelBadge = document.getElementById("ampChannelBadge");
-    var reverbBadge = document.getElementById("ampReverbBadge");
-
-    if (channelBadge) {
-      if (s.overdrive) {
-        channelBadge.textContent = "OVERDRIVE CHANNEL";
-        channelBadge.className = "chassis-indicator-badge is-drive";
-      } else {
-        channelBadge.textContent = "CLEAN CHANNEL";
-        channelBadge.className = "chassis-indicator-badge is-clean";
+    // Update Chassis Indicators for any switch control in this amplifier
+    amp.controls.forEach(function (ctrl) {
+      if (ctrl.type === "switch") {
+        var isOn = s[ctrl.key] === true;
+        var badgeId = ctrl.key === "overdrive" ? "ampChannelBadge" :
+                      ctrl.key === "reverb" ? "ampReverbBadge" :
+                      ("ampBadge_" + ctrl.key);
+        var badgeEl = document.getElementById(badgeId);
+        if (badgeEl) {
+          if (ctrl.key === "overdrive") {
+            badgeEl.textContent = isOn ? "OVERDRIVE CHANNEL" : "CLEAN CHANNEL";
+            badgeEl.className = "chassis-indicator-badge " + (isOn ? "is-drive" : "is-clean");
+          } else if (ctrl.key === "reverb") {
+            badgeEl.textContent = isOn ? "REVERB: ON" : "REVERB: OFF";
+            badgeEl.className = "chassis-indicator-badge " + (isOn ? "is-reverb" : "is-reverb-off");
+          } else {
+            badgeEl.textContent = ctrl.label.toUpperCase() + ": " + (isOn ? "ON" : "OFF");
+            badgeEl.className = "chassis-indicator-badge " + (isOn ? "is-on" : "is-off");
+          }
+        }
       }
-    }
+    });
 
-    if (reverbBadge) {
-      if (s.reverb) {
-        reverbBadge.textContent = "REVERB: ON";
-        reverbBadge.className = "chassis-indicator-badge is-reverb";
-      } else {
-        reverbBadge.textContent = "REVERB: OFF";
-        reverbBadge.className = "chassis-indicator-badge is-reverb-off";
-      }
-    }
-
-    // Update each of the 9 controls
+    // Update each control unit in the grid
     amp.controls.forEach(function (ctrl) {
       var unit = elements.ampControlPanel.querySelector('[data-control-key="' + ctrl.key + '"]');
       if (!unit) return;
@@ -718,9 +880,7 @@
         var valBadge = unit.querySelector(".clock-badge");
 
         var isDisabled = false;
-        if (ctrl.dependsOn === "overdrive" && !s.overdrive) {
-          isDisabled = true;
-        } else if (ctrl.dependsOn === "reverb" && !s.reverb) {
+        if (ctrl.dependsOn && !s[ctrl.dependsOn]) {
           isDisabled = true;
         }
 
@@ -752,7 +912,7 @@
             valBadge.className = "clock-badge";
           }
 
-          var deg = ZitarData.parseClockToDegrees(clockVal);
+          var deg = ZitarData.parseClockToDegrees(clockVal, preset, ctrl.key);
           if (deg === null) deg = 0;
 
           if (pointer) {
@@ -769,14 +929,25 @@
     });
   }
 
+  function getCurrentAmpKey() {
+    return currentAmpKey;
+  }
+
+  function getCurrentPresetId() {
+    return currentPresetId;
+  }
+
   return {
     init: init,
+    retryLoad: retryLoad,
     selectPatch: selectPatch,
     filterPatches: filterPatches,
     showSuggestions: showSuggestions,
     hideSuggestions: hideSuggestions,
     openAboutModal: openAboutModal,
     closeAboutModal: closeAboutModal,
-    describeArc: describeArc
+    describeArc: describeArc,
+    getCurrentAmpKey: getCurrentAmpKey,
+    getCurrentPresetId: getCurrentPresetId
   };
 });

@@ -124,7 +124,7 @@
     // Row 5: SPACE / NEXT POSITION | GROUP (2 keys)
     var row5 = document.createElement("div");
     row5.className = "sw-kbd-row sw-kbd-row--2";
-    var spaceKey = this._createKey("SPACE", { action: "space", extraClass: "sw-kbd-key--space" });
+    var spaceKey = this._createKey("SPACE / NEXT POSITION", { action: "space", extraClass: "sw-kbd-key--space" });
     var groupKey = this._createKey("GROUP", { action: "group", extraClass: "sw-kbd-key--group" });
     row5.appendChild(spaceKey);
     row5.appendChild(groupKey);

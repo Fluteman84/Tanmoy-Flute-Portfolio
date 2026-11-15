@@ -28,7 +28,7 @@
 
     // State Variables
     state: "STOPPED",
-    bpm: 80,
+    bpm: 120,
     totalBeats: 16,
     currentBeat: 1,
     currentCycle: 1,
@@ -42,8 +42,8 @@
     _sessionToken: null,
     _timelineStart: 0,
     _audioTimelineStart: 0,
-    _intervalMs: 750,
-    _audioIntervalSec: 0.75,
+    _intervalMs: 500,
+    _audioIntervalSec: 0.5,
     _beatsInCurrentSegment: 0,
     _nextBeatExpectedTime: 0,
     _nextBeatAudioTime: 0,
@@ -61,7 +61,7 @@
      */
     init: function () {
       this.state = this.STATE_STOPPED;
-      this.bpm = 80;
+      this.bpm = 120;
       this._intervalMs = 60000 / this.bpm;
       this._audioIntervalSec = 60 / this.bpm;
       this.currentBeat = 1;

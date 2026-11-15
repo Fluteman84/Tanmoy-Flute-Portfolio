@@ -4,25 +4,36 @@
  * Fully Scoped & Responsive
  */
 
+/* ── Header Shell & Main Stage Headroom ─────────────────────────── */
+body.zitar-page .site-header .nav-shell {
+  min-height: 62px;
+}
+
+body.zitar-page .notes-main,
+.zitar-main {
+  padding-top: 1.25rem !important;
+  padding-bottom: 3.5rem;
+}
+
 /* ── Hero / Page Header ─────────────────────────────────────────── */
 .zitar-hero {
   text-align: center;
-  margin-bottom: 2rem;
+  margin-bottom: 1.35rem;
   padding: 0 1rem;
 }
 
 .zitar-hero .eyebrow {
   color: var(--accent);
-  font-size: 0.8rem;
-  letter-spacing: 0.24em;
+  font-size: 0.78rem;
+  letter-spacing: 0.22em;
   text-transform: uppercase;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.3rem;
   font-weight: 700;
 }
 
 .zitar-title {
   font-family: "Cormorant Garamond", serif;
-  font-size: clamp(2.4rem, 5vw, 4.2rem);
+  font-size: clamp(2.2rem, 4.5vw, 3.8rem);
   line-height: 1.05;
   margin: 0;
   font-weight: 700;
@@ -35,11 +46,11 @@
 }
 
 .zitar-subtitle {
-  margin: 0.75rem auto 0;
+  margin: 0.45rem auto 0;
   max-width: 680px;
   color: var(--text-secondary);
-  font-size: clamp(0.95rem, 1.8vw, 1.1rem);
-  line-height: 1.5;
+  font-size: clamp(0.9rem, 1.6vw, 1.05rem);
+  line-height: 1.45;
 }
 
 /* ── Toolbar: Amp Selection & Search / Patch Selection ───────────── */
@@ -763,6 +774,20 @@
 }
 
 @media (max-width: 640px) {
+  body.zitar-page .site-header .nav-shell {
+    min-height: 54px;
+  }
+
+  body.zitar-page .notes-main,
+  .zitar-main {
+    padding-top: 0.85rem !important;
+    padding-bottom: 2.5rem;
+  }
+
+  .zitar-hero {
+    margin-bottom: 1rem;
+  }
+
   .zitar-toolbar-card {
     grid-template-columns: 1fr;
     padding: 1rem;

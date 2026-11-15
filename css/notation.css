@@ -414,6 +414,11 @@
   border-bottom: 2px solid var(--accent);
 }
 
+.sw-position.is-rest {
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
 .pos-char {
   display: inline;
   cursor: text;

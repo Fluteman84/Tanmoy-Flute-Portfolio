@@ -76,20 +76,58 @@
     };
   };
 
+  S.isRestToken = function (tok) {
+    return !!(tok && (tok.isRest || tok.base === "-"));
+  };
+
+  S.createRestToken = function () {
+    return {
+      base: "-",
+      prefix: [],
+      suffix: [],
+      isRest: true,
+    };
+  };
+
   S.tokenToText = function (tok) {
+    if (S.isRestToken(tok)) return "-";
     return tok.prefix.join("") + tok.base + tok.suffix.join("");
   };
 
   S.cloneToken = function (tok) {
+    if (S.isRestToken(tok)) {
+      return S.createRestToken();
+    }
     return S.createToken(tok.base, tok.prefix.slice(), tok.suffix.slice());
   };
 
   /* ── Position ──────────────────────────────────── */
   S.createPosition = function (tokens) {
-    return { id: S.uid(), tokens: tokens ? tokens.map(S.cloneToken) : [] };
+    var cloned = tokens ? tokens.map(S.cloneToken) : [];
+    var pos = { id: S.uid(), tokens: cloned };
+    if (cloned.length === 1 && S.isRestToken(cloned[0])) {
+      pos.isRest = true;
+    }
+    return pos;
+  };
+
+  S.isRestPosition = function (pos) {
+    if (!pos) return false;
+    if (pos.isRest) return true;
+    if (Array.isArray(pos.tokens) && pos.tokens.length === 1) {
+      return S.isRestToken(pos.tokens[0]);
+    }
+    return false;
+  };
+
+  S.createRestPosition = function () {
+    var pos = S.createPosition([S.createRestToken()]);
+    pos.isRest = true;
+    return pos;
   };
 
   S.positionToText = function (pos) {
+    if (S.isRestPosition(pos)) return "-";
     return pos.tokens.map(S.tokenToText).join("");
   };
 
@@ -98,7 +136,11 @@
   };
 
   S.clonePosition = function (pos) {
-    return S.createPosition(pos.tokens);
+    var clone = S.createPosition(pos.tokens);
+    if (S.isRestPosition(pos)) {
+      clone.isRest = true;
+    }
+    return clone;
   };
 
   /* ── Parse position text → tokens ──────────────── */
@@ -107,6 +149,13 @@
       return { valid: false, error: "Empty input", tokens: [] };
     }
     text = S.normalizeNotationText(text);
+
+    // Standalone rest: a single hyphen representing a silent rhythmic position
+    if (text.trim() === "-") {
+      var restTok = S.createRestToken();
+      return { valid: true, tokens: [restTok], isRest: true };
+    }
+
     var tokens = [];
     var i = 0;
     while (i < text.length) {
@@ -249,7 +298,9 @@
             positions: sec.positions.map(function (pos) {
               return {
                 tokens: pos.tokens.map(function (tok) {
-                  return { base: tok.base, prefix: tok.prefix, suffix: tok.suffix };
+                  var item = { base: tok.base, prefix: tok.prefix, suffix: tok.suffix };
+                  if (tok.isRest) item.isRest = true;
+                  return item;
                 }),
               };
             }),
@@ -297,6 +348,20 @@
           var tokenError = null;
           for (var ti = 0; ti < p.tokens.length; ti++) {
             var t = p.tokens[ti];
+            if (t.isRest || t.base === "-") {
+              if (p.tokens.length > 1) {
+                tokenError = "Rest cannot be grouped with other swaras in section \"" + sec.name + "\"";
+                break;
+              }
+              var pre = Array.isArray(t.prefix) ? t.prefix : [];
+              var suf = Array.isArray(t.suffix) ? t.suffix : [];
+              if (pre.length > 0 || suf.length > 0) {
+                tokenError = "Rest cannot have modifiers in section \"" + sec.name + "\"";
+                break;
+              }
+              tokens.push(S.createRestToken());
+              continue;
+            }
             if (!S.isSwara(t.base)) {
               tokenError = "Invalid swara in section \"" + sec.name + "\": " + t.base;
               break;
@@ -320,7 +385,11 @@
             tokens.push(S.createToken(t.base, pre, suf));
           }
           if (tokenError) return { valid: false, error: tokenError };
-          section.positions.push(S.createPosition(tokens));
+          var createdPos = S.createPosition(tokens);
+          if (tokens.length === 1 && S.isRestToken(tokens[0])) {
+            createdPos.isRest = true;
+          }
+          section.positions.push(createdPos);
         }
       }
       song.sections.push(section);

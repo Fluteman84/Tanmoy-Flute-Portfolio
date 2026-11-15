@@ -758,7 +758,8 @@
             var pos = measure.positions[pi];
             var absIdx = measure.startIndex + pi;
             var selected = this._isPosSelected(absIdx);
-            h += '<span class="sw-position' + (selected ? ' is-selected' : '') + '" data-pos-index="' + absIdx + '">';
+            var restClass = (pos.isRest || S.isRestPosition(pos)) ? ' is-rest' : '';
+            h += '<span class="sw-position' + (selected ? ' is-selected' : '') + restClass + '" data-pos-index="' + absIdx + '">';
             var text = S.positionToText(pos);
             for (var ci = 0; ci < text.length; ci++) {
               h += '<span class="pos-char" data-char-offset="' + ci + '">' + this._escHtml(text[ci]) + '</span>';
@@ -1084,15 +1085,24 @@
     var posIdx = this.cursor.posIndex;
     var charOff = this.cursor.charOffset;
 
+    // Do NOT attach modifier if cursor is immediately before, inside, or after a rest position
+    if (posIdx < sec.positions.length && S.isRestPosition(sec.positions[posIdx])) {
+      return false;
+    }
+    if (charOff === 0 && posIdx > 0 && S.isRestPosition(sec.positions[posIdx - 1])) {
+      return false;
+    }
+
     // Case 1: Cursor is inside an existing position (charOff > 0)
     if (charOff > 0 && posIdx < sec.positions.length) {
       var pos = sec.positions[posIdx];
+      if (S.isRestPosition(pos)) return false;
       var text = S.positionToText(pos);
       if (charOff > text.length) charOff = text.length;
 
       var newText = text.slice(0, charOff) + ch + text.slice(charOff);
       var reparsed = S.parsePositionText(newText);
-      if (reparsed.valid) {
+      if (reparsed.valid && !reparsed.isRest) {
         pos.tokens = reparsed.tokens;
         this.cursor = { posIndex: posIdx, charOffset: charOff + 1 };
         this.inputBuffer = "";
@@ -1111,11 +1121,11 @@
     if (charOff === 0 && posIdx > 0 && posIdx <= sec.positions.length) {
       var prevPosIdx = posIdx - 1;
       var prevPos = sec.positions[prevPosIdx];
-      if (prevPos) {
+      if (prevPos && !S.isRestPosition(prevPos)) {
         var prevText = S.positionToText(prevPos);
         var newText2 = prevText + ch;
         var reparsed2 = S.parsePositionText(newText2);
-        if (reparsed2.valid) {
+        if (reparsed2.valid && !reparsed2.isRest) {
           prevPos.tokens = reparsed2.tokens;
           this.cursor = { posIndex: posIdx, charOffset: 0 };
           this.inputBuffer = "";
@@ -1150,11 +1160,11 @@
     if (ch === " ") {
       if (this.groupMode) {
         if (this.inputBuffer) {
-          if (S.bufferHasSwara(this.inputBuffer)) {
+          if (S.bufferHasSwara(this.inputBuffer) || this.inputBuffer.trim() === "-") {
             this._saveSnapshot();
             this._commitBuffer();
           } else {
-            // Buffer has modifier but no swara (e.g. : or - followed by Space)
+            // Buffer has modifier but no swara (e.g. : followed by Space)
             this._toast("Modifier requires an associated swara.");
             this.inputBuffer = "";
             this._repositionCursor();
@@ -1171,10 +1181,10 @@
 
       // Normal Mode (Group Mode OFF)
       if (this.inputBuffer) {
-        if (S.bufferHasSwara(this.inputBuffer)) {
+        if (S.bufferHasSwara(this.inputBuffer) || this.inputBuffer.trim() === "-") {
           this._commitBuffer();
         } else {
-          // Incomplete prefix before Space (e.g. : or - followed by Space)
+          // Incomplete prefix before Space (e.g. : followed by Space)
           this._toast("Modifier requires an associated swara.");
           this.inputBuffer = "";
           this._repositionCursor();
@@ -1297,7 +1307,8 @@
     clearTimeout(this._bufferTimer);
     if (!this.inputBuffer) return;
 
-    if (!S.bufferHasSwara(this.inputBuffer)) {
+    var isRest = (this.inputBuffer.trim() === "-");
+    if (!S.bufferHasSwara(this.inputBuffer) && !isRest) {
       // Standalone modifiers cannot become a position (B09/B10)
       this._toast("Modifier requires an associated swara.");
       this.inputBuffer = "";
@@ -1314,6 +1325,9 @@
     }
 
     var pos = S.createPosition(parsed.tokens);
+    if (parsed.isRest) {
+      pos.isRest = true;
+    }
     var sec = this._activeSection();
     var insertIdx = Math.min(this.cursor.posIndex, sec.positions.length);
 

@@ -506,23 +506,28 @@ editor._handleCharInput(':');
 editor._handleCharInput(' ');
 test('Req10 Test H: Incomplete : followed by Space does not create position', editor._activeSection().positions.length === 2);
 
-// Incomplete - followed by Space
+// Standalone - followed by Space commits as rest (explicit exception to incomplete-prefix rule)
 editor._handleCharInput('-');
 editor._handleCharInput(' ');
-test('Req10 Test H: Incomplete - followed by Space does not create position', editor._activeSection().positions.length === 2);
+test('Req10 Test H: Standalone - followed by Space commits as rest position',
+  editor._activeSection().positions.length === 3 &&
+  S.isRestPosition(editor._activeSection().positions[2]) &&
+  S.positionToText(editor._activeSection().positions[2]) === '-'
+);
 
 // Test Space then ' must NOT attach to previous swara or become standalone
 editor._handleCharInput("'");
-test('Req10 Test H: Postfix \' following Space does not attach to preceding -G and creates no position',
-  editor._activeSection().positions.length === 2 &&
-  S.positionToText(editor._activeSection().positions[1]) === '-G'
+test('Req10 Test H: Postfix \' following Space does not attach to preceding rest and creates no position',
+  editor._activeSection().positions.length === 3 &&
+  S.positionToText(editor._activeSection().positions[1]) === '-G' &&
+  S.positionToText(editor._activeSection().positions[2]) === '-'
 );
 
 // Repeated Space does not create empty positions or extra positions
 editor._handleCharInput(' ');
 editor._handleCharInput(' ');
 editor._handleCharInput(' ');
-test('Req10 Test H: Repeated spaces do not create empty positions', editor._activeSection().positions.length === 2);
+test('Req10 Test H: Repeated spaces do not create empty positions', editor._activeSection().positions.length === 3);
 
 // Test I — Measure generation across 3/4, 4/4, 5/4, 7/4 with mixed positions
 editor.song.timeSignature = '4/4';

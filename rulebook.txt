@@ -57,8 +57,8 @@ Invalid examples:
 
 Important:
 
-- Modifiers must always be associated with a swara.
-- A modifier cannot exist as an independent rhythmic position.
+- Modifiers must always be associated with a swara, with one exception: a standalone hyphen ("-") represents an independent silent rhythmic position (rest).
+- A modifier attached to a swara cannot exist as an independent rhythmic position.
 - Multiple modifiers may coexist when their direction and combination are valid.
 - Postfix modifiers must be entered after their intended swara.
 
@@ -77,7 +77,8 @@ Rules:
 
 - One individual swara counts as one rhythmic position.
 - A multi-swara group counts as one rhythmic position.
-- Modifiers do not count as additional positions.
+- A standalone rest ("-") counts as one rhythmic position.
+- Modifiers attached to swaras do not count as additional positions.
 - Space does not count as a rhythmic position.
 - Vertical barlines are generated automatically after the required number of positions.
 
@@ -217,3 +218,20 @@ On mobile devices (screen width ≤ 760px), Swaralipi provides a dedicated on-sc
 - Row 3: Modifiers (-, :, ', ,) and Backspace.
 - Row 4: Undo, Redo, Cursor Navigation (←, →) and Delete.
 - Row 5: SPACE / NEXT POSITION (finalises the current rhythmic position or group and advances the cursor) and GROUP (toggles multi-swara Group Mode ON/OFF with persistent highlight).
+
+L. Standalone Rest (-)
+
+A standalone hyphen represents a silent rhythmic position (rest):
+
+- A standalone hyphen represents a silent rhythmic position.
+- It occupies one complete rhythmic position.
+- It counts towards measure generation.
+- It is different from a hyphen attached to a swara.
+- Prefix and postfix hyphen modifiers retain their existing behaviour.
+
+Examples:
+
+- "S R G -" — Three swaras followed by one silent rest position (4 rhythmic positions).
+- "-S" — Prefix modifier attached to S; not a rest.
+- "S-" — Postfix modifier attached to S; not a rest.
+- "P-Pm" — Existing modifier and swara expression; not a standalone rest.

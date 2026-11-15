@@ -15,6 +15,7 @@
   var currentAmpKey = "gretexGT15FX";
   var currentPresetId = 1;
   var currentSearchQuery = "";
+  var activeSuggestionIndex = -1;
 
   // DOM Elements cache
   var elements = {};
@@ -29,7 +30,6 @@
    */
   function describeArc(angleDeg, cx, cy, r) {
     var startAngle = -150; // 7 o'clock
-    // Clamp target angle to min -150, max 150
     var target = Math.max(-150, Math.min(150, angleDeg));
     var sweepAngle = target - startAngle;
 
@@ -79,15 +79,29 @@
     elements.ampSelect = document.getElementById("ampSelect");
     elements.patchSearchInput = document.getElementById("patchSearchInput");
     elements.searchClearBtn = document.getElementById("searchClearBtn");
+    elements.searchSuggestionsDropdown = document.getElementById("searchSuggestionsDropdown");
+    elements.sidebarSearchWrapper = document.getElementById("sidebarSearchWrapper");
+    elements.sidebarPatchListScroll = document.getElementById("sidebarPatchListScroll");
+    elements.noPatchesNotice = document.getElementById("noPatchesNotice");
+    elements.sidebarSearchFocusBtn = document.getElementById("sidebarSearchFocusBtn");
     elements.patchSelect = document.getElementById("patchSelect");
     elements.patchRibbon = document.getElementById("patchRibbon");
-    elements.noPatchesNotice = document.getElementById("noPatchesNotice");
 
-    // Patch info panel elements
+    // Patch header bar elements (main view)
     elements.infoPatchNumber = document.getElementById("infoPatchNumber");
     elements.infoPatchName = document.getElementById("infoPatchName");
     elements.infoCategory = document.getElementById("infoCategory");
     elements.infoCharacter = document.getElementById("infoCharacter");
+
+    // About Button & Modal
+    elements.aboutPatchBtn = document.getElementById("aboutPatchBtn");
+    elements.aboutModal = document.getElementById("aboutModal");
+    elements.closeAboutModalBtn = document.getElementById("closeAboutModalBtn");
+    elements.closeModalBottomBtn = document.getElementById("closeModalBottomBtn");
+    elements.modalPatchNumber = document.getElementById("modalPatchNumber");
+    elements.modalPatchName = document.getElementById("modalPatchName");
+    elements.modalCategory = document.getElementById("modalCategory");
+    elements.modalCharacter = document.getElementById("modalCharacter");
     elements.infoDescription = document.getElementById("infoDescription");
     elements.infoApplicationsList = document.getElementById("infoApplicationsList");
     elements.infoTechniquesList = document.getElementById("infoTechniquesList");
@@ -96,17 +110,15 @@
 
     // Amp control panel elements
     elements.ampControlPanel = document.getElementById("ampControlPanel");
-    elements.ampChannelIndicator = document.getElementById("ampChannelIndicator");
-    elements.ampReverbIndicator = document.getElementById("ampReverbIndicator");
 
-    if (!elements.ampSelect || !elements.patchSelect) {
+    if (!elements.ampSelect) {
       console.warn("ZitarApp: Required DOM elements not found.");
       return;
     }
 
     populateAmpDropdown();
     setupControlsMarkup();
-    populatePatchList();
+    populateSidebarPatchList();
     setupEventListeners();
 
     // Default selection: Preset 1
@@ -135,7 +147,7 @@
    */
   function setupControlsMarkup() {
     var amp = ZitarData.AMPLIFIERS[currentAmpKey];
-    if (!amp || !amp.controls) return;
+    if (!amp || !amp.controls || !elements.ampControlPanel) return;
 
     var container = elements.ampControlPanel;
     container.innerHTML = "";
@@ -196,7 +208,7 @@
               '<g class="dial-ticks">' + ticksMarkup + '</g>' +
               '<path d="" class="dial-active-arc" id="arc_' + ctrl.key + '" />' +
               '<circle cx="50" cy="50" r="32" class="dial-knob-body" fill="url(#knobGrad_' + ctrl.key + ')" />' +
-              '<circle cx="50" cy="50" r="31" class="dial-knob-inset" />' +
+              '<circle cx="50" cy="31" r="31" class="dial-knob-inset" />' +
               '<g class="dial-pointer-group" id="pointer_' + ctrl.key + '" style="transform-origin: 50px 50px;">' +
                 '<line x1="50" y1="30" x2="50" y2="13" class="dial-pointer-needle" />' +
                 '<circle cx="50" cy="14" r="2.5" class="dial-pointer-dot" />' +
@@ -216,47 +228,229 @@
   }
 
   /**
-   * Populate Patch Dropdown and Quick Select Ribbon
+   * Populate Categorised Left Sidebar Patch List
    */
-  function populatePatchList(filteredPresets) {
+  function populateSidebarPatchList(filteredPresets) {
     var amp = ZitarData.AMPLIFIERS[currentAmpKey];
-    if (!amp || !amp.presets) return;
+    if (!amp || !amp.presets || !elements.sidebarPatchListScroll) return;
 
     var list = filteredPresets || amp.presets;
+    elements.sidebarPatchListScroll.innerHTML = "";
 
-    // Dropdown
-    elements.patchSelect.innerHTML = "";
-    list.forEach(function (preset) {
-      var opt = document.createElement("option");
-      opt.value = preset.id;
-      opt.textContent = preset.patchNumber + " — " + preset.name;
-      elements.patchSelect.appendChild(opt);
-    });
-
-    // Ribbon
-    elements.patchRibbon.innerHTML = "";
-    list.forEach(function (preset) {
-      var item = document.createElement("button");
-      item.type = "button";
-      item.className = "patch-ribbon-item" + (preset.id === currentPresetId ? " is-active" : "");
-      item.setAttribute("data-preset-id", preset.id);
-      item.setAttribute("role", "tab");
-      item.setAttribute("aria-selected", preset.id === currentPresetId ? "true" : "false");
-      item.innerHTML =
-        '<span class="ribbon-patch-num">' + preset.patchNumber + '</span>' +
-        '<span class="ribbon-patch-name">' + preset.name + '</span>';
-
-      item.addEventListener("click", function () {
-        selectPatch(preset.id);
+    // Sync legacy/compat elements if present
+    if (elements.patchSelect) {
+      elements.patchSelect.innerHTML = "";
+      list.forEach(function (preset) {
+        var opt = document.createElement("option");
+        opt.value = preset.id;
+        opt.textContent = preset.patchNumber + " — " + preset.name;
+        elements.patchSelect.appendChild(opt);
       });
+      elements.patchSelect.value = currentPresetId;
+    }
 
-      elements.patchRibbon.appendChild(item);
-    });
+    if (elements.patchRibbon) {
+      elements.patchRibbon.innerHTML = "";
+      list.forEach(function (preset) {
+        var item = document.createElement("button");
+        item.type = "button";
+        item.className = "patch-ribbon-item" + (preset.id === currentPresetId ? " is-active" : "");
+        item.setAttribute("data-preset-id", preset.id);
+        elements.patchRibbon.appendChild(item);
+      });
+    }
 
     if (list.length === 0) {
-      elements.noPatchesNotice.style.display = "block";
-    } else {
-      elements.noPatchesNotice.style.display = "none";
+      if (elements.noPatchesNotice) elements.noPatchesNotice.style.display = "block";
+      return;
+    }
+    if (elements.noPatchesNotice) elements.noPatchesNotice.style.display = "none";
+
+    // Defined Categories in sequence
+    var categoryOrder = [
+      "Classical and Indian Music",
+      "Cinematic and Atmospheric",
+      "Rock and Fusion",
+      "Experimental and Special-Purpose"
+    ];
+
+    // Group items by category
+    var grouped = {};
+    categoryOrder.forEach(function (cat) { grouped[cat] = []; });
+    list.forEach(function (p) {
+      if (!grouped[p.category]) grouped[p.category] = [];
+      grouped[p.category].push(p);
+    });
+
+    // Render grouped categories
+    categoryOrder.forEach(function (cat) {
+      var items = grouped[cat];
+      if (!items || items.length === 0) return;
+
+      var groupSection = document.createElement("div");
+      groupSection.className = "sidebar-category-group";
+
+      var header = document.createElement("div");
+      header.className = "sidebar-category-header";
+      header.innerHTML =
+        '<span class="category-name">' + cat + '</span>' +
+        '<span class="category-count">' + items.length + '</span>';
+      groupSection.appendChild(header);
+
+      var listContainer = document.createElement("div");
+      listContainer.className = "sidebar-category-items";
+
+      items.forEach(function (preset) {
+        var btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "sidebar-patch-item" + (preset.id === currentPresetId ? " is-active" : "");
+        btn.setAttribute("data-preset-id", preset.id);
+        btn.setAttribute("role", "tab");
+        btn.setAttribute("aria-selected", preset.id === currentPresetId ? "true" : "false");
+        btn.innerHTML =
+          '<span class="patch-item-num">' + preset.patchNumber + '</span>' +
+          '<span class="patch-item-name">' + preset.name + '</span>';
+
+        btn.addEventListener("click", function () {
+          selectPatch(preset.id);
+          hideSuggestions();
+        });
+
+        listContainer.appendChild(btn);
+      });
+
+      groupSection.appendChild(listContainer);
+      elements.sidebarPatchListScroll.appendChild(groupSection);
+    });
+  }
+
+  /**
+   * Search Suggestions: Displays dropdown beneath search input opening DOWNWARDS
+   */
+  function showSuggestions(query) {
+    if (!elements.searchSuggestionsDropdown) return;
+
+    var matches = ZitarData.searchPresets(query, currentAmpKey);
+    elements.searchSuggestionsDropdown.innerHTML = "";
+    activeSuggestionIndex = -1;
+
+    if (matches.length === 0) {
+      var emptyEl = document.createElement("div");
+      emptyEl.className = "suggestion-empty";
+      emptyEl.textContent = "No matching patches found.";
+      elements.searchSuggestionsDropdown.appendChild(emptyEl);
+      elements.searchSuggestionsDropdown.style.display = "block";
+      return;
+    }
+
+    // Limit to top 8 suggestions for a clean dropdown
+    var displayedMatches = matches.slice(0, 8);
+    displayedMatches.forEach(function (preset, index) {
+      var row = document.createElement("div");
+      row.className = "suggestion-item";
+      row.setAttribute("role", "option");
+      row.setAttribute("data-preset-id", preset.id);
+      row.setAttribute("data-index", index);
+      row.innerHTML =
+        '<span class="sugg-num">' + preset.patchNumber + '</span>' +
+        '<div class="sugg-details">' +
+          '<span class="sugg-name">' + preset.name + '</span>' +
+          '<span class="sugg-cat">' + preset.category + '</span>' +
+        '</div>';
+
+      row.addEventListener("mousedown", function (e) {
+        e.preventDefault(); // Prevent input blur before click registers
+        selectPatch(preset.id);
+        hideSuggestions();
+      });
+
+      elements.searchSuggestionsDropdown.appendChild(row);
+    });
+
+    elements.searchSuggestionsDropdown.style.display = "block";
+  }
+
+  /**
+   * Hide Search Suggestions
+   */
+  function hideSuggestions() {
+    if (elements.searchSuggestionsDropdown) {
+      elements.searchSuggestionsDropdown.style.display = "none";
+      activeSuggestionIndex = -1;
+    }
+  }
+
+  /**
+   * Modal Open/Close handlers
+   */
+  function openAboutModal() {
+    if (!elements.aboutModal) return;
+    var preset = ZitarData.getPresetById(currentPresetId, currentAmpKey);
+    if (preset) {
+      updateModalContent(preset);
+    }
+    elements.aboutModal.style.display = "flex";
+    document.body.classList.add("modal-open");
+    if (elements.aboutPatchBtn) {
+      elements.aboutPatchBtn.setAttribute("aria-expanded", "true");
+    }
+    if (elements.closeAboutModalBtn) {
+      elements.closeAboutModalBtn.focus();
+    }
+  }
+
+  function closeAboutModal() {
+    if (!elements.aboutModal) return;
+    elements.aboutModal.style.display = "none";
+    document.body.classList.remove("modal-open");
+    if (elements.aboutPatchBtn) {
+      elements.aboutPatchBtn.setAttribute("aria-expanded", "false");
+      elements.aboutPatchBtn.focus();
+    }
+  }
+
+  /**
+   * Updates About Modal content with preset details
+   */
+  function updateModalContent(preset) {
+    if (elements.modalPatchNumber) elements.modalPatchNumber.textContent = "PATCH " + preset.patchNumber;
+    if (elements.modalPatchName) elements.modalPatchName.textContent = preset.name;
+    if (elements.modalCategory) elements.modalCategory.textContent = preset.category;
+    if (elements.modalCharacter) elements.modalCharacter.textContent = preset.character;
+    if (elements.infoDescription) elements.infoDescription.textContent = preset.description;
+
+    // Applications List
+    if (elements.infoApplicationsList) {
+      elements.infoApplicationsList.innerHTML = "";
+      if (preset.applications && preset.applications.length) {
+        preset.applications.forEach(function (app) {
+          var li = document.createElement("li");
+          li.textContent = app;
+          elements.infoApplicationsList.appendChild(li);
+        });
+      }
+    }
+
+    // Techniques List
+    if (elements.infoTechniquesList) {
+      elements.infoTechniquesList.innerHTML = "";
+      if (preset.techniques && preset.techniques.length) {
+        preset.techniques.forEach(function (tech) {
+          var li = document.createElement("li");
+          li.textContent = tech;
+          elements.infoTechniquesList.appendChild(li);
+        });
+      }
+    }
+
+    // Technical Note
+    if (elements.infoNoteBox && elements.infoNoteText) {
+      if (preset.note) {
+        elements.infoNoteText.textContent = preset.note;
+        elements.infoNoteBox.style.display = "block";
+      } else {
+        elements.infoNoteBox.style.display = "none";
+      }
     }
   }
 
@@ -272,29 +466,119 @@
       selectPatch(1);
     });
 
-    // Patch dropdown change
-    elements.patchSelect.addEventListener("change", function (e) {
-      var id = parseInt(e.target.value, 10);
-      if (!isNaN(id)) {
-        selectPatch(id);
-      }
-    });
-
-    // Search input
+    // Search input typing & focus
     elements.patchSearchInput.addEventListener("input", function (e) {
       var q = e.target.value;
       currentSearchQuery = q;
       elements.searchClearBtn.style.display = q ? "block" : "none";
       filterPatches(q);
+      showSuggestions(q);
     });
 
-    // Clear search
+    elements.patchSearchInput.addEventListener("focus", function () {
+      showSuggestions(elements.patchSearchInput.value);
+    });
+
+    // Keyboard navigation in search suggestions
+    elements.patchSearchInput.addEventListener("keydown", function (e) {
+      if (!elements.searchSuggestionsDropdown || elements.searchSuggestionsDropdown.style.display === "none") {
+        if (e.key === "ArrowDown") {
+          showSuggestions(elements.patchSearchInput.value);
+          e.preventDefault();
+        }
+        return;
+      }
+
+      var items = elements.searchSuggestionsDropdown.querySelectorAll(".suggestion-item");
+      if (items.length === 0) return;
+
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        activeSuggestionIndex = (activeSuggestionIndex + 1) % items.length;
+        items.forEach(function (el, idx) {
+          el.classList.toggle("is-focused", idx === activeSuggestionIndex);
+        });
+        items[activeSuggestionIndex].scrollIntoView({ block: "nearest" });
+      } else if (e.key === "ArrowUp") {
+        e.preventDefault();
+        activeSuggestionIndex = (activeSuggestionIndex - 1 + items.length) % items.length;
+        items.forEach(function (el, idx) {
+          el.classList.toggle("is-focused", idx === activeSuggestionIndex);
+        });
+        items[activeSuggestionIndex].scrollIntoView({ block: "nearest" });
+      } else if (e.key === "Enter") {
+        e.preventDefault();
+        if (activeSuggestionIndex >= 0 && items[activeSuggestionIndex]) {
+          var id = parseInt(items[activeSuggestionIndex].getAttribute("data-preset-id"), 10);
+          selectPatch(id);
+          hideSuggestions();
+        }
+      } else if (e.key === "Escape") {
+        hideSuggestions();
+      }
+    });
+
+    // Clear search button
     elements.searchClearBtn.addEventListener("click", function () {
       elements.patchSearchInput.value = "";
       currentSearchQuery = "";
       elements.searchClearBtn.style.display = "none";
       filterPatches("");
+      hideSuggestions();
       elements.patchSearchInput.focus();
+    });
+
+    // Bottom "Search Presets" button
+    if (elements.sidebarSearchFocusBtn) {
+      elements.sidebarSearchFocusBtn.addEventListener("click", function () {
+        if (elements.patchSearchInput) {
+          elements.patchSearchInput.focus();
+          elements.patchSearchInput.scrollIntoView({ behavior: "smooth", block: "center" });
+          showSuggestions(elements.patchSearchInput.value);
+        }
+      });
+    }
+
+    // Dismiss suggestions on outside click
+    document.addEventListener("click", function (e) {
+      if (
+        elements.sidebarSearchWrapper &&
+        !elements.sidebarSearchWrapper.contains(e.target) &&
+        elements.sidebarSearchFocusBtn &&
+        !elements.sidebarSearchFocusBtn.contains(e.target)
+      ) {
+        hideSuggestions();
+      }
+    });
+
+    // About Modal Triggers
+    if (elements.aboutPatchBtn) {
+      elements.aboutPatchBtn.addEventListener("click", openAboutModal);
+    }
+    if (elements.closeAboutModalBtn) {
+      elements.closeAboutModalBtn.addEventListener("click", closeAboutModal);
+    }
+    if (elements.closeModalBottomBtn) {
+      elements.closeModalBottomBtn.addEventListener("click", closeAboutModal);
+    }
+
+    // Close modal on backdrop click
+    if (elements.aboutModal) {
+      elements.aboutModal.addEventListener("click", function (e) {
+        if (e.target === elements.aboutModal) {
+          closeAboutModal();
+        }
+      });
+    }
+
+    // Close modal on Escape
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape") {
+        if (elements.aboutModal && elements.aboutModal.style.display === "flex") {
+          closeAboutModal();
+        }
+        hideSuggestions();
+      }
     });
   }
 
@@ -303,10 +587,9 @@
    */
   function filterPatches(query) {
     var matches = ZitarData.searchPresets(query, currentAmpKey);
-    populatePatchList(matches);
+    populateSidebarPatchList(matches);
 
     if (matches.length > 0) {
-      // Check if current selected preset is within matches
       var stillSelected = matches.some(function (p) {
         return p.id === currentPresetId;
       });
@@ -317,9 +600,9 @@
         selectPatch(matches[0].id);
       }
     } else {
-      // No matches found
-      elements.patchSelect.innerHTML = '<option value="">No matching patches found.</option>';
-      elements.noPatchesNotice.style.display = "block";
+      if (elements.noPatchesNotice) {
+        elements.noPatchesNotice.style.display = "block";
+      }
     }
   }
 
@@ -333,65 +616,41 @@
 
     currentPresetId = preset.id;
 
-    // Update Dropdown selection
-    elements.patchSelect.value = preset.id;
+    // Update legacy compatibility elements
+    if (elements.patchSelect) elements.patchSelect.value = preset.id;
 
-    // Update Ribbon active items
-    var ribbonItems = elements.patchRibbon.querySelectorAll(".patch-ribbon-item");
-    ribbonItems.forEach(function (btn) {
-      var id = parseInt(btn.getAttribute("data-preset-id"), 10);
-      var isSelected = id === preset.id;
-      btn.classList.toggle("is-active", isSelected);
-      btn.setAttribute("aria-selected", isSelected ? "true" : "false");
-      if (isSelected) {
-        // Scroll into view within horizontal ribbon container if needed
-        btn.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "nearest" });
-      }
-    });
+    // Update active highlight in sidebar list
+    if (elements.sidebarPatchListScroll) {
+      var items = elements.sidebarPatchListScroll.querySelectorAll(".sidebar-patch-item");
+      items.forEach(function (btn) {
+        var id = parseInt(btn.getAttribute("data-preset-id"), 10);
+        var isSelected = id === preset.id;
+        btn.classList.toggle("is-active", isSelected);
+        btn.setAttribute("aria-selected", isSelected ? "true" : "false");
+        if (isSelected) {
+          btn.scrollIntoView({ behavior: "smooth", block: "nearest" });
+        }
+      });
+    }
 
-    renderPatchInfo(preset);
+    // Update main view header
+    renderPatchHeader(preset);
+
+    // Update modal content if open or for next open
+    updateModalContent(preset);
+
+    // Update physical dials
     renderAmpControls(preset);
   }
 
   /**
-   * Render Selected Patch Information Panel
+   * Render Selected Patch Header on Main View
    */
-  function renderPatchInfo(preset) {
-    if (!elements.infoPatchNumber) return;
-
-    elements.infoPatchNumber.textContent = "PATCH " + preset.patchNumber;
-    elements.infoPatchName.textContent = preset.name;
-    elements.infoCategory.textContent = preset.category;
-    elements.infoCharacter.textContent = preset.character;
-    elements.infoDescription.textContent = preset.description;
-
-    // Applications List
-    elements.infoApplicationsList.innerHTML = "";
-    if (preset.applications && preset.applications.length) {
-      preset.applications.forEach(function (app) {
-        var li = document.createElement("li");
-        li.textContent = app;
-        elements.infoApplicationsList.appendChild(li);
-      });
-    }
-
-    // Techniques List
-    elements.infoTechniquesList.innerHTML = "";
-    if (preset.techniques && preset.techniques.length) {
-      preset.techniques.forEach(function (tech) {
-        var li = document.createElement("li");
-        li.textContent = tech;
-        elements.infoTechniquesList.appendChild(li);
-      });
-    }
-
-    // Special Note (Preset 10, etc.)
-    if (preset.note) {
-      elements.infoNoteText.textContent = preset.note;
-      elements.infoNoteBox.style.display = "block";
-    } else {
-      elements.infoNoteBox.style.display = "none";
-    }
+  function renderPatchHeader(preset) {
+    if (elements.infoPatchNumber) elements.infoPatchNumber.textContent = "PATCH " + preset.patchNumber;
+    if (elements.infoPatchName) elements.infoPatchName.textContent = preset.name;
+    if (elements.infoCategory) elements.infoCategory.textContent = preset.category;
+    if (elements.infoCharacter) elements.infoCharacter.textContent = preset.character;
   }
 
   /**
@@ -399,7 +658,7 @@
    */
   function renderAmpControls(preset) {
     var amp = ZitarData.AMPLIFIERS[currentAmpKey];
-    if (!amp || !amp.controls) return;
+    if (!amp || !amp.controls || !elements.ampControlPanel) return;
 
     var s = preset.settings;
 
@@ -458,9 +717,6 @@
         var arc = unit.querySelector(".dial-active-arc");
         var valBadge = unit.querySelector(".clock-badge");
 
-        // Check dependency:
-        // Gain & Overdrive Volume depend on Overdrive
-        // Reverb Amount depends on Reverb
         var isDisabled = false;
         if (ctrl.dependsOn === "overdrive" && !s.overdrive) {
           isDisabled = true;
@@ -480,7 +736,7 @@
           }
 
           if (pointer) {
-            pointer.style.transform = "rotate(-150deg)"; // park at 7 o'clock
+            pointer.style.transform = "rotate(-150deg)";
             pointer.classList.add("is-hidden");
           }
 
@@ -517,6 +773,10 @@
     init: init,
     selectPatch: selectPatch,
     filterPatches: filterPatches,
+    showSuggestions: showSuggestions,
+    hideSuggestions: hideSuggestions,
+    openAboutModal: openAboutModal,
+    closeAboutModal: closeAboutModal,
     describeArc: describeArc
   };
 });

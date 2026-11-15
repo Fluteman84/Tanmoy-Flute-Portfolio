@@ -29,80 +29,8 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     });
   }
-  // ────────────────────────────────────────────────
-  const scrollProgress = document.getElementById("scrollProgress");
-  const contactForm = document.getElementById("contactForm");
-  const connectButton = document.getElementById("connectButton");
-  const videoModal = document.getElementById("videoModal");
-  const modalVideoShell = document.getElementById("modalVideoShell");
-  const closeVideoModal = document.getElementById("closeVideoModal");
-  const imageLightbox = document.getElementById("imageLightbox");
-  const lightboxImage = document.getElementById("lightboxImage");
-  const closeLightbox = document.getElementById("closeLightbox");
-  const mailLink = document.querySelector(".mail-me-link");
-  const mailCloud = document.querySelector(".mail-cloud");
-  const mailCopyToast = document.getElementById("mailCopyToast");
-  let mailToastTimer = null;
-  let mailCloudHideTimer = null;
 
-  function createInstagramCard(post) {
-    const article = document.createElement("article");
-    article.className = "carousel-card instagram-card";
-
-    article.innerHTML = `
-      <a href="${post.link}" target="_blank" rel="noreferrer">
-        <div class="card-media">
-          <img src="${post.thumbnail}" alt="${post.caption}" loading="lazy" />
-          <span class="card-overlay-icon">IG</span>
-        </div>
-        <div class="card-content">
-          <h3>${post.title}</h3>
-          <p>${post.caption}</p>
-        </div>
-      </a>
-    `;
-
-    return article;
-  }
-
-  function createVideoCard(video) {
-    const article = document.createElement("article");
-    article.className = "carousel-card video-card";
-
-    article.innerHTML = `
-      <button class="video-card-button" type="button" data-video-id="${video.youtubeId}" data-video-link="${video.link}" aria-label="Play ${video.title}">
-        <div class="card-media">
-          <img src="${video.thumbnail}" alt="${video.title}" loading="lazy" />
-          <span class="play-overlay">&#9658;</span>
-        </div>
-        <div class="card-content">
-          <h3>${video.title}</h3>
-          <p>${video.description}</p>
-        </div>
-      </button>
-    `;
-
-    return article;
-  }
-
-  window.setupInfiniteCarousel({
-    items: instagramPosts,
-    track: document.getElementById("instagramTrack"),
-    renderItem: createInstagramCard,
-    prevButton: document.querySelector('[data-carousel-prev="instagram"]'),
-    nextButton: document.querySelector('[data-carousel-next="instagram"]'),
-    autoPlayDelay: 3600
-  });
-
-  window.setupInfiniteCarousel({
-    items: youtubeVideos,
-    track: document.getElementById("youtubeTrack"),
-    renderItem: createVideoCard,
-    prevButton: document.querySelector('[data-carousel-prev="youtube"]'),
-    nextButton: document.querySelector('[data-carousel-next="youtube"]'),
-    autoPlayDelay: 4600
-  });
-
+  // ── Mobile Navigation Drawer ───────────────────────
   if (menuToggle && navLinks) {
     menuToggle.addEventListener("click", () => {
       const isOpen = navLinks.classList.toggle("is-open");
@@ -119,6 +47,82 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
+  // ── Render Instagram Reels (Single unique render, NO duplicates) ──
+  const instagramTrack = document.getElementById("instagramTrack");
+  if (instagramTrack && typeof instagramPosts !== "undefined" && Array.isArray(instagramPosts)) {
+    instagramTrack.innerHTML = "";
+    instagramPosts.forEach((post) => {
+      const article = document.createElement("article");
+      article.className = "carousel-card instagram-card";
+      article.innerHTML = `
+        <a href="${post.link}" target="_blank" rel="noreferrer" aria-label="${post.caption}">
+          <div class="card-media">
+            <img src="${post.thumbnail}" alt="${post.caption}" loading="lazy" />
+            <span class="card-overlay-icon" aria-hidden="true">IG</span>
+          </div>
+          <div class="card-content">
+            <h3>${post.title}</h3>
+            <p>${post.caption}</p>
+          </div>
+        </a>
+      `;
+      instagramTrack.appendChild(article);
+    });
+  }
+
+  // ── Render Featured YouTube Performances (Exactly 3, 16:9 thumbnail previews, click-to-play) ──
+  const featuredVideosGrid = document.getElementById("featuredVideosGrid");
+  if (featuredVideosGrid && typeof youtubeVideos !== "undefined" && Array.isArray(youtubeVideos)) {
+    featuredVideosGrid.innerHTML = "";
+    youtubeVideos.slice(0, 3).forEach((video, index) => {
+      const card = document.createElement("article");
+      card.className = "featured-video-card glass-card";
+      card.innerHTML = `
+        <div class="video-media-shell" id="videoShell-${index}">
+          <img src="${video.thumbnail}" alt="${video.title}" loading="lazy" class="video-thumb" />
+          <span class="video-category-badge">${video.category || "Performance"}</span>
+          <button class="play-overlay-button" type="button" aria-label="Play ${video.title} video">
+            <span class="play-icon" aria-hidden="true">&#9658;</span>
+          </button>
+        </div>
+        <div class="video-card-content">
+          <span class="video-category-label">${video.category || "Performance"}</span>
+          <h3>${video.title}</h3>
+          <p>${video.description}</p>
+        </div>
+      `;
+
+      const shell = card.querySelector(".video-media-shell");
+      const playBtn = card.querySelector(".play-overlay-button");
+
+      function loadPlayer() {
+        shell.innerHTML = `
+          <iframe
+            src="https://www.youtube-nocookie.com/embed/${video.youtubeId}?autoplay=1"
+            title="${video.title}"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowfullscreen
+          ></iframe>
+        `;
+        shell.classList.add("is-playing");
+      }
+
+      playBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        loadPlayer();
+      });
+
+      shell.addEventListener("click", () => {
+        if (!shell.classList.contains("is-playing")) {
+          loadPlayer();
+        }
+      });
+
+      featuredVideosGrid.appendChild(card);
+    });
+  }
+
+  // ── Reveal on Scroll (IntersectionObserver) ────────
   const revealObserver = new IntersectionObserver(
     (entries) => {
       entries.forEach((entry) => {
@@ -128,46 +132,12 @@ document.addEventListener("DOMContentLoaded", () => {
         }
       });
     },
-    { threshold: 0.16 }
+    { threshold: 0.12 }
   );
 
   document.querySelectorAll(".reveal").forEach((element) => revealObserver.observe(element));
 
-  const counterObserver = new IntersectionObserver(
-    (entries) => {
-      entries.forEach((entry) => {
-        if (!entry.isIntersecting) {
-          return;
-        }
-
-        animateCounter(entry.target);
-        counterObserver.unobserve(entry.target);
-      });
-    },
-    { threshold: 0.5 }
-  );
-
-  function animateCounter(element) {
-    const targetValue = Number(element.dataset.counter) || 0;
-    const suffix = element.dataset.suffix || "";
-    const duration = 1800;
-    const start = performance.now();
-
-    function updateCounter(timestamp) {
-      const progress = Math.min((timestamp - start) / duration, 1);
-      const current = Math.floor(progress * targetValue);
-      element.textContent = `${current}${suffix}`;
-
-      if (progress < 1) {
-        window.requestAnimationFrame(updateCounter);
-      }
-    }
-
-    window.requestAnimationFrame(updateCounter);
-  }
-
-  document.querySelectorAll("[data-counter]").forEach((counter) => counterObserver.observe(counter));
-
+  // ── Music Category Filters ────────────────────────
   const filterContainer = document.getElementById("categoryFilters");
   const categoryCards = Array.from(document.querySelectorAll(".category-card"));
 
@@ -190,58 +160,25 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
+  // ── Scroll Progress Bar ───────────────────────────
+  const scrollProgress = document.getElementById("scrollProgress");
   function updateScrollProgress() {
+    if (!scrollProgress) return;
     const scrollTop = window.scrollY;
     const scrollHeight = document.documentElement.scrollHeight - window.innerHeight;
     const progress = scrollHeight > 0 ? (scrollTop / scrollHeight) * 100 : 0;
     scrollProgress.style.width = `${progress}%`;
   }
-
-  window.addEventListener("scroll", updateScrollProgress);
+  window.addEventListener("scroll", updateScrollProgress, { passive: true });
   updateScrollProgress();
 
-  document.addEventListener("click", (event) => {
-    const videoButton = event.target.closest("[data-video-id]");
-    if (videoButton) {
-      openVideoModal(videoButton.dataset.videoId);
-    }
-
-    const galleryButton = event.target.closest("[data-lightbox]");
-    if (galleryButton) {
-      openLightbox(galleryButton.dataset.lightbox);
-    }
-
-    if (event.target.hasAttribute("data-close-modal")) {
-      closeModal();
-    }
-
-    if (event.target.hasAttribute("data-close-lightbox")) {
-      closeLightboxModal();
-    }
-  });
-
-  function openVideoModal(videoId) {
-    modalVideoShell.innerHTML = `
-      <iframe
-        src="https://www.youtube.com/embed/${videoId}?autoplay=1"
-        title="YouTube performance video"
-        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-        allowfullscreen
-      ></iframe>
-    `;
-    videoModal.classList.add("is-open");
-    videoModal.setAttribute("aria-hidden", "false");
-    document.body.style.overflow = "hidden";
-  }
-
-  function closeModal() {
-    modalVideoShell.innerHTML = "";
-    videoModal.classList.remove("is-open");
-    videoModal.setAttribute("aria-hidden", "true");
-    document.body.style.overflow = "";
-  }
+  // ── Lightbox for Gallery Images ───────────────────
+  const imageLightbox = document.getElementById("imageLightbox");
+  const lightboxImage = document.getElementById("lightboxImage");
+  const closeLightbox = document.getElementById("closeLightbox");
 
   function openLightbox(src) {
+    if (!imageLightbox || !lightboxImage) return;
     lightboxImage.src = src;
     imageLightbox.classList.add("is-open");
     imageLightbox.setAttribute("aria-hidden", "false");
@@ -249,22 +186,37 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function closeLightboxModal() {
+    if (!imageLightbox || !lightboxImage) return;
     lightboxImage.src = "";
     imageLightbox.classList.remove("is-open");
     imageLightbox.setAttribute("aria-hidden", "true");
     document.body.style.overflow = "";
   }
 
-  closeVideoModal.addEventListener("click", closeModal);
-  closeLightbox.addEventListener("click", closeLightboxModal);
+  if (closeLightbox) {
+    closeLightbox.addEventListener("click", closeLightboxModal);
+  }
 
-  document.addEventListener("keydown", (event) => {
-    if (event.key === "Escape") {
-      closeModal();
+  document.addEventListener("click", (event) => {
+    const galleryButton = event.target.closest("[data-lightbox]");
+    if (galleryButton) {
+      openLightbox(galleryButton.dataset.lightbox);
+    }
+
+    if (event.target.hasAttribute("data-close-lightbox")) {
       closeLightboxModal();
     }
   });
 
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") {
+      closeLightboxModal();
+    }
+  });
+
+  // ── Contact Form Connect Button ───────────────────
+  const contactForm = document.getElementById("contactForm");
+  const connectButton = document.getElementById("connectButton");
   if (contactForm && connectButton) {
     connectButton.addEventListener("click", () => {
       const connectUrl = contactForm.dataset.connectUrl;
@@ -274,11 +226,15 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  async function copyTextToClipboard(value) {
-    if (!value) {
-      return false;
-    }
+  // ── Mail Me Copy and Toast Interaction ─────────────
+  const mailLink = document.querySelector(".mail-me-link");
+  const mailCloud = document.querySelector(".mail-cloud");
+  const mailCopyToast = document.getElementById("mailCopyToast");
+  let mailToastTimer = null;
+  let mailCloudHideTimer = null;
 
+  async function copyTextToClipboard(value) {
+    if (!value) return false;
     if (navigator.clipboard && window.isSecureContext) {
       try {
         await navigator.clipboard.writeText(value);
@@ -287,7 +243,6 @@ document.addEventListener("DOMContentLoaded", () => {
         return false;
       }
     }
-
     const helper = document.createElement("textarea");
     helper.value = value;
     helper.setAttribute("readonly", "");
@@ -295,23 +250,18 @@ document.addEventListener("DOMContentLoaded", () => {
     helper.style.left = "-9999px";
     document.body.appendChild(helper);
     helper.select();
-
     let didCopy = false;
     try {
       didCopy = document.execCommand("copy");
     } catch (error) {
       didCopy = false;
     }
-
     document.body.removeChild(helper);
     return didCopy;
   }
 
   function showMailCopiedToast() {
-    if (!mailCopyToast) {
-      return;
-    }
-
+    if (!mailCopyToast) return;
     mailCopyToast.classList.add("is-visible");
     window.clearTimeout(mailToastTimer);
     mailToastTimer = window.setTimeout(() => {
@@ -335,11 +285,6 @@ document.addEventListener("DOMContentLoaded", () => {
       }, hideDelayMs);
     };
 
-    const hideMailCloudNow = () => {
-      window.clearTimeout(mailCloudHideTimer);
-      mailCloud.classList.remove("is-visible");
-    };
-
     const handleCopy = async (event) => {
       event.preventDefault();
       event.stopPropagation();
@@ -351,7 +296,6 @@ document.addEventListener("DOMContentLoaded", () => {
     };
 
     mailCloud.addEventListener("click", handleCopy);
-
     mailCloud.addEventListener("keydown", (event) => {
       if (event.key === "Enter" || event.key === " ") {
         handleCopy(event);
@@ -362,16 +306,5 @@ document.addEventListener("DOMContentLoaded", () => {
     mailLink.addEventListener("mouseleave", hideMailCloudWithDelay);
     mailCloud.addEventListener("mouseenter", showMailCloud);
     mailCloud.addEventListener("mouseleave", hideMailCloudWithDelay);
-  }
-
-  const testimonialCards = Array.from(document.querySelectorAll(".testimonial-card"));
-  let testimonialIndex = 0;
-
-  if (testimonialCards.length > 1) {
-    window.setInterval(() => {
-      testimonialCards[testimonialIndex].classList.remove("active");
-      testimonialIndex = (testimonialIndex + 1) % testimonialCards.length;
-      testimonialCards[testimonialIndex].classList.add("active");
-    }, 4200);
   }
 });

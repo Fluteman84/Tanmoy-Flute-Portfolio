@@ -20,7 +20,7 @@ const instagramPosts = [
   {
     thumbnail: "assets/images/insta-4.png",
     title: "Studio Sessions",
-    caption: "Doreamon Cover | Flute Cover",
+    caption: "Doraemon Cover | Flute Cover",
     link: "https://www.instagram.com/reel/ConJpR1o-lS/?utm_source=ig_web_copy_link&igsh=MzRlODBiNWFlZA=="
   },
   {

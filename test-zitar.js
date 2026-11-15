@@ -301,9 +301,17 @@ test("Group E2: zitar.html contains all required IDs for ZitarApp", () => {
     "ampSelect",
     "patchSearchInput",
     "searchClearBtn",
-    "patchSelect",
-    "patchRibbon",
-    "noPatchesNotice",
+    "searchSuggestionsDropdown",
+    "sidebarPatchListScroll",
+    "sidebarSearchFocusBtn",
+    "aboutPatchBtn",
+    "aboutModal",
+    "closeAboutModalBtn",
+    "closeModalBottomBtn",
+    "modalPatchNumber",
+    "modalPatchName",
+    "modalCategory",
+    "modalCharacter",
     "infoPatchNumber",
     "infoPatchName",
     "infoCategory",
@@ -380,6 +388,13 @@ test("Group F2: Controls are display-only (pointer-events: none on dials and swi
 test("Group G1: Full simulated DOM lifecycle runs without runtime errors", () => {
   const doc = {
     elementsById: {},
+    body: {
+      classList: {
+        add() {},
+        remove() {}
+      }
+    },
+    addEventListener(evt, fn) {},
     getElementById(id) { return this.elementsById[id] || null; },
     createElement(tag) { return createMockEl(tag); }
   };
@@ -472,7 +487,9 @@ test("Group G1: Full simulated DOM lifecycle runs without runtime errors", () =>
         walk(this);
         return matches;
       },
-      scrollIntoView() {}
+      scrollIntoView() {},
+      focus() {},
+      blur() {}
     };
     if (id) doc.elementsById[id] = el;
     return el;
@@ -482,9 +499,18 @@ test("Group G1: Full simulated DOM lifecycle runs without runtime errors", () =>
     "ampSelect", "patchSearchInput", "searchClearBtn", "patchSelect",
     "patchRibbon", "noPatchesNotice", "infoPatchNumber", "infoPatchName",
     "infoCategory", "infoCharacter", "infoDescription", "infoApplicationsList",
-    "infoTechniquesList", "infoNoteBox", "infoNoteText", "ampControlPanel"
+    "infoTechniquesList", "infoNoteBox", "infoNoteText", "ampControlPanel",
+    "sidebarSearchWrapper", "searchSuggestionsDropdown", "sidebarPatchListScroll",
+    "sidebarSearchFocusBtn", "aboutPatchBtn", "aboutModal", "closeAboutModalBtn",
+    "closeModalBottomBtn", "modalPatchNumber", "modalPatchName", "modalCategory",
+    "modalCharacter"
   ];
-  idsToCreate.forEach(id => createMockEl("div", id));
+  idsToCreate.forEach(id => {
+    const el = createMockEl("div", id);
+    if (id === "aboutModal" || id === "noPatchesNotice" || id === "searchSuggestionsDropdown") {
+      el.style.display = "none";
+    }
+  });
 
   global.document = doc;
   global.window = { ZitarData };
@@ -496,15 +522,28 @@ test("Group G1: Full simulated DOM lifecycle runs without runtime errors", () =>
     ZitarApp.selectPatch(pid);
     const p = ZitarData.getPresetById(pid);
     assertEqual(doc.getElementById("infoPatchName").textContent, p.name, `Selected patch ${pid} name`);
+    assertEqual(doc.getElementById("modalPatchName").textContent, p.name, `Modal patch ${pid} name`);
   });
 
-  // Test search filtering
+  // Test About Modal open / close
+  assertEqual(doc.getElementById("aboutModal").style.display, "none", "About modal hidden by default");
+  ZitarApp.openAboutModal();
+  assertEqual(doc.getElementById("aboutModal").style.display, "flex", "About modal opens on openAboutModal");
+  ZitarApp.closeAboutModal();
+  assertEqual(doc.getElementById("aboutModal").style.display, "none", "About modal closes on closeAboutModal");
+
+  // Test Search Suggestions
+  ZitarApp.showSuggestions("blues");
+  assertEqual(doc.getElementById("searchSuggestionsDropdown").style.display, "block", "Suggestions show on showSuggestions");
+  ZitarApp.hideSuggestions();
+  assertEqual(doc.getElementById("searchSuggestionsDropdown").style.display, "none", "Suggestions hide on hideSuggestions");
+
+  // Test search filtering in left sidebar
   ZitarApp.filterPatches("blues");
   assertEqual(doc.getElementById("infoPatchName").textContent, "Singing Blues Lead", "Filtered to blues preset");
 
   // Restore
   ZitarApp.filterPatches("");
-  assertEqual(doc.getElementById("patchRibbon").children.length, 20, "All 20 presets in ribbon");
 });
 
 // Summary

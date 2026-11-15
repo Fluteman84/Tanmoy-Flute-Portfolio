@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Zitar Tone Reference – Gretex GT-15FX tone presets and amplifier knob settings by Tanmoy Flute."
+    />
+    <title>Zitar Tone Reference | Tanmoy Flute</title>
+    <!-- Google Fonts: Cormorant Garamond & Manrope -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Manrope:wght@500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <!-- Stylesheets -->
+    <link rel="stylesheet" href="css/style.css" />
+    <link rel="stylesheet" href="css/responsive.css" />
+    <link rel="stylesheet" href="css/notes.css" />
+    <link rel="stylesheet" href="css/zitar.css" />
+  </head>
+  <body class="notes-page zitar-page">
+    <!-- ── Global Site Header ─────────────────────────────────────────── -->
+    <header class="site-header">
+      <div class="container nav-shell">
+        <a class="brand" href="index.html">
+          <span class="brand-mark">TANMOY</span>
+          <span class="brand-sub">Flute</span>
+        </a>
+
+        <div class="header-nav-actions" style="display:flex; align-items:center; gap:1rem;">
+          <div class="nav-dropdown" id="toolsDropdown">
+            <button class="nav-dropdown-toggle" aria-haspopup="true" aria-expanded="false" id="toolsToggle">
+              Tools <span class="dropdown-arrow" aria-hidden="true">▾</span>
+            </button>
+            <div class="nav-dropdown-menu" role="menu">
+              <a href="notes.html" role="menuitem">
+                <span class="dropdown-item-label">Palta Generator</span>
+                <span class="dropdown-item-desc">Aroha &amp; Avaroha practice sheets</span>
+              </a>
+              <a href="notation.html" role="menuitem">
+                <span class="dropdown-item-label">Notation Generator</span>
+                <span class="dropdown-item-desc">Hindustani Classical Notation Editor</span>
+              </a>
+              <a href="tabla.html" role="menuitem">
+                <span class="dropdown-item-label">Tabla Taal Engine</span>
+                <span class="dropdown-item-desc">Rhythm accompaniment &amp; practice beats</span>
+              </a>
+              <a href="zitar.html" role="menuitem">
+                <span class="dropdown-item-label">Zitar Tone Reference</span>
+                <span class="dropdown-item-desc">Gretex GT-15FX amplifier presets</span>
+              </a>
+            </div>
+          </div>
+          <a class="notes-back-link" href="index.html">Back to Stage</a>
+        </div>
+      </div>
+    </header>
+
+    <!-- ── Main Content Area ──────────────────────────────────────────── -->
+    <main class="notes-main zitar-main">
+      <!-- Section A: Page Header -->
+      <section class="zitar-hero">
+        <div class="container">
+          <p class="eyebrow">Tools / Tone Studio</p>
+          <h1 class="zitar-title">Zitar <span>Tone Reference</span></h1>
+          <p class="zitar-subtitle">Explore and recreate your favourite Zitar tones using your amplifier.</p>
+        </div>
+      </section>
+
+      <!-- Section B & C: Toolbar (Amplifier & Patch Selection) -->
+      <section class="container zitar-toolbar-section">
+        <div class="zitar-toolbar-card">
+          <!-- Amplifier Selection -->
+          <div class="toolbar-group amp-select-group">
+            <label class="toolbar-label" for="ampSelect">SELECT AMPLIFIER</label>
+            <div class="custom-select-wrapper">
+              <select id="ampSelect" class="zitar-select" aria-label="Select amplifier model">
+                <!-- Dynamically populated from ZitarData.AMPLIFIERS -->
+              </select>
+              <span class="select-arrow" aria-hidden="true">▾</span>
+            </div>
+          </div>
+
+          <!-- Patch Search Bar -->
+          <div class="toolbar-group search-group">
+            <label class="toolbar-label" for="patchSearchInput">SEARCH PRESETS</label>
+            <div class="search-input-wrapper">
+              <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <circle cx="11" cy="11" r="8"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+              </svg>
+              <input
+                type="text"
+                id="patchSearchInput"
+                class="search-input"
+                placeholder="Search patches by name, category or sound..."
+                autocomplete="off"
+                spellcheck="false"
+                aria-label="Search patches by name, category or sound"
+              />
+              <button type="button" id="searchClearBtn" class="search-clear-btn" aria-label="Clear search" style="display:none;">&times;</button>
+            </div>
+          </div>
+
+          <!-- Patch Dropdown Selector -->
+          <div class="toolbar-group patch-select-group">
+            <label class="toolbar-label" for="patchSelect">SELECT PRESET</label>
+            <div class="custom-select-wrapper">
+              <select id="patchSelect" class="zitar-select" aria-label="Select tone preset">
+                <!-- Dynamically populated -->
+              </select>
+              <span class="select-arrow" aria-hidden="true">▾</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Horizontal Quick-Selection Ribbon -->
+        <div class="patch-ribbon-container">
+          <div class="patch-ribbon" id="patchRibbon" role="tablist" aria-label="Quick Patch Selection">
+            <!-- Dynamically populated -->
+          </div>
+          <div id="noPatchesNotice" class="no-patches-notice" style="display:none;" role="status">
+            No matching patches found.
+          </div>
+        </div>
+      </section>
+
+      <!-- Section D & E: 2-Panel Main Workspace -->
+      <section class="container zitar-workspace-section">
+        <div class="zitar-workspace-grid">
+          <!-- Left Panel: Selected Patch Information -->
+          <section class="patch-info-panel" aria-labelledby="infoPatchName">
+            <div class="patch-header-row">
+              <span class="patch-number-badge" id="infoPatchNumber">PATCH 01</span>
+              <span class="patch-category-badge" id="infoCategory">Classical and Indian Music</span>
+            </div>
+
+            <div class="patch-title-group">
+              <h2 id="infoPatchName">Classical Clean Zitar</h2>
+            </div>
+
+            <div class="info-section">
+              <span class="info-section-label">Character</span>
+              <p class="info-character-text" id="infoCharacter">Pure, natural and articulate.</p>
+            </div>
+
+            <div class="info-section">
+              <span class="info-section-label">Description</span>
+              <p class="info-desc-text" id="infoDescription">
+                A clean, pristine tone that preserves the natural acoustic resonance...
+              </p>
+            </div>
+
+            <div class="info-section">
+              <span class="info-section-label">Applications</span>
+              <ul class="info-bullet-list" id="infoApplicationsList">
+                <!-- Dynamically populated -->
+              </ul>
+            </div>
+
+            <div class="info-section">
+              <span class="info-section-label">Playing Techniques</span>
+              <ul class="info-bullet-list" id="infoTechniquesList">
+                <!-- Dynamically populated -->
+              </ul>
+            </div>
+
+            <div class="info-note-box" id="infoNoteBox" style="display:none;">
+              <div class="info-note-label">Note</div>
+              <p id="infoNoteText"></p>
+            </div>
+          </section>
+
+          <!-- Right Panel: Amplifier Control Visualisation (Gretex GT-15FX) -->
+          <section class="amp-control-panel" id="ampControlPanel" aria-label="Gretex GT-15FX Amplifier Controls">
+            <!-- Dynamically rendered by ZitarApp with 9 physical controls -->
+          </section>
+        </div>
+      </section>
+    </main>
+
+    <!-- Scripts -->
+    <script src="js/zitar-data.js"></script>
+    <script src="js/zitar-app.js"></script>
+    <script src="js/zitar-tests.js"></script>
+    <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        // Initialize Zitar Tone Reference Application
+        if (window.ZitarApp && window.ZitarApp.init) {
+          window.ZitarApp.init();
+        }
+
+        // Shared Tools Navigation Dropdown Logic
+        var toolsDropdown = document.getElementById("toolsDropdown");
+        var toolsToggle = document.getElementById("toolsToggle");
+        if (toolsDropdown && toolsToggle) {
+          function adjustPosition() {
+            var menu = toolsDropdown.querySelector(".nav-dropdown-menu");
+            if (!menu) return;
+            if (window.innerWidth > 860) {
+              menu.style.right = "";
+              menu.style.left = "";
+              menu.style.transform = "";
+              return;
+            }
+            menu.style.right = "0";
+            menu.style.left = "auto";
+            menu.style.transform = "none";
+            var rect = menu.getBoundingClientRect();
+            if (rect.left < 8) {
+              var overflowLeft = 8 - rect.left;
+              menu.style.right = (-overflowLeft) + "px";
+            }
+            var rightOverflow = rect.right - (window.innerWidth - 8);
+            if (rightOverflow > 0) {
+              var currentRight = parseFloat(menu.style.right) || 0;
+              menu.style.right = (currentRight + rightOverflow) + "px";
+            }
+          }
+
+          toolsToggle.addEventListener("click", function (e) {
+            e.stopPropagation();
+            var isOpen = toolsDropdown.classList.toggle("is-open");
+            toolsToggle.setAttribute("aria-expanded", String(isOpen));
+            if (isOpen) {
+              adjustPosition();
+            }
+          });
+
+          window.addEventListener("resize", function () {
+            if (toolsDropdown.classList.contains("is-open")) {
+              adjustPosition();
+            }
+          });
+
+          document.addEventListener("click", function (e) {
+            if (!toolsDropdown.contains(e.target)) {
+              toolsDropdown.classList.remove("is-open");
+              toolsToggle.setAttribute("aria-expanded", "false");
+            }
+          });
+
+          document.addEventListener("keydown", function (e) {
+            if (e.key === "Escape") {
+              toolsDropdown.classList.remove("is-open");
+              toolsToggle.setAttribute("aria-expanded", "false");
+            }
+          });
+        }
+      });
+    </script>
+  </body>
+</html>

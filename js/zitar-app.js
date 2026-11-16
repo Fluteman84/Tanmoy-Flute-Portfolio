@@ -4,10 +4,10 @@
  * Loads amplifier configurations and presets dynamically from external JSON.
  */
 (function (root, factory) {
-  if (typeof module === "object" && module.exports) {
-    module.exports = factory(require("./zitar-data.js"));
-  } else {
+  if (typeof window === "object") {
     root.ZitarApp = factory(root.ZitarData);
+  } else if (typeof module === "object" && module.exports) {
+    module.exports = factory(module.require("./zitar-data.js"));
   }
 })(typeof self !== "undefined" ? self : this, function (ZitarData) {
   "use strict";

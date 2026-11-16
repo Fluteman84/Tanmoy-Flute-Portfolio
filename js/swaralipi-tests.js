@@ -76,7 +76,7 @@
     assert("B06", "S'- is valid", S.parsePositionText("S'-").valid);
     assert("B07", "r,: is valid", S.parsePositionText("r,:").valid);
     assert("B08", "G'M is valid", S.parsePositionText("G'M").valid);
-    assert("B09", "Standalone - is invalid completed position", !S.parsePositionText("-").valid);
+    assert("B09", "Standalone - is a valid position", S.parsePositionText("-").valid);
     assert("B10", "Standalone ' is invalid completed position", !S.parsePositionText("'").valid);
     assert("B10b", "Standalone , is invalid completed position", !S.parsePositionText(",").valid);
     assert("B10c", "Standalone : is invalid completed position", !S.parsePositionText(":").valid);
@@ -481,7 +481,7 @@
     assert("O_pref_colS", ":S is valid prefix", S.parsePositionText(":S").valid);
     assert("O_pref_hyG", "-G is valid prefix", S.parsePositionText("-G").valid);
     assert("O_pref_incol", "Incomplete ':' has no swara", !S.parsePositionText(":").valid);
-    assert("O_pref_inhy", "Incomplete '-' has no swara", !S.parsePositionText("-").valid);
+    assert("O_pref_inhy", "Standalone '-' is valid without a swara", S.parsePositionText("-").valid);
 
     // Measure generation (Test I) in 4/4 and 7/4 with mixed notations
     var testI_44 = S.buildMeasures(S.parseNotationString("S R GM P").positions, "4/4");

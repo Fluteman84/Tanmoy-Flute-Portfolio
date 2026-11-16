@@ -25,10 +25,12 @@
     /**
      * Initializes the application once the DOM is ready.
      * @param {string} [dataPath] - Optional custom path to taals.json.
+     * @param {{sound1: string, sound2: string}} [soundPaths] - Optional bundled sample URLs.
      */
-    init: async function (dataPath) {
+    init: async function (dataPath, soundPaths) {
       if (this.initialized) return;
       this.initialized = true;
+      this.soundPaths = soundPaths;
 
       this.cacheDOMElements();
       this.initAudioEngine();
@@ -40,7 +42,7 @@
 
       // Preload audio samples in background without playing sound
       if (this.audioEngine) {
-        this.audioEngine.loadSamples().catch((err) => {
+        this.audioEngine.loadSamples(this.soundPaths).catch((err) => {
           console.warn("[TablaTaalEngine] Background audio preload notice:", err);
         });
       }
@@ -221,7 +223,7 @@
           if (this.audioEngine) {
             if (this.audioEngine.status === "UNINITIALIZED" || this.audioEngine.status === "LOADING") {
               this.updatePlaybackInfoDisplay(1, 1, "LOADING");
-              const loaded = await this.audioEngine.loadSamples();
+              const loaded = await this.audioEngine.loadSamples(this.soundPaths);
               if (!loaded) {
                 if (this.elements.statusNotice && window.TaalRenderer) {
                   window.TaalRenderer.renderStatusNotice(
@@ -497,12 +499,4 @@
   // Expose application globally
   window.TablaTaalEngine = TablaTaalEngine;
 
-  // Initialize once DOM is ready
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", function () {
-      TablaTaalEngine.init();
-    });
-  } else {
-    TablaTaalEngine.init();
-  }
 })();

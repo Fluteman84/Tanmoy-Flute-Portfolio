@@ -4,12 +4,12 @@
  * Single source of truth is data/amplifier-presets.json.
  */
 (function (root, factory) {
-  if (typeof module === "object" && module.exports) {
-    module.exports = factory();
-  } else {
+  if (typeof window === "object") {
     root.ZitarData = factory();
+  } else if (typeof module === "object" && module.exports) {
+    module.exports = factory(module.require.bind(module));
   }
-})(typeof self !== "undefined" ? self : this, function () {
+})(typeof self !== "undefined" ? self : this, function (requireNode) {
   "use strict";
 
   // Dynamic amplifier registry (populated upon loading data/amplifier-presets.json)
@@ -394,10 +394,10 @@
 
     // Node.js environment support for QA suites & server-side scripts
     var isNode = typeof process !== "undefined" && process.versions && !!process.versions.node;
-    if (isNode && typeof require === "function") {
+    if (isNode && requireNode) {
       try {
-        var fs = require("fs");
-        var path = require("path");
+        var fs = requireNode("node:fs");
+        var path = requireNode("node:path");
         var filePath = path.resolve(process.cwd(), targetUrl);
         if (!fs.existsSync(filePath)) {
           var notFoundErr = "File not found: " + targetUrl;

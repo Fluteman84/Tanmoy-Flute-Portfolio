@@ -1,0 +1,20 @@
+.notes-page .portfolio-header {
+  color: var(--foreground);
+  background: var(--background);
+}
+.notes-page .header-inner {
+  min-height: 4.4rem;
+}
+.notes-page .header-actions {
+  gap: .35rem;
+}
+.notes-page .header-actions [data-slot="button"]:hover {
+  background: var(--muted);
+  color: var(--foreground);
+}
+.notes-page .notes-main {
+  color-scheme: dark;
+}
+@media (max-width: 350px) {
+  .notes-page .wordmark { font-size: 1.45rem; }
+}

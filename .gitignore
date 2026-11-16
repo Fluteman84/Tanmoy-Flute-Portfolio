@@ -107,3 +107,6 @@ node_modules/
 .env.local
 .env.*.local
 !.env.example
+
+# Vite production build
+/dist/

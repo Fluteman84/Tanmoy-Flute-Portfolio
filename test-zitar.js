@@ -61,37 +61,25 @@ async function runTestSuite() {
   // -------------------------------------------------------------
   // TEST GROUP A: EXISTING WEBSITE INTEGRITY & REGRESSION
   // -------------------------------------------------------------
-  test("Group A1: index.html exists, has menuToggle and links to zitar.html", () => {
-    const content = fs.readFileSync("index.html", "utf-8");
-    assert(content.includes("TANMOY"), "index.html brand exists");
-    assert(content.includes('id="toolsDropdown"'), "index.html toolsDropdown exists");
-    assert(content.includes('id="menuToggle"'), "index.html menuToggle exists");
-    assert(content.includes('href="zitar.html"'), "index.html links to zitar.html");
-    assert(content.includes("Zitar Tone Reference"), "index.html includes Zitar Tone Reference label");
-  });
+  const reactEntries = {
+    "index.html": "main",
+    "notes.html": "tools/palta",
+    "notation.html": "tools/notation",
+    "tabla.html": "tools/tabla",
+    "zitar.html": "tools/zitar",
+  };
+  for (const [page, entry] of Object.entries(reactEntries)) {
+    test(`Group A: ${page} loads its React entry`, () => {
+      const content = fs.readFileSync(page, "utf-8");
+      assert(content.includes('id="root"'), `${page} has a React mount point`);
+      assert(content.includes(`type="module" src="/src/${entry}.jsx"`), `${page} loads ${entry}`);
+      assert(fs.existsSync(`src/${entry}.jsx`), `${entry}.jsx exists`);
+    });
+  }
 
-  test("Group A2: notes.html exists, has tools navigation and links to zitar.html", () => {
-    const content = fs.readFileSync("notes.html", "utf-8");
-    assert(content.includes('id="toolsDropdown"'), "notes.html toolsDropdown exists");
-    assert(content.includes("Back to Stage"), "notes.html Back to Stage exists");
-    assert(content.includes('href="zitar.html"'), "notes.html links to zitar.html");
-    assert(content.includes("Zitar Tone Reference"), "notes.html includes Zitar Tone Reference label");
-  });
-
-  test("Group A3: notation.html exists, has tools navigation and links to zitar.html", () => {
-    const content = fs.readFileSync("notation.html", "utf-8");
-    assert(content.includes('id="toolsDropdown"'), "notation.html toolsDropdown exists");
-    assert(content.includes("Back to Stage"), "notation.html Back to Stage exists");
-    assert(content.includes('href="zitar.html"'), "notation.html links to zitar.html");
-    assert(content.includes("Zitar Tone Reference"), "notation.html includes Zitar Tone Reference label");
-  });
-
-  test("Group A4: tabla.html exists, has tools navigation and links to zitar.html", () => {
-    const content = fs.readFileSync("tabla.html", "utf-8");
-    assert(content.includes('id="toolsDropdown"'), "tabla.html toolsDropdown exists");
-    assert(content.includes("Back to Stage"), "tabla.html Back to Stage exists");
-    assert(content.includes('href="zitar.html"'), "tabla.html links to zitar.html");
-    assert(content.includes("Zitar Tone Reference"), "tabla.html includes Zitar Tone Reference label");
+  test("Group A: shared navigation routes to the Zitar page", () => {
+    const header = fs.readFileSync("src/components/header.jsx", "utf-8");
+    assert(header.includes('["zitar.html", "Zitar Tone Reference"'), "Zitar appears in the shared Tools menu");
   });
 
   test("Group A5: Palta generator automated tests pass without regression", () => {

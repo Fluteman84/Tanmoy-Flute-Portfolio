@@ -2,23 +2,23 @@
 
 ## Open the tool
 
-Open `notes.html` in any modern browser, or choose **Tools** in the main Tanmoy Flute site menu.
+Choose **Tools → Palta Generator** on the portfolio. For local development, run `npm ci` and `npm run dev` from the repository root, then open `/notes.html`.
 
-The tool runs entirely in the browser. It does not need a backend, database, or build command.
+The tool runs in the browser without a backend or database.
 
 ## Using the generator
 
 1. Select one of the eight supplied Paltas, or replace the formula with a custom one.
 2. Use digits `1` through `8`, spaces to separate groups, and `-` for pauses.
-3. Generate Aroha, Avaroha, or both.
+3. Aroha and Avaroha update as you edit a valid formula.
 4. Copy a whole direction, a single row, or download a TXT file.
 
 ## Files
 
-- `notes.html`: page structure.
+- `notes.html`: Vite page entry.
 - `css/notes.css`: generator-specific cinematic notebook styling.
 - `js/palta-generator.js`: independent parser, Sargam generator, clipboard helper, and TXT export helper.
-- `js/notes.js`: UI rendering and button interactions.
+- `src/tools/palta.jsx`: React interface and export controls.
 - `js/palta-tests.js`: automated rule-based validations.
 
 ## Mapping rules

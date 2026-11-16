@@ -66,19 +66,14 @@ All audio mapping is evaluated dynamically from the selected Taal's JSON metadat
 
 ## How to Run the Application
 
-Because the application uses modern asynchronous `fetch()` to load [`data/taals.json`](data/taals.json) and external audio files (`Sounds/Sound1.wav`, `Sounds/Sound2.wav`), serve the repository through a local HTTP server:
+From the repository root, install dependencies and start Vite:
 
-```bash
-# Navigate to the workspace root
-cd Tanmoy-Flute-Portfolio
-
-# Start a local HTTP server
-python -m http.server 8000
+```sh
+npm ci
+npm run dev
 ```
 
-Then open in your browser:
-- Main Website Module: `http://localhost:8000/tabla.html`
-- Standalone Engine: `http://localhost:8000/tabla-taal-engine/index.html`
+Open `/tabla.html` for the portfolio workspace or `/tabla-taal-engine/` for the standalone page. Both are included in the production build.
 
 ---
 

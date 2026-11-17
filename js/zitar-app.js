@@ -448,7 +448,9 @@
         btn.className = "sidebar-patch-item" + (preset.id === currentPresetId ? " is-active" : "");
         btn.setAttribute("data-preset-id", preset.id);
         btn.setAttribute("role", "tab");
+        btn.setAttribute("aria-controls", "tonePresetPanel");
         btn.setAttribute("aria-selected", preset.id === currentPresetId ? "true" : "false");
+        btn.tabIndex = preset.id === currentPresetId ? 0 : -1;
         btn.innerHTML =
           '<span class="patch-item-num">' + preset.patchNumber + '</span>' +
           '<span class="patch-item-name">' + preset.name + '</span>';
@@ -476,12 +478,9 @@
     elements.searchSuggestionsDropdown.innerHTML = "";
     activeSuggestionIndex = -1;
 
+    elements.patchSearchInput.removeAttribute("aria-activedescendant");
     if (matches.length === 0) {
-      var emptyEl = document.createElement("div");
-      emptyEl.className = "suggestion-empty";
-      emptyEl.textContent = "No matching patches found.";
-      elements.searchSuggestionsDropdown.appendChild(emptyEl);
-      elements.searchSuggestionsDropdown.style.display = "block";
+      hideSuggestions();
       return;
     }
 
@@ -490,9 +489,10 @@
     displayedMatches.forEach(function (preset, index) {
       var row = document.createElement("div");
       row.className = "suggestion-item";
+      row.id = "tone-suggestion-" + index;
       row.setAttribute("role", "option");
+      row.setAttribute("aria-selected", "false");
       row.setAttribute("data-preset-id", preset.id);
-      row.setAttribute("data-index", index);
       row.innerHTML =
         '<span class="sugg-num">' + preset.patchNumber + '</span>' +
         '<div class="sugg-details">' +
@@ -500,16 +500,18 @@
           '<span class="sugg-cat">' + preset.category + '</span>' +
         '</div>';
 
-      row.addEventListener("mousedown", function (e) {
-        e.preventDefault(); // Prevent input blur before click registers
+      row.addEventListener("mousedown", function (e) { e.preventDefault(); });
+      row.addEventListener("click", function () {
         selectPatch(preset.id);
         hideSuggestions();
+        elements.patchSearchInput.focus();
       });
 
       elements.searchSuggestionsDropdown.appendChild(row);
     });
 
     elements.searchSuggestionsDropdown.style.display = "block";
+    elements.patchSearchInput.setAttribute("aria-expanded", "true");
   }
 
   /**
@@ -519,6 +521,8 @@
     if (elements.searchSuggestionsDropdown) {
       elements.searchSuggestionsDropdown.style.display = "none";
       activeSuggestionIndex = -1;
+      elements.patchSearchInput.setAttribute("aria-expanded", "false");
+      elements.patchSearchInput.removeAttribute("aria-activedescendant");
     }
   }
 
@@ -606,12 +610,14 @@
     if (elements.ampSelect) {
       elements.ampSelect.addEventListener("change", function (e) {
         currentAmpKey = e.target.value;
+        currentPresetId = null;
         setupControlsMarkup();
         filterPatches(currentSearchQuery);
-        var firstPreset = ZitarData.getFirstPreset(currentAmpKey);
-        if (firstPreset) {
-          selectPatch(firstPreset.id);
+        if (currentPresetId == null) {
+          var firstPreset = ZitarData.getFirstPreset(currentAmpKey);
+          if (firstPreset) selectPatch(firstPreset.id);
         }
+        hideSuggestions();
       });
     }
 
@@ -631,47 +637,64 @@
         showSuggestions(elements.patchSearchInput.value);
       });
 
-      // Keyboard navigation in search suggestions
       elements.patchSearchInput.addEventListener("keydown", function (e) {
-        if (!elements.searchSuggestionsDropdown || elements.searchSuggestionsDropdown.style.display === "none") {
-          if (e.key === "ArrowDown") {
-            showSuggestions(elements.patchSearchInput.value);
-            e.preventDefault();
-          }
+        if (e.key === "Escape") {
+          hideSuggestions();
+          return;
+        }
+        if (e.key === "Tab") {
+          hideSuggestions();
           return;
         }
 
-        var items = elements.searchSuggestionsDropdown.querySelectorAll(".suggestion-item");
-        if (items.length === 0) return;
-
-        if (e.key === "ArrowDown") {
-          e.preventDefault();
-          activeSuggestionIndex = (activeSuggestionIndex + 1) % items.length;
-          items.forEach(function (el, idx) {
-            el.classList.toggle("is-focused", idx === activeSuggestionIndex);
-          });
-          if (items[activeSuggestionIndex].scrollIntoView) {
-            items[activeSuggestionIndex].scrollIntoView({ block: "nearest" });
-          }
-        } else if (e.key === "ArrowUp") {
-          e.preventDefault();
-          activeSuggestionIndex = (activeSuggestionIndex - 1 + items.length) % items.length;
-          items.forEach(function (el, idx) {
-            el.classList.toggle("is-focused", idx === activeSuggestionIndex);
-          });
-          if (items[activeSuggestionIndex].scrollIntoView) {
-            items[activeSuggestionIndex].scrollIntoView({ block: "nearest" });
-          }
-        } else if (e.key === "Enter") {
-          e.preventDefault();
-          if (activeSuggestionIndex >= 0 && items[activeSuggestionIndex]) {
-            var id = parseInt(items[activeSuggestionIndex].getAttribute("data-preset-id"), 10);
-            selectPatch(id);
-            hideSuggestions();
-          }
-        } else if (e.key === "Escape") {
-          hideSuggestions();
+        var dropdown = elements.searchSuggestionsDropdown;
+        if (!dropdown) return;
+        var isArrow = e.key === "ArrowDown" || e.key === "ArrowUp";
+        if (dropdown.style.display === "none" && isArrow) {
+          showSuggestions(elements.patchSearchInput.value);
         }
+        if (dropdown.style.display === "none") return;
+
+        var options = dropdown.querySelectorAll(".suggestion-item");
+        if (!options.length) return;
+        if (e.key === "Enter") {
+          e.preventDefault();
+          var option = options[Math.max(0, activeSuggestionIndex)];
+          selectPatch(Number(option.dataset.presetId));
+          hideSuggestions();
+          return;
+        }
+        if (!isArrow) return;
+        e.preventDefault();
+        var direction = e.key === "ArrowDown" ? 1 : -1;
+        if (activeSuggestionIndex < 0) {
+          activeSuggestionIndex = direction === 1 ? 0 : options.length - 1;
+        } else {
+          activeSuggestionIndex = (activeSuggestionIndex + direction + options.length) % options.length;
+        }
+        options.forEach(function (option, index) {
+          var active = index === activeSuggestionIndex;
+          option.classList.toggle("is-focused", active);
+          option.setAttribute("aria-selected", String(active));
+        });
+        var activeOption = options[activeSuggestionIndex];
+        elements.patchSearchInput.setAttribute("aria-activedescendant", activeOption.id);
+        revealListItem(dropdown, activeOption);
+      });
+    }
+
+    if (elements.sidebarPatchListScroll) {
+      elements.sidebarPatchListScroll.addEventListener("keydown", function (e) {
+        var tab = e.target.closest(".sidebar-patch-item");
+        if (!tab || !["ArrowDown", "ArrowUp", "Home", "End"].includes(e.key)) return;
+        var tabs = Array.from(this.querySelectorAll(".sidebar-patch-item"));
+        var index = tabs.indexOf(tab);
+        if (e.key === "Home") index = 0;
+        else if (e.key === "End") index = tabs.length - 1;
+        else index = (index + (e.key === "ArrowDown" ? 1 : -1) + tabs.length) % tabs.length;
+        e.preventDefault();
+        selectPatch(Number(tabs[index].dataset.presetId));
+        tabs[index].focus({ preventScroll: true });
       });
     }
 
@@ -728,8 +751,18 @@
     // Close modal on backdrop click
     if (elements.aboutModal) {
       elements.aboutModal.addEventListener("click", function (e) {
-        if (e.target === elements.aboutModal) {
-          closeAboutModal();
+        if (e.target === elements.aboutModal) closeAboutModal();
+      });
+      elements.aboutModal.addEventListener("keydown", function (e) {
+        if (e.key !== "Tab") return;
+        var first = elements.closeAboutModalBtn;
+        var last = elements.closeModalBottomBtn;
+        if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault();
+          last?.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault();
+          first?.focus();
         }
       });
     }
@@ -745,6 +778,16 @@
     });
   }
 
+  function revealListItem(list, item) {
+    var listRect = list.getBoundingClientRect();
+    var itemRect = item.getBoundingClientRect();
+    if (itemRect.top < listRect.top) {
+      list.scrollTop += itemRect.top - listRect.top;
+    } else if (itemRect.bottom > listRect.bottom) {
+      list.scrollTop += itemRect.bottom - listRect.bottom;
+    }
+  }
+
   /**
    * Filters patches dynamically as user types
    */
@@ -752,21 +795,9 @@
     var matches = ZitarData.searchPresets(query, currentAmpKey);
     populateSidebarPatchList(matches);
 
-    if (matches.length > 0) {
-      var stillSelected = matches.some(function (p) {
-        return p.id === currentPresetId;
-      });
-
-      if (stillSelected) {
-        selectPatch(currentPresetId);
-      } else {
-        selectPatch(matches[0].id);
-      }
-    } else {
-      if (elements.noPatchesNotice) {
-        elements.noPatchesNotice.style.display = "block";
-      }
-    }
+    if (matches.length === 0) return;
+    var stillSelected = matches.some(function (p) { return p.id === currentPresetId; });
+    selectPatch(stillSelected ? currentPresetId : matches[0].id);
   }
 
   /**
@@ -790,9 +821,8 @@
         var isSelected = id === preset.id;
         btn.classList.toggle("is-active", isSelected);
         btn.setAttribute("aria-selected", isSelected ? "true" : "false");
-        if (isSelected && btn.scrollIntoView) {
-          btn.scrollIntoView({ behavior: "smooth", block: "nearest" });
-        }
+        btn.tabIndex = isSelected ? 0 : -1;
+        if (isSelected) revealListItem(elements.sidebarPatchListScroll, btn);
       });
     }
 

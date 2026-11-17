@@ -482,6 +482,8 @@ async function runTestSuite() {
         getAttribute(name) { return this.attributes[name] || null; },
         removeAttribute(name) { delete this.attributes[name]; },
         style: {},
+        scrollTop: 0,
+        getBoundingClientRect() { return { top: 0, bottom: 0 }; },
         children: [],
         appendChild(child) {
           this.children.push(child);

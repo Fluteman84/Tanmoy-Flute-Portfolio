@@ -57,7 +57,7 @@ All audio mapping is evaluated dynamically from the selected Taal's JSON metadat
 4. **Immediate Stop (`STOP NOW`)**:
    - Immediately stops the metronome loop and calls `AudioEngine.stopAll()`, which iterates through all actively playing and queued `AudioBufferSourceNode` instances, calling `.stop(0)` and `.disconnect()` to produce instantaneous silence.
 5. **Deferred Stop (`STOP AFTER CYCLE`)**:
-   - Completes the ongoing Taal cycle, allowing the final beat's sample to ring out naturally, and terminates cleanly before Beat 1 of the subsequent cycle can be scheduled.
+   - Completes the ongoing Taal cycle, allowing the final beat's sample to ring out naturally, and terminates cleanly before Beat 1 of the subsequent cycle can be scheduled. Select **Cancel Cycle Stop** to keep playing, including while paused.
 6. **Autoplay Restrictions & Resilience**:
    - AudioContext is activated / resumed strictly upon user interaction (Play button).
    - If audio assets fail to load or are unavailable, an informative notice is displayed in the diagnostic strip and playback does not falsely simulate active audio.
@@ -79,12 +79,8 @@ Open `/tabla.html` for the portfolio workspace or `/tabla-taal-engine/` for the 
 
 ## Automated Verification Suite
 
-Run the complete verification test suite in Node.js:
+Run the timing and cycle-stop regression tests from the repository root:
 
-```bash
-# Run audio engine & metronome unit checks (Test A through Test J)
-node scratch/verify-audio-engine.js
-
-# Run full DOM integration checks
-node scratch/verify-integration.js
+```sh
+node --test test/tabla-timing.cjs
 ```

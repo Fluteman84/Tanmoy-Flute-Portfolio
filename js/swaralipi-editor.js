@@ -155,7 +155,7 @@
     h += '<button class="add-section-btn" data-action="add-section" style="margin-top:1.5rem;">+ Add Section</button>';
 
     // Hidden proxy caret trap for desktop & mobile virtual keyboard
-    h += '<input type="text" id="swProxyInput" class="sw-proxy-input" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" aria-hidden="true" style="position:absolute; opacity:0; width:1px; height:1px; top:0; left:0; border:0; padding:0; margin:0; pointer-events:none; z-index:-1;" />';
+    h += '<input type="text" id="swProxyInput" class="sw-proxy-input" tabindex="-1" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" aria-hidden="true" style="position:absolute; opacity:0; width:1px; height:1px; top:0; left:0; border:0; padding:0; margin:0; pointer-events:none; z-index:-1;" />';
 
     // Floating UI Elements
     h += '<div class="sw-cursor" id="swCursor"></div>';
@@ -163,7 +163,7 @@
     h += '<div class="selection-popup is-hidden" id="swPopup"></div>';
     h += '<div class="sw-context-menu is-hidden" id="swContext"></div>';
     h += '<div class="sw-toast" id="swToast"></div>';
-    h += '<div class="sw-modal-overlay is-hidden" id="swModal"><div class="sw-modal"></div></div>';
+    h += '<div class="sw-modal-overlay is-hidden" id="swModal"><div class="sw-modal" role="dialog" aria-modal="true" aria-labelledby="swModalTitle"></div></div>';
     h += '<div class="sw-print-overlay is-hidden" id="swPrint"></div>';
     h += '<div class="sw-rulebook-overlay is-hidden" id="swRuleBookModal">';
     h += '<div class="sw-rulebook-modal" role="dialog" aria-modal="true" aria-labelledby="swRuleBookTitle">';
@@ -239,34 +239,29 @@
 
     // Proxy Input keyboard & input events (BUG-MOB-03 Android deletion support & duplicate protection)
     var lastDeleteTime = 0;
-    function safeDelete(source) {
+    var lastDeleteSource;
+    var lastDeleteDirection;
+    function safeDelete(source, forward = false) {
       var now = Date.now();
-      if (now - lastDeleteTime < 80) return; // Prevent duplicate deletion within 80ms window
+      if (source !== lastDeleteSource && forward === lastDeleteDirection && now - lastDeleteTime < 80) return;
       lastDeleteTime = now;
-      self._handleBackspace();
+      lastDeleteSource = source;
+      lastDeleteDirection = forward;
+      if (forward) self._handleDelete();
+      else self._handleBackspace();
     }
     self._safeDelete = safeDelete;
 
     this._proxyInput.addEventListener("beforeinput", function (e) {
-      if (e.inputType === "deleteContentBackward") {
+      if (e.inputType === "deleteContentBackward" || e.inputType === "deleteContentForward") {
         if (e.cancelable) e.preventDefault();
-        safeDelete("beforeinput");
-        return;
-      }
-      if (e.inputType === "deleteContentForward") {
-        if (e.cancelable) e.preventDefault();
-        self._handleDelete();
-        return;
+        safeDelete("beforeinput", e.inputType === "deleteContentForward");
       }
     });
 
     this._proxyInput.addEventListener("input", function (e) {
-      if (e.inputType === "deleteContentBackward") {
-        safeDelete("input");
-        return;
-      }
-      if (e.inputType === "deleteContentForward") {
-        self._handleDelete();
+      if (e.inputType === "deleteContentBackward" || e.inputType === "deleteContentForward") {
+        safeDelete("input", e.inputType === "deleteContentForward");
         return;
       }
       if (self._proxyInput.value) {
@@ -285,19 +280,37 @@
       self._onKeyUp(e);
     });
 
-    // Global keyboard listener for shortcut fallback
+    this.root.addEventListener("paste", function (e) {
+      var area = e.target.closest(".notation-area");
+      if (!area && e.target !== self._proxyInput) return;
+      var text = e.clipboardData?.getData("text/plain");
+      if (text == null) return;
+      e.preventDefault();
+      if (area) self._setActiveSectionByArea(area);
+      self._pasteText(text);
+    });
+
+    // Notation shortcuts belong to the editor, so focused buttons and links can handle Enter and Space.
     document.addEventListener("keydown", function (e) {
+      if (e.defaultPrevented) return;
       if (e.key === "Escape") {
         if (self._ruleBookModalEl && !self._ruleBookModalEl.classList.contains("is-hidden")) {
           self._hideRuleBook();
           return;
         }
+        if (self._modalEl && !self._modalEl.classList.contains("is-hidden")) {
+          self._hideModal();
+          return;
+        }
+        if (self._printEl && !self._printEl.classList.contains("is-hidden")) {
+          self._hidePdfPreview();
+          return;
+        }
       }
-      var active = document.activeElement;
-      if (active && (active.tagName === "INPUT" || active.tagName === "SELECT" || active.tagName === "TEXTAREA")) {
-        if (active !== self._proxyInput) return;
-      }
-      if (active !== self._proxyInput) {
+      var area = document.activeElement?.closest(".notation-area");
+      if (e.key !== "Tab" && area && self.root.contains(area) && document.activeElement === area) {
+        self._setActiveSectionByArea(area);
+        self._focusProxy();
         self._onKeyDown(e);
       }
     });
@@ -564,7 +577,7 @@
    *  SECTION MANAGEMENT
    * ════════════════════════════════════════════════════════════ */
   P._addSection = function () {
-    var self = this;
+    this._commitBuffer();
     var usedNames = this.song.sections.map(function (s) { return s.name; });
     var candidate = S.DEFAULT_SECTIONS.find(function (n) { return usedNames.indexOf(n) === -1; });
     var name = candidate || ("Section " + (this.song.sections.length + 1));
@@ -572,7 +585,9 @@
     this.song.sections.push(S.createSection(name));
     this.activeSectionIdx = this.song.sections.length - 1;
     this.cursor = { posIndex: 0, charOffset: 0 };
-    this.inputBuffer = "";
+    this.selection = null;
+    this.groupMode = false;
+    this._newPositionPending = false;
     this._saveSnapshot();
     this.render();
     this._focusProxy();
@@ -582,41 +597,44 @@
     var secs = this.song.sections;
     if (idx < 0 || idx >= secs.length) return;
 
-    switch (action) {
-      case "toggle-group":
-        this._setGroupMode(!this.groupMode);
-        this._saveSnapshot();
-        this._focusProxy();
-        return;
-      case "delete":
-        if (secs.length <= 1) {
-          this._toast("Cannot delete the only section.");
-          return;
-        }
-        secs.splice(idx, 1);
-        if (this.activeSectionIdx >= secs.length) {
-          this.activeSectionIdx = secs.length - 1;
-        }
-        break;
-      case "move-up":
-        if (idx === 0) return;
-        var tmp = secs[idx];
-        secs[idx] = secs[idx - 1];
-        secs[idx - 1] = tmp;
-        if (this.activeSectionIdx === idx) this.activeSectionIdx--;
-        else if (this.activeSectionIdx === idx - 1) this.activeSectionIdx++;
-        break;
-      case "move-down":
-        if (idx >= secs.length - 1) return;
-        var tmp2 = secs[idx];
-        secs[idx] = secs[idx + 1];
-        secs[idx + 1] = tmp2;
-        if (this.activeSectionIdx === idx) this.activeSectionIdx++;
-        else if (this.activeSectionIdx === idx + 1) this.activeSectionIdx--;
-        break;
+    if (action === "toggle-group") {
+      this._setGroupMode(!this.groupMode);
+      this._saveSnapshot();
+      this._focusProxy();
+      return;
     }
-    this.cursor = { posIndex: 0, charOffset: 0 };
-    this.inputBuffer = "";
+
+    var active = this._activeSection();
+    if (action === "delete") {
+      if (secs.length === 1) {
+        this._toast("Cannot delete the only section.");
+        return;
+      }
+      if (secs[idx] === active) {
+        this.inputBuffer = "";
+        clearTimeout(this._bufferTimer);
+      } else {
+        this._commitBuffer();
+      }
+      secs.splice(idx, 1);
+    } else {
+      var destination = action === "move-up" ? idx - 1 : idx + 1;
+      if (destination < 0 || destination >= secs.length) return;
+      this._commitBuffer();
+      var moved = secs.splice(idx, 1)[0];
+      secs.splice(destination, 0, moved);
+    }
+
+    var activeIndex = secs.indexOf(active);
+    if (activeIndex >= 0) {
+      this.activeSectionIdx = activeIndex;
+    } else {
+      this.activeSectionIdx = Math.min(idx, secs.length - 1);
+      this.groupMode = !!this._activeSection().groupMode;
+      this.cursor = { posIndex: 0, charOffset: 0 };
+      this.selection = null;
+      this._newPositionPending = false;
+    }
     this._saveSnapshot();
     this.render();
     this._focusProxy();
@@ -626,16 +644,12 @@
     if (newIdx === this.activeSectionIdx || newIdx < 0 || newIdx >= this.song.sections.length) return;
     this._commitBuffer();
 
-    var prevSec = this.song.sections[this.activeSectionIdx];
-    if (prevSec) {
-      prevSec.groupMode = this.groupMode;
-    }
-
     this.activeSectionIdx = newIdx;
     var nextSec = this.song.sections[newIdx];
     this.groupMode = nextSec && typeof nextSec.groupMode === "boolean" ? nextSec.groupMode : false;
     this.cursor = { posIndex: nextSec ? nextSec.positions.length : 0, charOffset: 0 };
     this.selection = null;
+    this._newPositionPending = false;
     this.render();
     this._focusProxy();
   };
@@ -657,6 +671,7 @@
   P.render = function () {
     var self = this;
     var secs = this.song.sections;
+    var restoreInputFocus = document.activeElement === this._proxyInput;
 
     // Preserve scroll offsets of notation areas across re-renders (BUG-MOB-01)
     var scrollOffsets = {};
@@ -702,6 +717,7 @@
     this._repositionCursor();
     this._updateGroupToggleUI();
     this._hidePopup();
+    if (restoreInputFocus) this._focusProxy();
   };
 
   P._renderSection = function (sec, si) {
@@ -976,8 +992,7 @@
         return;
       }
       if (k === "v") {
-        e.preventDefault();
-        this._paste();
+        if (document.activeElement !== this._proxyInput) this._focusProxy();
         return;
       }
       if (k === "a") {
@@ -1023,8 +1038,8 @@
 
     if (e.key === "Backspace") {
       e.preventDefault();
-      if (typeof self._safeDelete === "function") {
-        self._safeDelete("keydown");
+      if (typeof this._safeDelete === "function") {
+        this._safeDelete("keydown");
       } else {
         this._handleBackspace();
       }
@@ -1032,7 +1047,7 @@
     }
     if (e.key === "Delete") {
       e.preventDefault();
-      this._handleDelete();
+      this._safeDelete("keydown", true);
       return;
     }
 
@@ -1150,7 +1165,26 @@
   P._handleCharInput = function (ch) {
     ch = S.normalizeSwara(ch);
 
+    if (ch !== " " && !S.isValidChar(ch)) {
+      this._toast("Invalid character: " + ch + " (use S,r,R,g,G,M,m,P,d,D,n,N or - : ' ,)");
+      return;
+    }
+
     if (this.selection) {
+      if (ch === " ") {
+        var range = this._getSelectionRange();
+        this.cursor = { posIndex: range.endPos + 1, charOffset: 0 };
+        this.selection = null;
+        this._setGroupMode(false);
+        this._newPositionPending = true;
+        this.render();
+        this._scrollCursorIntoView();
+        return;
+      }
+      if (!S.isSwara(ch)) {
+        this._toast("Clear the selection before adding a modifier.");
+        return;
+      }
       this._deleteSelection();
     }
 
@@ -1159,22 +1193,7 @@
     // Space handling — Finalise position & advance cursor (Part 2)
     if (ch === " ") {
       if (this.groupMode) {
-        if (this.inputBuffer) {
-          if (S.bufferHasSwara(this.inputBuffer) || this.inputBuffer.trim() === "-") {
-            this._saveSnapshot();
-            this._commitBuffer();
-          } else {
-            // Buffer has modifier but no swara (e.g. : followed by Space)
-            this._toast("Modifier requires an associated swara.");
-            this.inputBuffer = "";
-            this._repositionCursor();
-          }
-        }
-        // Finalise the group and automatically turn Group Mode OFF
         this._setGroupMode(false);
-        if (this.undoMgr._undo.length > 0) {
-          this.undoMgr._undo[this.undoMgr._undo.length - 1].groupMode = false;
-        }
         this._newPositionPending = true;
         return;
       }
@@ -1289,8 +1308,6 @@
       return;
     }
 
-    // Invalid character
-    this._toast("Invalid character: " + ch + " (use S,r,R,g,G,M,m,P,d,D,n,N or - : ' ,)");
   };
 
   P._startBufferTimer = function () {
@@ -1578,7 +1595,7 @@
     var sec = this._activeSection();
     if (sec.positions.length === 0) return;
     var ppm = S.getPositionsPerMeasure(this.song.timeSignature);
-    var measureIdx = Math.floor(this.cursor.posIndex / ppm);
+    var measureIdx = Math.floor(Math.min(this.cursor.posIndex, sec.positions.length - 1) / ppm);
     var startPos = measureIdx * ppm;
     var endPos = Math.min(startPos + ppm - 1, sec.positions.length - 1);
     this.selection = {
@@ -1595,7 +1612,7 @@
     var ppm = S.getPositionsPerMeasure(this.song.timeSignature);
     var bpr = this.barsPerRow || S.BARS_PER_ROW || 4;
     var posPerRow = ppm * bpr;
-    var rowIdx = Math.floor(this.cursor.posIndex / posPerRow);
+    var rowIdx = Math.floor(Math.min(this.cursor.posIndex, sec.positions.length - 1) / posPerRow);
     var startPos = rowIdx * posPerRow;
     var endPos = Math.min(startPos + posPerRow - 1, sec.positions.length - 1);
     this.selection = {
@@ -1649,22 +1666,32 @@
 
   P._paste = function () {
     var self = this;
-    if (this.selection) this._deleteSelection();
+    var song = this.song;
+    var section = this._activeSection();
+    var cursor = { posIndex: this.cursor.posIndex, charOffset: this.cursor.charOffset };
+    var selection = this.selection;
+    var buffer = this.inputBuffer;
+
+    function targetIsCurrent() {
+      return self.song === song && self._activeSection() === section && self.inputBuffer === buffer &&
+        self.cursor.posIndex === cursor.posIndex && self.cursor.charOffset === cursor.charOffset &&
+        self.selection === selection;
+    }
+
+    function pasteLocal() {
+      if (targetIsCurrent() && self.clipboard?.positions.length) {
+        self._pastePositions(self.clipboard.positions.map(S.clonePosition));
+      }
+    }
 
     if (navigator.clipboard && window.isSecureContext) {
       navigator.clipboard.readText().then(function (text) {
-        if (text) {
-          self._pasteText(text);
-        } else if (self.clipboard && self.clipboard.positions.length) {
-          self._pastePositions(self.clipboard.positions.map(S.clonePosition));
-        }
-      }).catch(function () {
-        if (self.clipboard && self.clipboard.positions.length) {
-          self._pastePositions(self.clipboard.positions.map(S.clonePosition));
-        }
-      });
-    } else if (this.clipboard && this.clipboard.positions.length) {
-      this._pastePositions(this.clipboard.positions.map(S.clonePosition));
+        if (!targetIsCurrent()) return;
+        if (text) self._pasteText(text);
+        else pasteLocal();
+      }, pasteLocal);
+    } else {
+      pasteLocal();
     }
   };
 
@@ -1680,11 +1707,13 @@
   };
 
   P._pastePositions = function (positions) {
+    this._commitBuffer();
     var sec = this._activeSection();
-    var insertIdx = Math.min(this.cursor.posIndex, sec.positions.length);
-    for (var i = 0; i < positions.length; i++) {
-      sec.positions.splice(insertIdx + i, 0, positions[i]);
-    }
+    var selection = this._getSelectionRange();
+    var insertIdx = selection ? selection.startPos : Math.min(this.cursor.posIndex, sec.positions.length);
+    var replaceCount = selection ? selection.endPos - selection.startPos + 1 : 0;
+    sec.positions = sec.positions.slice(0, insertIdx).concat(positions, sec.positions.slice(insertIdx + replaceCount));
+    this.selection = null;
     this.cursor = { posIndex: insertIdx + positions.length, charOffset: 0 };
     this._saveSnapshot();
     this.render();
@@ -1718,7 +1747,7 @@
     var sec = this._activeSection();
     if (sec.positions.length === 0) return;
     var ppm = S.getPositionsPerMeasure(this.song.timeSignature);
-    var measureIdx = Math.floor(this.cursor.posIndex / ppm);
+    var measureIdx = Math.floor(Math.min(this.cursor.posIndex, sec.positions.length - 1) / ppm);
     var startPos = measureIdx * ppm;
     var endPos = Math.min(startPos + ppm, sec.positions.length);
     var copied = [];
@@ -1836,6 +1865,8 @@
    *  UNDO / REDO
    * ════════════════════════════════════════════════════════════ */
   P._saveSnapshot = function () {
+    clearTimeout(this._typingTimer);
+    this._typingTimer = null;
     var snap = {
       song: S.cloneSong(this.song),
       cursor: { posIndex: this.cursor.posIndex, charOffset: this.cursor.charOffset },
@@ -1870,6 +1901,8 @@
   };
 
   P._undo = function () {
+    this._commitBuffer();
+    if (this._typingTimer) this._saveSnapshot();
     var snap = this.undoMgr.undo();
     if (snap) {
       this._restoreSnapshot(snap);
@@ -1880,6 +1913,8 @@
   };
 
   P._redo = function () {
+    this._commitBuffer();
+    if (this._typingTimer) this._saveSnapshot();
     var snap = this.undoMgr.redo();
     if (snap) {
       this._restoreSnapshot(snap);
@@ -1911,6 +1946,8 @@
     this.groupMode = false;
     this.inputBuffer = "";
     this.selection = null;
+    this._newPositionPending = false;
+    clearTimeout(this._bufferTimer);
     this.undoMgr.clear();
     this.savedSong = S.cloneSong(this.song);
     this._saveSnapshot();
@@ -1923,7 +1960,8 @@
    * ════════════════════════════════════════════════════════════ */
   P._showModal = function (title, message, buttons) {
     var modal = this._modalEl.querySelector(".sw-modal");
-    var h = '<h3>' + this._escHtml(title) + '</h3>';
+    this._modalOpener = document.activeElement;
+    var h = '<h3 id="swModalTitle">' + this._escHtml(title) + '</h3>';
     h += '<p>' + this._escHtml(message) + '</p>';
     h += '<div class="sw-modal-actions">';
     buttons.forEach(function (b, i) {
@@ -1943,6 +1981,20 @@
     };
 
     this._modalEl.classList.remove("is-hidden");
+    var controls = modal.querySelectorAll("button");
+    controls[0]?.focus();
+    modal.onkeydown = function (e) {
+      if (e.key !== "Tab") return;
+      var first = controls[0];
+      var last = controls[controls.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    };
     this._modalEl.onclick = function () {
       self._hideModal();
     };
@@ -1950,6 +2002,8 @@
 
   P._hideModal = function () {
     this._modalEl.classList.add("is-hidden");
+    this._modalOpener?.focus({ preventScroll: true });
+    this._modalOpener = null;
   };
 
   P._toast = function (msg) {
@@ -1988,6 +2042,7 @@
       return;
     }
 
+    this._commitBuffer();
     var isDirty = !S.songsEqual(this.song, this.savedSong);
 
     var doImport = function () {
@@ -2006,6 +2061,8 @@
           self.selection = null;
           self.inputBuffer = "";
           self.groupMode = false;
+          self._newPositionPending = false;
+          clearTimeout(self._bufferTimer);
           self.undoMgr.clear();
           self.savedSong = S.cloneSong(self.song);
           self._saveSnapshot();
@@ -2015,6 +2072,7 @@
           self._toast("Import failed: corrupted or invalid file.");
         }
       };
+      reader.onerror = function () { self._toast("Import failed: the file could not be read."); };
       reader.readAsText(file);
     };
 

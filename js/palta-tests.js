@@ -8,6 +8,9 @@
   function runPaltaTests() {
     const { PALTAS, generateAscending, generateDescending, parsePalta } = window.PaltaGenerator;
     const tests = [
+      [generateAscending("12345678")[0], "SRGMPDNS'", "Aroha uses upper Sa for 8"],
+      [generateDescending("12345678")[0], "S'NDPMGRS", "Avaroha uses lower Sa for 8"],
+      [generateAscending("18-")[0], "SS'-", "1 and 8 are distinct with a pause"],
       [generateAscending(PALTAS[0])[0], "SRG SRG SR SRGM MGRS", "Palta 1 ascending row 1"],
       [generateAscending(PALTAS[0])[1], "RGM RGM RG RGMP PMGR", "Palta 1 ascending row 2"],
       [generateDescending(PALTAS[0])[0], "S'ND S'ND S'N S'NDP PDNS'", "Palta 1 descending row 1"],

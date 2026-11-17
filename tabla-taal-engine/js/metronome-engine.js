@@ -40,11 +40,6 @@
     // Internal Timing Control (Monotonic JS & Web Audio)
     _timerId: null,
     _sessionToken: null,
-    _timelineStart: 0,
-    _audioTimelineStart: 0,
-    _intervalMs: 500,
-    _audioIntervalSec: 0.5,
-    _beatsInCurrentSegment: 0,
     _nextBeatExpectedTime: 0,
     _nextBeatAudioTime: 0,
     _stopAfterCycleRequested: false,
@@ -62,8 +57,6 @@
     init: function () {
       this.state = this.STATE_STOPPED;
       this.bpm = 120;
-      this._intervalMs = 60000 / this.bpm;
-      this._audioIntervalSec = 60 / this.bpm;
       this.currentBeat = 1;
       this.currentCycle = 1;
       this._stopAfterCycleRequested = false;
@@ -109,25 +102,8 @@
         return this.bpm;
       }
 
-      const clamped = Math.max(20, Math.min(300, Math.round(parsed)));
-      this.bpm = clamped;
-      const newIntervalMs = 60000 / clamped;
-      const newIntervalSec = 60 / clamped;
-
-      if (this.state === this.STATE_PLAYING || this.state === this.STATE_STOPPING_AFTER_CYCLE) {
-        // Re-anchor timeline seamlessly from the upcoming beat deadline
-        this._timelineStart = this._nextBeatExpectedTime;
-        this._audioTimelineStart = this._nextBeatAudioTime;
-        this._beatsInCurrentSegment = 0;
-        this._intervalMs = newIntervalMs;
-        this._audioIntervalSec = newIntervalSec;
-        this._nextBeatExpectedTime = this._timelineStart + newIntervalMs;
-        this._nextBeatAudioTime = this._audioTimelineStart + newIntervalSec;
-      } else {
-        this._intervalMs = newIntervalMs;
-        this._audioIntervalSec = newIntervalSec;
-      }
-
+      // Keep the upcoming deadline. The next beat schedules the new interval.
+      this.bpm = Math.max(20, Math.min(300, Math.round(parsed)));
       return this.bpm;
     },
 
@@ -158,37 +134,7 @@
       this.currentBeat = 1;
       this.currentCycle = 1;
 
-      // Intervals
-      this._intervalMs = 60000 / this.bpm;
-      this._audioIntervalSec = 60 / this.bpm;
-
-      // Monotonic JS timeline anchor
-      const now = (typeof performance !== "undefined" && performance.now) ? performance.now() : Date.now();
-      
-      // Web Audio timeline anchor
-      const hasAudio = (this.audioEngine && this.audioEngine.status === "READY" && this.audioEngine.ctx);
-      const audioNow = hasAudio ? this.audioEngine.ctx.currentTime : 0;
-
-      // Lead-in buffer: 25ms to prime Web Audio hardware buffer
-      const leadInSec = 0.025;
-      const leadInMs = leadInSec * 1000;
-
-      this._timelineStart = now + leadInMs;
-      this._audioTimelineStart = audioNow + leadInSec;
-      this._beatsInCurrentSegment = 0;
-      this._nextBeatExpectedTime = this._timelineStart + this._intervalMs;
-      this._nextBeatAudioTime = this._audioTimelineStart + this._audioIntervalSec;
-
-      this._notifyStateChange();
-
-      // 1. Trigger Beat 1 Audio synchronously at the anchor time
-      this._triggerAudioForBeat(1, 1, this._audioTimelineStart);
-
-      // 2. Trigger Beat 1 Visual update
-      this._notifyBeat();
-
-      // 3. Schedule subsequent beat tick
-      this._scheduleNextTick(session);
+      this._beginBeatTimeline(session);
     },
 
     /**
@@ -247,33 +193,19 @@
         this.state = this.STATE_PLAYING;
       }
 
-      // Recompute intervals from current BPM
-      this._intervalMs = 60000 / this.bpm;
-      this._audioIntervalSec = 60 / this.bpm;
+      this._beginBeatTimeline(session);
+    },
 
-      // Anchor timelines from right now
-      const now = (typeof performance !== "undefined" && performance.now) ? performance.now() : Date.now();
-      const hasAudio = (this.audioEngine && this.audioEngine.status === "READY" && this.audioEngine.ctx);
-      const audioNow = hasAudio ? this.audioEngine.ctx.currentTime : 0;
-
+    _beginBeatTimeline: function (session) {
+      const now = performance.now();
+      const audioNow = this.audioEngine?.ctx?.currentTime ?? 0;
       const leadInSec = 0.025;
-      const leadInMs = leadInSec * 1000;
-
-      this._timelineStart = now + leadInMs;
-      this._audioTimelineStart = audioNow + leadInSec;
-      this._beatsInCurrentSegment = 0;
-      this._nextBeatExpectedTime = this._timelineStart + this._intervalMs;
-      this._nextBeatAudioTime = this._audioTimelineStart + this._audioIntervalSec;
+      this._nextBeatExpectedTime = now + leadInSec * 1000 + 60000 / this.bpm;
+      this._nextBeatAudioTime = audioNow + leadInSec + 60 / this.bpm;
 
       this._notifyStateChange();
-
-      // 1. Play the saved beat sample from its beginning
-      this._triggerAudioForBeat(this.currentBeat, this.currentCycle, this._audioTimelineStart);
-
-      // 2. Keep visual highlight on the current beat
+      this._triggerAudioForBeat(this.currentBeat, this.currentCycle, audioNow + leadInSec);
       this._notifyBeat();
-
-      // 3. Schedule the subsequent tick
       this._scheduleNextTick(session);
     },
 
@@ -302,7 +234,7 @@
         return;
       }
 
-      const now = (typeof performance !== "undefined" && performance.now) ? performance.now() : Date.now();
+      const now = performance.now();
       const delay = Math.max(0, this._nextBeatExpectedTime - now);
 
       this._timerId = setTimeout(() => {
@@ -321,9 +253,15 @@
         return;
       }
 
-      // 1. Check if STOP AFTER CYCLE was requested and the final beat was just completed
+      const intervalMs = 60000 / this.bpm;
+      if (performance.now() >= this._nextBeatExpectedTime + intervalMs) {
+        this._recoverMissedBeats();
+        return;
+      }
+
+      // Let the final sample finish naturally, without starting another cycle.
       if (this._stopAfterCycleRequested && this.currentBeat === this.totalBeats) {
-        this.stopImmediate();
+        this._finishPlayback(false);
         return;
       }
 
@@ -338,13 +276,9 @@
         this.currentBeat += 1;
       }
 
-      // 3. Compute target timestamps on both monotonic timelines
-      this._beatsInCurrentSegment += 1;
-      const targetAudioTime = this._audioTimelineStart + (this._beatsInCurrentSegment * this._audioIntervalSec);
-      this._nextBeatAudioTime = targetAudioTime + this._audioIntervalSec;
-      this._nextBeatExpectedTime = this._timelineStart + ((this._beatsInCurrentSegment + 1) * this._intervalMs);
-
-      // 4. Trigger audio for current beat boundary immediately (before visual RAF delay)
+      const targetAudioTime = this._nextBeatAudioTime;
+      this._nextBeatAudioTime += intervalMs / 1000;
+      this._nextBeatExpectedTime += intervalMs;
       this._triggerAudioForBeat(this.currentBeat, this.currentCycle, targetAudioTime);
 
       // 5. Schedule the subsequent tick before rendering
@@ -360,6 +294,10 @@
      * cycle to 1, clears pending cycle stop requests, and restores STOPPED state.
      */
     stopImmediate: function () {
+      this._finishPlayback(true);
+    },
+
+    _finishPlayback: function (silence) {
       // Invalidate session immediately
       this._sessionToken = null;
 
@@ -369,7 +307,7 @@
       }
 
       // Stop all currently playing or scheduled audio immediately
-      if (this.audioEngine && typeof this.audioEngine.stopAll === "function") {
+      if (silence && this.audioEngine && typeof this.audioEngine.stopAll === "function") {
         this.audioEngine.stopAll();
       }
 
@@ -412,6 +350,15 @@
       }
     },
 
+    cancelStopAfterCycle: function () {
+      if (!this._stopAfterCycleRequested) return;
+      this._stopAfterCycleRequested = false;
+      this.state = this.state === this.STATE_PAUSED_AFTER_CYCLE_REQUEST
+        ? this.STATE_PAUSED
+        : this.STATE_PLAYING;
+      this._notifyStateChange();
+    },
+
     /**
      * Dispatches visual update using requestAnimationFrame.
      */
@@ -452,44 +399,34 @@
         return; // Paused or stopped: do not advance
       }
 
-      const now = (typeof performance !== "undefined" && performance.now) ? performance.now() : Date.now();
-      const elapsed = Math.max(0, now - this._timelineStart);
-      const totalElapsedBeats = Math.floor(elapsed / this._intervalMs);
+      this._recoverMissedBeats();
+    },
 
-      if (this._stopAfterCycleRequested) {
-        const remainingInCycle = this.totalBeats - this.currentBeat;
-        if (totalElapsedBeats >= remainingInCycle) {
-          this.stopImmediate();
-          return;
-        }
+    _recoverMissedBeats: function () {
+      const now = performance.now();
+      const delay = now - this._nextBeatExpectedTime;
+      const intervalMs = 60000 / this.bpm;
+      if (delay < intervalMs) return;
+
+      const beatsAdvanced = 1 + Math.floor(delay / intervalMs);
+      if (this._stopAfterCycleRequested && beatsAdvanced > this.totalBeats - this.currentBeat) {
+        this._finishPlayback(false);
+        return;
       }
 
-      // Calculate the logical beat and cycle from real elapsed time
-      const beatsAdvanced = totalElapsedBeats - this._beatsInCurrentSegment;
-      if (beatsAdvanced > 0) {
-        const newTotalBeatIndex = (this.currentBeat - 1) + beatsAdvanced;
-        this.currentCycle += Math.floor(newTotalBeatIndex / this.totalBeats);
-        this.currentBeat = (newTotalBeatIndex % this.totalBeats) + 1;
+      const beatIndex = this.currentBeat - 1 + beatsAdvanced;
+      const cyclesAdvanced = Math.floor(beatIndex / this.totalBeats);
+      this.currentCycle += cyclesAdvanced;
+      this.currentBeat = (beatIndex % this.totalBeats) + 1;
+      if (cyclesAdvanced && typeof this.onCycle === "function") this.onCycle(this.currentCycle);
 
-        // Re-anchor timeline cleanly from right now
-        this._timelineStart = now;
-        if (this.audioEngine && this.audioEngine.ctx) {
-          this._audioTimelineStart = this.audioEngine.ctx.currentTime;
-        }
-        this._beatsInCurrentSegment = 0;
-        this._nextBeatExpectedTime = now + this._intervalMs;
-        this._nextBeatAudioTime = this._audioTimelineStart + this._audioIntervalSec;
+      this._nextBeatExpectedTime += beatsAdvanced * intervalMs;
+      const audioNow = this.audioEngine?.ctx?.currentTime ?? 0;
+      this._nextBeatAudioTime = audioNow + (this._nextBeatExpectedTime - now) / 1000;
 
-        // Cancel any pending throttled timers and reschedule
-        if (this._timerId) {
-          clearTimeout(this._timerId);
-          this._timerId = null;
-        }
-        this._scheduleNextTick(this._sessionToken);
-
-        // Update visual display to current logical beat
-        this._notifyBeat();
-      }
+      if (this._timerId) clearTimeout(this._timerId);
+      this._scheduleNextTick(this._sessionToken);
+      this._notifyBeat();
     }
   };
 

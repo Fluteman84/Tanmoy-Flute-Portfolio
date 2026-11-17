@@ -50,67 +50,44 @@
     return shiftsUntilSa || SCALES.ascending.length;
   }
 
-  function mapAscendingGroup(group, shift) {
-    let output = "";
-
-    for (const token of group) {
-      if (token === "-") {
-        output += "-";
-        continue;
-      }
-
-      const originalIndex = digitIndex(token);
-      const shiftedIndex = (originalIndex + shift) % SCALES.ascending.length;
-      const reachedUpperSa = shiftedIndex === 0 && originalIndex + shift >= SCALES.ascending.length;
-
-      output += reachedUpperSa ? "S'" : SCALES.ascending[shiftedIndex];
-    }
-
-    return output;
-  }
-
-  function mapDescendingGroup(group, shift) {
-    let output = "";
-
-    for (const token of group) {
-      if (token === "-") {
-        output += "-";
-        continue;
-      }
-
-      const shiftedIndex = (digitIndex(token) + shift) % SCALES.descending.length;
-      output += shiftedIndex === 0 && shift > 0 ? "S" : SCALES.descending[shiftedIndex];
-    }
-
-    return output;
-  }
-
-  function generateDirection(pattern, direction) {
-    const parsed = parsePalta(pattern);
-    const mapGroup = direction === "ascending" ? mapAscendingGroup : mapDescendingGroup;
-    const finalShift = Math.min(...parsed.groups.map(getGroupRowLimit));
+  function generateDirection({ groups }, direction) {
+    const scale = SCALES[direction];
+    const farSa = direction === "ascending" ? "S'" : "S";
+    const finalShift = groups.reduce((limit, group) => Math.min(limit, getGroupRowLimit(group)), scale.length);
     const rows = [];
 
     for (let shift = 0; shift <= finalShift; shift += 1) {
-      rows.push(parsed.groups.map((group) => mapGroup(group, shift)).join(" "));
+      rows.push(groups.map((group) => {
+        let notes = "";
+        for (const token of group) {
+          if (token === "-") {
+            notes += "-";
+          } else {
+            const index = Number(token) - 1 + shift;
+            const degree = index % scale.length;
+            notes += degree === 0 && index > 0 ? farSa : scale[degree];
+          }
+        }
+        return notes;
+      }).join(" "));
     }
-
     return rows;
   }
 
   function generateAscending(pattern) {
-    return generateDirection(pattern, "ascending");
+    return generateDirection(parsePalta(pattern), "ascending");
   }
 
   function generateDescending(pattern) {
-    return generateDirection(pattern, "descending");
+    return generateDirection(parsePalta(pattern), "descending");
   }
 
   function generateBoth(pattern) {
+    const parsed = parsePalta(pattern);
     return {
-      formula: parsePalta(pattern).raw,
-      ascending: generateAscending(pattern),
-      descending: generateDescending(pattern)
+      formula: parsed.raw,
+      ascending: generateDirection(parsed, "ascending"),
+      descending: generateDirection(parsed, "descending")
     };
   }
 
@@ -130,9 +107,14 @@
     helper.style.position = "fixed";
     helper.style.opacity = "0";
     document.body.appendChild(helper);
-    helper.select();
-    document.execCommand("copy");
-    helper.remove();
+    const focused = document.activeElement;
+    try {
+      helper.select();
+      if (!document.execCommand("copy")) throw new Error("Clipboard copy failed.");
+    } finally {
+      helper.remove();
+      focused?.focus({ preventScroll: true });
+    }
   }
 
   function exportPalta(text, filename = "hindustani-palta.txt") {

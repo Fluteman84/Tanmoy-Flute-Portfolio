@@ -21,6 +21,8 @@
     currentTaal: null,
     metronome: null,
     audioEngine: null,
+    pendingPlayback: null,
+    dataWarnings: [],
 
     /**
      * Initializes the application once the DOM is ready.
@@ -65,14 +67,20 @@
           this.metronome ? this.metronome.state : "STOPPED"
         );
 
-        if (status === "ERROR" && errorMsg && this.elements.statusNotice && window.TaalRenderer) {
-          window.TaalRenderer.renderStatusNotice(
-            this.elements.statusNotice,
-            ["Audio Notice: " + errorMsg],
-            []
-          );
+        if (this.currentTaal && (status === "ERROR" || status === "READY")) {
+          this.showAudioNotice(status === "ERROR" ? errorMsg : "");
         }
       };
+    },
+
+    showAudioNotice: function (message) {
+      if (window.TaalRenderer) {
+        window.TaalRenderer.renderStatusNotice(
+          this.elements.statusNotice,
+          message ? [message] : [],
+          this.dataWarnings
+        );
+      }
     },
 
     /**
@@ -195,63 +203,36 @@
       if (btnPlay) {
         btnPlay.addEventListener("click", async (e) => {
           e.preventDefault();
-          if (!this.metronome) return;
-
-          // 1. If currently playing or stopping after cycle -> PAUSE
-          if (
-            this.metronome.state === this.metronome.STATE_PLAYING ||
-            this.metronome.state === this.metronome.STATE_STOPPING_AFTER_CYCLE
-          ) {
-            this.metronome.pause();
+          const metronome = this.metronome;
+          if (!metronome || !this.currentTaal || this.pendingPlayback) return;
+          if (metronome.state === metronome.STATE_PLAYING || metronome.state === metronome.STATE_STOPPING_AFTER_CYCLE) {
+            metronome.pause();
             return;
           }
 
-          // 2. If currently paused -> RESUME
-          if (
-            this.metronome.state === this.metronome.STATE_PAUSED ||
-            this.metronome.state === this.metronome.STATE_PAUSED_AFTER_CYCLE_REQUEST
-          ) {
-            if (this.audioEngine) {
-              await this.audioEngine.ensureContext();
-            }
-            this.metronome.resume();
-            return;
-          }
-
-          // 3. If currently stopped -> START from beat 1
-          // Audio initialization & user-gesture resumption
-          if (this.audioEngine) {
-            if (this.audioEngine.status === "UNINITIALIZED" || this.audioEngine.status === "LOADING") {
-              this.updatePlaybackInfoDisplay(1, 1, "LOADING");
-              const loaded = await this.audioEngine.loadSamples(this.soundPaths);
-              if (!loaded) {
-                if (this.elements.statusNotice && window.TaalRenderer) {
-                  window.TaalRenderer.renderStatusNotice(
-                    this.elements.statusNotice,
-                    [this.audioEngine.errorMessage || "Audio initialization failed. Check Sounds/ directory."],
-                    []
-                  );
-                }
-                return;
-              }
-            } else if (this.audioEngine.status === "ERROR") {
-              if (this.elements.statusNotice && window.TaalRenderer) {
-                window.TaalRenderer.renderStatusNotice(
-                  this.elements.statusNotice,
-                  [this.audioEngine.errorMessage || "Audio files are unavailable."],
-                  []
-                );
-              }
+          const request = {};
+          this.pendingPlayback = request;
+          try {
+            const audio = this.audioEngine;
+            if (!audio) {
+              this.showAudioNotice("Audio playback is unavailable.");
               return;
             }
 
-            // Ensure AudioContext is actively running
-            await this.audioEngine.ensureContext();
-          }
+            // Request activation on the click, while the browser still has the user's gesture.
+            const activated = await audio.ensureContext();
+            if (!activated || this.pendingPlayback !== request) {
+              if (this.pendingPlayback === request) this.showAudioNotice(audio.errorMessage || "Audio could not start. Press Play to retry.");
+              return;
+            }
 
-          if (this.metronome) {
-            this.metronome.setTaal(this.currentTaal);
-            this.metronome.start();
+            if (!await audio.loadSamples(this.soundPaths) || this.pendingPlayback !== request) return;
+            this.showAudioNotice("");
+
+            // The metronome starts from beat 1 when idle and resumes from the saved beat when paused.
+            metronome.start();
+          } finally {
+            if (this.pendingPlayback === request) this.pendingPlayback = null;
           }
         });
       }
@@ -260,6 +241,7 @@
       if (btnStopNow) {
         btnStopNow.addEventListener("click", (e) => {
           e.preventDefault();
+          this.pendingPlayback = null;
           if (this.metronome) {
             this.metronome.stopImmediate();
           }
@@ -270,8 +252,12 @@
       if (btnStopCycle) {
         btnStopCycle.addEventListener("click", (e) => {
           e.preventDefault();
-          if (this.metronome) {
-            this.metronome.stopAfterCycle();
+          const metronome = this.metronome;
+          if (!metronome) return;
+          if (metronome.state === metronome.STATE_STOPPING_AFTER_CYCLE || metronome.state === metronome.STATE_PAUSED_AFTER_CYCLE_REQUEST) {
+            metronome.cancelStopAfterCycle();
+          } else {
+            metronome.stopAfterCycle();
           }
         });
       }
@@ -394,6 +380,7 @@
       }
 
       this.taals = result.taals;
+      this.dataWarnings = result.warnings;
 
       // Select Tintaal by default if present, otherwise first available Taal
       let defaultTaal = this.taals.find((t) => t.id === "tintaal");
@@ -450,7 +437,8 @@
       const chosenTaal = this.taals.find((t) => t.id === selectedTaalId);
       if (!chosenTaal) return;
 
-      // 1. Stop any ongoing playback immediately
+      // Cancel pending audio activation and stop ongoing playback.
+      this.pendingPlayback = null;
       if (this.metronome) {
         this.metronome.stopImmediate();
       }

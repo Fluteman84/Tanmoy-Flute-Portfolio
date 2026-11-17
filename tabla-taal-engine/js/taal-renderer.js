@@ -320,6 +320,9 @@
       const stopCycleIconSvg = `<span class="btn-icon" aria-hidden="true"><svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg"><path d="M2.5 3L9.5 8L2.5 13V3Z" /><rect x="11.5" y="3" width="2" height="10" rx="0.5" /></svg></span>`;
       const stopCyclePendingIconSvg = `<span class="btn-icon" aria-hidden="true"><svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg"><circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="2" fill="none" stroke-dasharray="8 4" /></svg></span>`;
 
+      const stopPending = state === "STOPPING_AFTER_CYCLE" || state === "PAUSED_AFTER_CYCLE_REQUEST";
+      btnStopCycle.setAttribute("aria-label", stopPending ? "Cancel Stop After Cycle" : "Stop After Cycle");
+
       if (state === "STOPPED") {
         // Play button: Enabled, Shows "PLAY"
         btnPlay.classList.remove("is-playing");
@@ -389,7 +392,7 @@
         // Stop After Cycle: Shows pending status
         btnStopCycle.removeAttribute("disabled");
         btnStopCycle.classList.add("is-pending");
-        btnStopCycle.innerHTML = `${stopCyclePendingIconSvg}<span class="btn-label">FINISHING CYCLE...</span>`;
+        btnStopCycle.innerHTML = `${stopCyclePendingIconSvg}<span class="btn-label">CANCEL CYCLE STOP</span>`;
       } else if (state === "PAUSED_AFTER_CYCLE_REQUEST") {
         // Play button: Shows "PLAY" (Resume action)
         btnPlay.classList.remove("is-playing");
@@ -406,7 +409,7 @@
         // Stop After Cycle: Remains in pending state
         btnStopCycle.removeAttribute("disabled");
         btnStopCycle.classList.add("is-pending");
-        btnStopCycle.innerHTML = `${stopCyclePendingIconSvg}<span class="btn-label">FINISHING CYCLE...</span>`;
+        btnStopCycle.innerHTML = `${stopCyclePendingIconSvg}<span class="btn-label">CANCEL CYCLE STOP</span>`;
       }
     },
 

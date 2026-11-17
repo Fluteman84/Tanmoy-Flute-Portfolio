@@ -25,19 +25,23 @@ export function ZitarWorkspace() {
                   autoComplete="off"
                   spellCheck={false}
                   aria-label="Search patches by name, category or sound"
+                  role="combobox"
+                  aria-autocomplete="list"
+                  aria-controls="searchSuggestionsDropdown"
+                  aria-expanded="false"
                 />
                 <button type="button" id="searchClearBtn" className="search-clear-btn" aria-label="Clear search" style={{ display: "none" }}>&times;</button>
               </div>
               <div id="searchSuggestionsDropdown" className="search-suggestions-dropdown" style={{ display: "none" }} role="listbox" aria-label="Search Suggestions">
               </div>
             </div>
-            <div className="sidebar-patch-list-scroll" id="sidebarPatchListScroll" role="tablist" aria-label="Tone Presets">
+            <div className="sidebar-patch-list-scroll" id="sidebarPatchListScroll" role="tablist" aria-label="Tone Presets" aria-orientation="vertical">
             </div>
             <div id="noPatchesNotice" className="no-patches-notice" style={{ display: "none" }} role="status">
               No matching patches found.
             </div>
-            <select id="patchSelect" className="sr-only" aria-hidden="true"></select>
-            <div id="patchRibbon" className="sr-only" aria-hidden="true"></div>
+            <select id="patchSelect" hidden></select>
+            <div id="patchRibbon" hidden></div>
             <div className="sidebar-bottom-bar">
               <button type="button" id="sidebarSearchFocusBtn" className="sidebar-search-focus-btn">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -48,7 +52,7 @@ export function ZitarWorkspace() {
               </button>
             </div>
           </aside>
-          <div className="zitar-main-content">
+          <div className="zitar-main-content" id="tonePresetPanel" role="tabpanel" aria-label="Selected tone preset">
             <div className="selected-patch-header-bar">
               <div className="patch-header-main">
                 <div className="patch-meta-row">
@@ -80,7 +84,7 @@ export function ZitarWorkspace() {
                 </div>
               </div>
             </div>
-            <section className="amp-control-panel" id="ampControlPanel" aria-label="Gretex GT-15FX Amplifier Controls">
+            <section className="amp-control-panel" id="ampControlPanel" aria-label="Amplifier controls">
             </section>
           </div>
         </div>

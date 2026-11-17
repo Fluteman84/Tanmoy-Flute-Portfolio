@@ -23,7 +23,7 @@ The tool runs in the browser without a backend or database.
 
 ## Mapping rules
 
-For every digit, the generator uses its position relative to the row's starting swara. Ascending uses `S R G M P D N S'`; descending uses `S' N D P M G R S`. Groups and hyphens are preserved. A row stops when it reaches or would exceed the active octave boundary.
+For every digit, the generator uses its position relative to the row's starting swara. Ascending uses `S R G M P D N S'`; descending uses `S' N D P M G R S`. Digit 8 begins on the far Sa of the scale. Groups and hyphens are preserved as the starting swara shifts, and the final digit of each group determines where the sequence of rows ends.
 
 ## Important source-brief inconsistency
 

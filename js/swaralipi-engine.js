@@ -222,6 +222,7 @@
 
   S.cloneSection = function (sec) {
     var clone = S.createSection(sec.name);
+    if (sec.groupMode) clone.groupMode = true;
     clone.positions = sec.positions.map(S.clonePosition);
     return clone;
   };

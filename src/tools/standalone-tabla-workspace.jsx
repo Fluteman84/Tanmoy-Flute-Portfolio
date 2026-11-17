@@ -169,7 +169,7 @@ export function StandaloneWorkspace() {
           <div className="playback-controls-group">
             <label className="control-label">Playback</label>
             <div className="playback-buttons-cluster">
-              <button type="button" className="btn-play" id="btnPlay" aria-label="Play Taal" aria-pressed="false">
+              <button type="button" className="btn-play" id="btnPlay" aria-label="Play Taal" aria-pressed="false" disabled>
                 <span className="btn-icon" aria-hidden="true">
                   <svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
                     <path d="M4 2.5L13.5 8L4 13.5V2.5Z" />

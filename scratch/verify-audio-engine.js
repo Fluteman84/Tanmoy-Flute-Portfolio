@@ -178,7 +178,7 @@ audioStopCalled = false;
 MetronomeEngine._tick(MetronomeEngine._sessionToken);
 
 assert(MetronomeEngine.state === MetronomeEngine.STATE_STOPPED, "Test F.3: Stopped automatically at conclusion of final beat");
-assert(audioStopCalled, "Test F.4: All audio halted before next cycle Beat 1");
+assert(!audioStopCalled, "Test F.4: Final beat rings out without scheduling the next cycle");
 
 // Test G: Taal Switching during playback
 MetronomeEngine.state = MetronomeEngine.STATE_PLAYING;

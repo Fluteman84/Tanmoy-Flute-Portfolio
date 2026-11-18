@@ -24,7 +24,7 @@ import {
 } from "lucide-react";
 import songsData from "../../data/musician-sheets.json";
 import { resolveSongTimeline } from "../lib/song-parser";
-import { CONNECTION_STATUS, SYNC_MODES, SyncEngine } from "../lib/sync-engine";
+import { CONNECTION_STATUS, getDefaultSyncMode, SYNC_MODES, SyncEngine } from "../lib/sync-engine";
 import "../../css/musicians-sheet.css";
 
 const MUSICIAN_FORMATS = [
@@ -42,13 +42,25 @@ export function SheetWorkspace() {
   const [performanceMode, setPerformanceMode] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
 
+  const isHttps = typeof window !== "undefined" && window.location?.protocol === "https:";
+  const isLocalhost =
+    typeof window !== "undefined" &&
+    (window.location?.hostname === "localhost" ||
+      window.location?.hostname === "127.0.0.1");
+  const isRemoteHttps = isHttps && !isLocalhost;
+
   // Sync and Playback State
   const [role, setRole] = useState("master"); // "master" | "participant"
   const [sessionCode, setSessionCode] = useState("BAND01");
-  const [syncMode, setSyncMode] = useState(SYNC_MODES.WEBSOCKET);
+  const [syncMode, setSyncMode] = useState(() => getDefaultSyncMode());
   const [wsUrl, setWsUrl] = useState(() => {
     if (typeof window !== "undefined" && window.location) {
-      return `ws://${window.location.hostname || "localhost"}:8765`;
+      const host = window.location.hostname || "localhost";
+      const isSecure = window.location.protocol === "https:";
+      if (host === "localhost" || host === "127.0.0.1") {
+        return "ws://localhost:8765";
+      }
+      return isSecure ? `wss://${host}:8765` : `ws://${host}:8765`;
     }
     return "ws://localhost:8765";
   });
@@ -887,10 +899,33 @@ export function SheetWorkspace() {
                   value={syncMode}
                   onChange={(e) => handleSyncModeChange(e.target.value)}
                 >
+                  <option value={SYNC_MODES.BROADCAST_CHANNEL}>Local Browser Tab Sync (Zero Setup / Same Browser Tabs)</option>
                   <option value={SYNC_MODES.WEBSOCKET}>Network WebSocket Relay (Multi-Device Wi-Fi / LAN)</option>
-                  <option value={SYNC_MODES.BROADCAST_CHANNEL}>Local Browser Tab Sync (Testing Mode)</option>
                 </select>
               </div>
+
+              {isRemoteHttps && syncMode === SYNC_MODES.WEBSOCKET && (
+                <div style={{
+                  background: "rgba(216, 168, 93, 0.12)",
+                  border: "1px solid var(--sheet-gold-border)",
+                  borderRadius: "10px",
+                  padding: "0.75rem 0.9rem",
+                  marginBottom: "1rem",
+                  fontSize: "0.78rem",
+                  lineHeight: "1.45",
+                  color: "var(--sheet-text-secondary)"
+                }}>
+                  <strong style={{ color: "var(--sheet-gold-bright)" }}>HTTPS Mixed Content Policy:</strong>
+                  <p style={{ margin: "0.3rem 0 0 0" }}>
+                    Because GitHub Pages uses HTTPS, browsers automatically block unencrypted <code>ws://</code> endpoints.
+                  </p>
+                  <ul style={{ margin: "0.35rem 0 0 0", paddingLeft: "1.1rem", color: "var(--sheet-text-muted)" }}>
+                    <li>To test live sync across tabs right now, select <strong>Local Browser Tab Sync</strong>.</li>
+                    <li>To test cross-device Wi-Fi with <code>npm run sync-server</code>, run the site locally over HTTP (<code>http://localhost:5173/sheet.html</code>).</li>
+                    <li>For remote internet sync, enter a secure <code>wss://</code> endpoint.</li>
+                  </ul>
+                </div>
+              )}
 
               {syncMode === SYNC_MODES.WEBSOCKET && (
                 <div style={{ marginBottom: "1.2rem" }}>
@@ -906,11 +941,18 @@ export function SheetWorkspace() {
                       setWsUrl(e.target.value);
                       handleSyncModeChange(SYNC_MODES.WEBSOCKET, e.target.value);
                     }}
-                    placeholder="ws://localhost:8765"
+                    placeholder={isRemoteHttps ? "wss://your-relay-service.com" : "ws://localhost:8765"}
                   />
-                  <small style={{ display: "block", marginTop: "0.4rem", color: "var(--sheet-text-muted)", fontSize: "0.74rem" }}>
-                    To sync across physical phones/tablets over local Wi-Fi, run <code>npm run sync-server</code> on your rehearsal machine and enter <code>ws://&lt;your-local-ip&gt;:8765</code>.
-                  </small>
+                  {isRemoteHttps && wsUrl.startsWith("ws://") && (
+                    <small style={{ display: "block", marginTop: "0.4rem", color: "#fca5a5", fontSize: "0.74rem" }}>
+                      ⚠️ Browser security will block <code>ws://</code> on this HTTPS page. Use <code>wss://</code> or switch to Local Browser Tab Sync.
+                    </small>
+                  )}
+                  {!isRemoteHttps && (
+                    <small style={{ display: "block", marginTop: "0.4rem", color: "var(--sheet-text-muted)", fontSize: "0.74rem" }}>
+                      To sync across physical phones/tablets over local Wi-Fi, run <code>npm run sync-server</code> on your rehearsal machine and enter <code>ws://&lt;your-local-ip&gt;:8765</code>.
+                    </small>
+                  )}
                 </div>
               )}
 

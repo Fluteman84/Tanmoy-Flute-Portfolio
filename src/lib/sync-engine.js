@@ -26,6 +26,21 @@ export const SYNC_MODES = {
   BROADCAST_CHANNEL: "broadcast_channel",
 };
 
+export function getDefaultSyncMode() {
+  if (typeof window !== "undefined" && window.location) {
+    const isHttps = window.location.protocol === "https:";
+    const isLocalhost =
+      window.location.hostname === "localhost" ||
+      window.location.hostname === "127.0.0.1";
+    // On remote HTTPS pages (e.g. GitHub Pages), browsers block insecure ws://
+    // Default to BroadcastChannel (Local Tab Sync) unless running on localhost or wss://
+    if (isHttps && !isLocalhost) {
+      return SYNC_MODES.BROADCAST_CHANNEL;
+    }
+  }
+  return SYNC_MODES.WEBSOCKET;
+}
+
 export class SyncEngine {
   constructor(options = {}) {
     this.deviceId = options.deviceId || `device_${Math.random().toString(36).slice(2, 9)}`;
@@ -33,7 +48,7 @@ export class SyncEngine {
     this.role = options.role || "master"; // "master" | "participant"
     this.musicianFormat = options.musicianFormat || "guitar";
     this.deviceName = options.deviceName || (this.role === "master" ? "Master Device" : `${this.musicianFormat} Player`);
-    this.syncMode = options.syncMode || SYNC_MODES.WEBSOCKET;
+    this.syncMode = options.syncMode || getDefaultSyncMode();
     this.wsUrl = options.wsUrl || this._getDefaultWsUrl();
 
     // Timeline and Song
@@ -55,6 +70,7 @@ export class SyncEngine {
     this.latencyMs = 0;
     this.connectionStatus = CONNECTION_STATUS.DISCONNECTED;
     this.connectedDevices = [];
+    this.reconnectAttempts = 0;
 
     // Animation & Beat Loop
     this.rafId = null;
@@ -80,7 +96,11 @@ export class SyncEngine {
   _getDefaultWsUrl() {
     if (typeof window !== "undefined" && window.location) {
       const host = window.location.hostname || "localhost";
-      return `ws://${host}:8765`;
+      const isHttps = window.location.protocol === "https:";
+      if (host === "localhost" || host === "127.0.0.1") {
+        return "ws://localhost:8765";
+      }
+      return isHttps ? `wss://${host}:8765` : `ws://${host}:8765`;
     }
     return "ws://localhost:8765";
   }
@@ -186,6 +206,27 @@ export class SyncEngine {
   // ── WebSocket Adapter ──────────────────────────────────────────────
 
   _connectWebSocket() {
+    if (!this.wsUrl) {
+      this._setConnectionStatus(CONNECTION_STATUS.DISCONNECTED);
+      return;
+    }
+
+    // Guard against browser Mixed Content blocking:
+    // Pages loaded over HTTPS cannot connect to insecure ws:// unless running on localhost.
+    if (typeof window !== "undefined" && window.location) {
+      const isHttps = window.location.protocol === "https:";
+      const isLocalhost =
+        this.wsUrl.includes("localhost") || this.wsUrl.includes("127.0.0.1");
+
+      if (isHttps && this.wsUrl.startsWith("ws://") && !isLocalhost) {
+        console.warn(
+          `[Musician's Sheet Sync] Insecure WebSocket (${this.wsUrl}) blocked on HTTPS page due to browser Mixed Content policies. Please provide a secure wss:// URL or switch to Local Tab Sync.`
+        );
+        this._setConnectionStatus(CONNECTION_STATUS.DISCONNECTED);
+        return;
+      }
+    }
+
     try {
       const ws = new WebSocket(this.wsUrl);
       this.adapter = {
@@ -199,6 +240,7 @@ export class SyncEngine {
       };
 
       ws.onopen = () => {
+        this.reconnectAttempts = 0;
         this._setConnectionStatus(CONNECTION_STATUS.CONNECTED);
         this._sendJoinMessage();
         this._startPingInterval();
@@ -214,26 +256,33 @@ export class SyncEngine {
       };
 
       ws.onerror = () => {
-        // Will trigger onclose
+        // Handled in onclose
       };
 
       ws.onclose = () => {
-        this._setConnectionStatus(CONNECTION_STATUS.RECONNECTING);
         this._scheduleReconnect();
       };
     } catch (err) {
-      this._setConnectionStatus(CONNECTION_STATUS.RECONNECTING);
       this._scheduleReconnect();
     }
   }
 
   _scheduleReconnect() {
     if (this._reconnectTimer) clearTimeout(this._reconnectTimer);
+    this.reconnectAttempts = (this.reconnectAttempts || 0) + 1;
+
+    // After 3 attempts, cease automatic reconnecting to avoid spamming the console
+    if (this.reconnectAttempts > 3) {
+      this._setConnectionStatus(CONNECTION_STATUS.DISCONNECTED);
+      return;
+    }
+
+    this._setConnectionStatus(CONNECTION_STATUS.RECONNECTING);
     this._reconnectTimer = setTimeout(() => {
       if (this.connectionStatus === CONNECTION_STATUS.RECONNECTING) {
         this._connectWebSocket();
       }
-    }, 3000);
+    }, 4000);
   }
 
   // ── BroadcastChannel Adapter (Local Multi-Tab Test) ────────────────

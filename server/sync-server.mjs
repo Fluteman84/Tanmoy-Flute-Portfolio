@@ -190,23 +190,22 @@ export function createSyncServer() {
       return;
     }
 
-    const hash = crypto.createHash("sha1").update(secKey + WS_GUID).digest("base44").replace(/[^a-zA-Z0-9+/=]/g, "") ||
-      crypto.createHash("sha1").update(secKey + WS_GUID).digest("base64");
-    const correctHash = crypto.createHash("sha1").update(secKey + WS_GUID).digest("base64");
+    const acceptKey = crypto.createHash("sha1").update(secKey + WS_GUID).digest("base64");
 
-    const headers = [
+    const responseHeaders = [
       "HTTP/1.1 101 Switching Protocols",
       "Upgrade: websocket",
       "Connection: Upgrade",
-      `Sec-WebSocket-Accept: ${correctHash}`,
-      "\r\n",
-    ];
+      `Sec-WebSocket-Accept: ${acceptKey}`,
+      "",
+      "",
+    ].join("\r\n");
 
-    socket.write(headers.join("\r\n"));
+    socket.write(responseHeaders);
 
     let currentClient = null;
     let currentSession = null;
-    let buffer = Buffer.alloc(0);
+    let buffer = head && head.length > 0 ? Buffer.from(head) : Buffer.alloc(0);
 
     socket.on("data", (chunk) => {
       buffer = Buffer.concat([buffer, chunk]);

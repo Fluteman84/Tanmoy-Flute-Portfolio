@@ -1193,7 +1193,16 @@
     // Space handling — Finalise position & advance cursor (Part 2)
     if (ch === " ") {
       if (this.groupMode) {
+        if (this.inputBuffer) {
+          if (S.bufferHasSwara(this.inputBuffer) || this.inputBuffer.trim() === "-") {
+            this._saveSnapshot();
+          }
+        }
+        // Finalise the group and automatically turn Group Mode OFF
         this._setGroupMode(false);
+        if (this.undoMgr._undo.length > 0) {
+          this.undoMgr._undo[this.undoMgr._undo.length - 1].groupMode = false;
+        }
         this._newPositionPending = true;
         return;
       }

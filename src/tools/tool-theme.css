@@ -1,20 +1,318 @@
-.notes-page .portfolio-header {
-  color: var(--foreground);
-  background: var(--background);
+/* ==========================================================================
+   Unified Design System — Tool Pages Theme
+   Tanmoy Pramanik Musical Platform
+   Enforces visual consistency with index.html master design reference:
+   - Dark Charcoal Background (#05090d, #0b1218)
+   - Muted Gold Accent (#d8a85d, #f4d9a9)
+   - Typography: Cormorant Garamond (headings/serif) + Manrope (body/UI)
+   - Shared Header & Responsive Mobile Navigation (Back to Stage + Tools)
+   ========================================================================== */
+
+/* ── Enforce Tokens and Page Background ───────────────────────────────── */
+:root {
+  --tool-bg-page: radial-gradient(circle at 84% 10%, rgba(216, 168, 93, 0.16), transparent 25%),
+                  radial-gradient(circle at 14% 62%, rgba(130, 187, 204, 0.1), transparent 26%),
+                  linear-gradient(180deg, #05090d 0%, #0a151a 52%, #05090d 100%);
+  --tool-gold: #d8a85d;
+  --tool-gold-bright: #f4d9a9;
+  --tool-gold-soft: rgba(216, 168, 93, 0.18);
+  --tool-text-primary: #f8f1e5;
+  --tool-text-secondary: #c4ccd0;
+  --tool-text-muted: #8a959b;
+  --tool-border-soft: rgba(255, 255, 255, 0.1);
+  --tool-border-gold: rgba(216, 168, 93, 0.32);
 }
-.notes-page .header-inner {
-  min-height: 4.4rem;
-}
-.notes-page .header-actions {
-  gap: .35rem;
-}
-.notes-page .header-actions [data-slot="button"]:hover {
-  background: var(--muted);
-  color: var(--foreground);
-}
-.notes-page .notes-main {
+
+body.notes-page {
+  font-family: "Manrope", sans-serif !important;
+  color: var(--tool-text-primary) !important;
+  background: var(--tool-bg-page) !important;
+  min-height: 100vh;
+  margin: 0;
   color-scheme: dark;
 }
-@media (max-width: 350px) {
-  .notes-page .wordmark { font-size: 1.45rem; }
+
+/* Override Tailwind / Radix / shadcn tokens specifically on .notes-page */
+.notes-page {
+  --background: #05090d;
+  --foreground: #f8f1e5;
+  --primary: #d8a85d;
+  --primary-foreground: #05090d;
+  --secondary: #0b1218;
+  --secondary-foreground: #f8f1e5;
+  --muted: rgba(255, 255, 255, 0.08);
+  --muted-foreground: #8a959b;
+  --border: rgba(255, 255, 255, 0.1);
+  --input: rgba(255, 255, 255, 0.08);
+  --popover: rgba(8, 18, 24, 0.97);
+  --popover-foreground: #f8f1e5;
+  --ring: #d8a85d;
+  --display: "Cormorant Garamond", Georgia, serif;
+}
+
+/* ── Typography Hierarchy ─────────────────────────────────────────────── */
+.notes-page h1,
+.notes-page h2,
+.notes-page h3,
+.notes-page .brand-mark,
+.notes-page .wordmark {
+  font-family: "Cormorant Garamond", serif !important;
+}
+
+.notes-page button,
+.notes-page input,
+.notes-page select,
+.notes-page textarea,
+.notes-page p,
+.notes-page span:not(.brand-mark),
+.notes-page label,
+.notes-page a {
+  font-family: "Manrope", sans-serif;
+}
+
+/* ── Tool Header Bar ─────────────────────────────────────────────────── */
+.notes-page .portfolio-header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  flex-shrink: 0;
+  background: rgba(6, 11, 16, 0.88) !important;
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+  color: var(--tool-text-primary) !important;
+}
+
+.notes-page .header-inner {
+  min-height: 4.8rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: relative;
+}
+
+.notes-page .wordmark {
+  color: var(--tool-text-primary) !important;
+  font-family: "Cormorant Garamond", serif !important;
+  font-size: 1.78rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: baseline;
+  transition: opacity 200ms ease;
+}
+
+.notes-page .wordmark:hover {
+  opacity: 0.92;
+}
+
+.notes-page .wordmark i {
+  color: var(--tool-gold) !important;
+  font-style: normal;
+  font-weight: 600;
+  margin-left: 0.22em;
+}
+
+/* ── Desktop Navigation ──────────────────────────────────────────────── */
+.notes-page .tool-desktop-nav {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+}
+
+.notes-page .notes-back-link {
+  color: var(--tool-text-secondary) !important;
+  border: 1px solid var(--tool-border-soft) !important;
+  border-radius: 999px !important;
+  padding: 0.55rem 1.15rem !important;
+  background: rgba(255, 255, 255, 0.05) !important;
+  transition: color 240ms ease, border-color 240ms ease, background 240ms ease, transform 240ms ease;
+  font-family: "Manrope", sans-serif !important;
+  font-size: 0.84rem;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  text-decoration: none;
+}
+
+.notes-page .notes-back-link:hover {
+  color: var(--tool-gold-bright) !important;
+  border-color: rgba(216, 168, 93, 0.45) !important;
+  background: rgba(216, 168, 93, 0.12) !important;
+  transform: translateY(-1px);
+}
+
+.notes-page .nav-tools {
+  color: var(--tool-text-secondary) !important;
+  font-family: "Manrope", sans-serif !important;
+  font-size: 0.86rem;
+  font-weight: 600;
+  background: transparent !important;
+  border: none;
+  padding: 0.55rem 0.85rem;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  cursor: pointer;
+  transition: color 240ms ease, background 240ms ease;
+}
+
+.notes-page .nav-tools:hover {
+  color: var(--tool-text-primary) !important;
+  background: rgba(255, 255, 255, 0.07) !important;
+}
+
+/* ── Tools Dropdown Menu (Radix Content) ──────────────────────────────── */
+.tools-menu {
+  min-width: min(19rem, calc(100vw - 2rem));
+  background: rgba(8, 18, 24, 0.97) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  border-radius: 16px !important;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  box-shadow: 0 20px 48px rgba(0, 0, 0, 0.55) !important;
+  padding: 0.45rem !important;
+  color: var(--tool-text-primary) !important;
+  z-index: 250;
+}
+
+.tools-menu a {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.7rem;
+  border-radius: 10px;
+  padding: 0.65rem 0.85rem;
+  color: var(--tool-text-secondary) !important;
+  text-decoration: none;
+  font-family: "Manrope", sans-serif !important;
+  font-size: 0.88rem;
+  font-weight: 600;
+  transition: background 200ms ease, color 200ms ease;
+}
+
+.tools-menu a:hover,
+.tools-menu a[data-highlighted] {
+  background: rgba(255, 255, 255, 0.08) !important;
+  color: var(--tool-text-primary) !important;
+}
+
+.tools-menu a span {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.tools-menu a small {
+  color: var(--tool-text-muted) !important;
+  font-size: 0.74rem;
+  font-weight: 400;
+}
+
+/* ── Mobile Navigation Drawer & Hamburger Toggle ─────────────────────── */
+.notes-page .mobile-nav-toggle {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  background: rgba(255, 255, 255, 0.06) !important;
+  color: var(--tool-text-primary) !important;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 240ms ease, color 240ms ease, border-color 240ms ease;
+}
+
+.notes-page .mobile-nav-toggle:hover {
+  background: rgba(255, 255, 255, 0.1) !important;
+  color: var(--tool-gold-bright) !important;
+  border-color: rgba(216, 168, 93, 0.35) !important;
+}
+
+.notes-page .tool-mobile-nav {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  right: 1rem;
+  width: min(280px, calc(100% - 2rem));
+  padding: 0.85rem;
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  background: rgba(8, 18, 24, 0.96) !important;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  box-shadow: 0 24px 44px rgba(0, 0, 0, 0.5) !important;
+  display: none;
+  flex-direction: column;
+  gap: 0.5rem;
+  z-index: 150;
+}
+
+.notes-page .tool-mobile-nav[data-open="true"] {
+  display: flex;
+}
+
+.notes-page .tool-mobile-back {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.72rem 0.9rem;
+  border-radius: 12px;
+  color: var(--tool-text-primary) !important;
+  font-family: "Manrope", sans-serif !important;
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-decoration: none;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  transition: background 240ms ease, color 240ms ease, border-color 240ms ease;
+}
+
+.notes-page .tool-mobile-back:hover,
+.notes-page .tool-mobile-back:active {
+  background: rgba(216, 168, 93, 0.14) !important;
+  border-color: rgba(216, 168, 93, 0.4) !important;
+  color: var(--tool-gold-bright) !important;
+}
+
+.notes-page .tool-mobile-nav .nav-tools {
+  width: 100%;
+  justify-content: space-between;
+  padding: 0.72rem 0.9rem;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: var(--tool-text-primary) !important;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.notes-page .tool-mobile-nav .nav-tools:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* ── Responsive Navigation Breakpoint (Matching responsive.css <= 860px) ── */
+@media (max-width: 860px) {
+  .notes-page .tool-desktop-nav {
+    display: none !important;
+  }
+
+  .notes-page .mobile-nav-toggle {
+    display: inline-flex !important;
+  }
+}
+
+@media (min-width: 861px) {
+  .notes-page .tool-mobile-nav {
+    display: none !important;
+  }
+}
+
+@media (max-width: 380px) {
+  .notes-page .wordmark {
+    font-size: 1.5rem;
+  }
 }

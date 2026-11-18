@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ArrowLeft, ArrowUpRight, ChevronDown, Menu, X } from "lucide-react";
 import { DropdownMenu } from "radix-ui";
 import { Button } from "./ui/button";
@@ -43,22 +43,63 @@ function ToolsMenu() {
 
 export function Header({ toolPage = false }) {
   const [expanded, setExpanded] = useState(false);
+
+  useEffect(() => {
+    if (!expanded) return;
+    const handlePointerDown = (event) => {
+      if (!event.target.closest(".portfolio-header") && !event.target.closest(".tools-menu")) {
+        setExpanded(false);
+      }
+    };
+    document.addEventListener("pointerdown", handlePointerDown);
+    return () => document.removeEventListener("pointerdown", handlePointerDown);
+  }, [expanded]);
+
   return (
-    <header className="portfolio-header" id="top" onKeyDown={(event) => {
+    <header className={`portfolio-header ${toolPage ? "site-header tool-header" : ""}`} id="top" onKeyDown={(event) => {
       if (event.key === "Escape" && expanded) {
         setExpanded(false);
-        event.currentTarget.querySelector(".mobile-nav-toggle").focus();
+        event.currentTarget.querySelector(".mobile-nav-toggle")?.focus();
       }
     }}>
-      <div className="site-frame header-inner">
+      <div className={`site-frame header-inner ${toolPage ? "nav-shell" : ""}`}>
         <Wordmark href={toolPage ? "index.html" : "#top"} />
         {toolPage ? (
-          <nav className="header-actions" aria-label="Main navigation">
-            <ToolsMenu />
-            <Button asChild variant="outline">
-              <a href="index.html"><ArrowLeft aria-hidden="true" /> Portfolio</a>
+          <>
+            <nav className="header-actions tool-desktop-nav" aria-label="Main navigation">
+              <ToolsMenu />
+              <Button asChild variant="outline" className="notes-back-link">
+                <a href="index.html"><ArrowLeft aria-hidden="true" /> Back to Stage</a>
+              </Button>
+            </nav>
+            <Button
+              className="mobile-nav-toggle"
+              variant="outline"
+              size="icon-lg"
+              aria-expanded={expanded}
+              aria-controls="tool-nav"
+              aria-label={expanded ? "Close navigation" : "Open navigation"}
+              onClick={() => setExpanded(!expanded)}
+            >
+              {expanded ? <X aria-hidden="true" /> : <Menu aria-hidden="true" />}
             </Button>
-          </nav>
+            <nav
+              className="portfolio-nav tool-mobile-nav"
+              aria-label="Main navigation"
+              id="tool-nav"
+              data-open={expanded}
+            >
+              <a
+                href="index.html"
+                className="tool-mobile-back"
+                onClick={() => setExpanded(false)}
+              >
+                <ArrowLeft size={16} aria-hidden="true" />
+                <span>Back to Stage</span>
+              </a>
+              <ToolsMenu />
+            </nav>
+          </>
         ) : (
           <>
             <Button className="mobile-nav-toggle" variant="outline" size="icon-lg"

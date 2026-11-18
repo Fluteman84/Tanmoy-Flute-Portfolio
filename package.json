@@ -5,7 +5,9 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "sync-server": "node server/sync-server.mjs",
+    "test": "node --test test/musicians-sheet.test.cjs test/tabla-timing.cjs"
   },
   "dependencies": {
     "@fontsource-variable/inter": "^5.3.0",

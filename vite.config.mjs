@@ -9,6 +9,7 @@ const entries = {
   notation: "notation.html",
   tabla: "tabla.html",
   zitar: "zitar.html",
+  sheet: "sheet.html",
   tablaStandalone: "tabla-taal-engine/index.html",
 };
 

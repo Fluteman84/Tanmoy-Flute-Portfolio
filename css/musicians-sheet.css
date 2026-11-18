@@ -1,0 +1,915 @@
+/* ==========================================================================
+   Musician's Sheet — Multi-Instrument Song Viewer & Live Synchronization
+   Tanmoy Pramanik Musical Platform
+
+   Design Philosophy:
+   - Dark Charcoal Background (#05090d, #0b1218)
+   - Muted Warm Gold Accents (#d8a85d, #f4d9a9)
+   - Cormorant Garamond (headings) + Manrope (body/musical UI)
+   - Minimalist, restrained borders, elegant stage typography
+   ========================================================================== */
+
+:root {
+  --sheet-gold: #d8a85d;
+  --sheet-gold-bright: #f4d9a9;
+  --sheet-gold-soft: rgba(216, 168, 93, 0.15);
+  --sheet-gold-border: rgba(216, 168, 93, 0.32);
+  --sheet-bg-panel: rgba(11, 20, 27, 0.88);
+  --sheet-bg-card: rgba(255, 255, 255, 0.04);
+  --sheet-border-subtle: rgba(255, 255, 255, 0.09);
+  --sheet-text-primary: #f8f1e5;
+  --sheet-text-secondary: #c4ccd0;
+  --sheet-text-muted: #8a959b;
+}
+
+/* ── Musician Workspace Container ─────────────────────────────────────── */
+.sheet-workspace {
+  min-height: calc(100vh - 4.8rem);
+  padding: 1.5rem 1.5rem 4rem 1.5rem;
+  box-sizing: border-box;
+  color: var(--sheet-text-primary);
+  position: relative;
+}
+
+.sheet-frame {
+  max-width: 1360px;
+  margin: 0 auto;
+}
+
+/* ── Top Bar / Header Area ────────────────────────────────────────────── */
+.sheet-top-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-bottom: 1.25rem;
+  margin-bottom: 1.5rem;
+  border-bottom: 1px solid var(--sheet-border-subtle);
+  flex-wrap: wrap;
+}
+
+.sheet-title-group h1 {
+  font-family: "Cormorant Garamond", Georgia, serif;
+  font-size: clamp(2rem, 3.8vw, 2.75rem);
+  font-weight: 600;
+  color: var(--sheet-text-primary);
+  letter-spacing: -0.02em;
+  margin: 0;
+  line-height: 1.1;
+}
+
+.sheet-title-group p {
+  color: var(--sheet-text-muted);
+  font-size: 0.88rem;
+  margin-top: 0.25rem;
+}
+
+.sheet-top-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+/* ── Status Badges ────────────────────────────────────────────────────── */
+.sheet-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.35rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--sheet-border-subtle);
+  color: var(--sheet-text-secondary);
+}
+
+.sheet-badge.badge-role-master {
+  background: rgba(216, 168, 93, 0.15);
+  border-color: var(--sheet-gold-border);
+  color: var(--sheet-gold-bright);
+}
+
+.sheet-badge.badge-role-participant {
+  background: rgba(130, 187, 204, 0.14);
+  border-color: rgba(130, 187, 204, 0.3);
+  color: #b3dfee;
+}
+
+.status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #64748b;
+  display: inline-block;
+}
+
+.status-dot.connected {
+  background: #34d399;
+  box-shadow: 0 0 8px #34d39988;
+}
+
+.status-dot.synchronizing,
+.status-dot.reconnecting {
+  background: #fbbf24;
+  box-shadow: 0 0 8px #fbbf2488;
+  animation: pulse-dot 1.4s infinite ease-in-out;
+}
+
+.status-dot.disconnected {
+  background: #ef4444;
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 0.4; transform: scale(0.9); }
+  50% { opacity: 1; transform: scale(1.15); }
+}
+
+/* ── Main Layout: Split Grid ─────────────────────────────────────────── */
+.sheet-layout {
+  display: grid;
+  grid-template-columns: 340px 1fr;
+  gap: 2rem;
+  align-items: start;
+}
+
+/* ── Left Sidebar / Control Panel ────────────────────────────────────── */
+.sheet-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  position: sticky;
+  top: 5.5rem;
+}
+
+.sheet-panel-card {
+  background: var(--sheet-bg-panel);
+  border: 1px solid var(--sheet-border-subtle);
+  border-radius: 16px;
+  padding: 1.25rem;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.sheet-panel-title {
+  font-size: 0.76rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--sheet-gold);
+  margin-bottom: 0.85rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* ── Song Selector & Metadata ────────────────────────────────────────── */
+.sheet-select {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--sheet-border-subtle);
+  color: var(--sheet-text-primary);
+  border-radius: 10px;
+  padding: 0.65rem 0.85rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  outline: none;
+  cursor: pointer;
+  transition: border-color 200ms ease;
+}
+
+.sheet-select:focus {
+  border-color: var(--sheet-gold);
+}
+
+.sheet-select option {
+  background: #09131a;
+  color: var(--sheet-text-primary);
+}
+
+.sheet-meta-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.6rem 0.85rem;
+  margin-top: 1rem;
+}
+
+.sheet-meta-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.sheet-meta-item .meta-label {
+  font-size: 0.72rem;
+  color: var(--sheet-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.sheet-meta-item .meta-val {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--sheet-text-primary);
+}
+
+.sheet-meta-notes {
+  margin-top: 0.85rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  font-size: 0.76rem;
+  color: var(--sheet-text-muted);
+  font-style: italic;
+  line-height: 1.45;
+}
+
+/* ── Performance Controls (Master & Participant) ─────────────────────── */
+.sheet-transport-grid {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.transport-btn {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  padding: 0.65rem 0.8rem;
+  border-radius: 10px;
+  font-size: 0.84rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: all 200ms ease;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--sheet-text-primary);
+}
+
+.transport-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.transport-btn.btn-play {
+  background: linear-gradient(135deg, rgba(216, 168, 93, 0.28), rgba(216, 168, 93, 0.12));
+  border-color: var(--sheet-gold-border);
+  color: var(--sheet-gold-bright);
+}
+
+.transport-btn.btn-play:hover {
+  background: linear-gradient(135deg, rgba(216, 168, 93, 0.4), rgba(216, 168, 93, 0.2));
+  color: #fff;
+}
+
+.transport-btn.btn-pause {
+  background: rgba(251, 191, 36, 0.16);
+  border-color: rgba(251, 191, 36, 0.35);
+  color: #fde68a;
+}
+
+.transport-btn.btn-stop {
+  background: rgba(239, 68, 68, 0.12);
+  border-color: rgba(239, 68, 68, 0.25);
+  color: #fca5a5;
+}
+
+.transport-nav-row {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.transport-nav-row .transport-btn {
+  font-size: 0.8rem;
+  padding: 0.5rem;
+}
+
+.sheet-param-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.sheet-param-row label {
+  font-size: 0.82rem;
+  color: var(--sheet-text-secondary);
+}
+
+.param-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.param-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid var(--sheet-border-subtle);
+  color: var(--sheet-text-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 150ms ease;
+}
+
+.param-btn:hover {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.param-val-input {
+  width: 54px;
+  text-align: center;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--sheet-border-subtle);
+  color: var(--sheet-text-primary);
+  border-radius: 6px;
+  padding: 0.3rem 0.2rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.param-select {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--sheet-border-subtle);
+  color: var(--sheet-text-primary);
+  border-radius: 6px;
+  padding: 0.35rem 0.5rem;
+  font-size: 0.82rem;
+}
+
+.toggle-switch-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.4rem 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.toggle-switch-row span {
+  font-size: 0.82rem;
+  color: var(--sheet-text-secondary);
+}
+
+/* ── Session & Device Roster ─────────────────────────────────────────── */
+.roster-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.82rem;
+  color: var(--sheet-text-muted);
+  margin-bottom: 0.6rem;
+}
+
+.roster-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  max-height: 180px;
+  overflow-y: auto;
+}
+
+.roster-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.45rem 0.65rem;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  font-size: 0.8rem;
+}
+
+.roster-item-info {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.roster-role-badge {
+  font-size: 0.68rem;
+  padding: 0.15rem 0.45rem;
+  border-radius: 4px;
+  background: rgba(216, 168, 93, 0.18);
+  color: var(--sheet-gold);
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+/* ── Main Content Area ───────────────────────────────────────────────── */
+.sheet-main-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  position: relative;
+  min-width: 0;
+}
+
+/* ── Musician Format Selector (Tabs) ─────────────────────────────────── */
+.sheet-format-selector {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: rgba(8, 18, 24, 0.75);
+  border: 1px solid var(--sheet-border-subtle);
+  border-radius: 14px;
+  padding: 0.4rem;
+  backdrop-filter: blur(10px);
+  position: sticky;
+  top: 5.2rem;
+  z-index: 30;
+}
+
+.format-tab-btn {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  padding: 0.65rem 1rem;
+  border-radius: 10px;
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--sheet-text-secondary);
+  font-family: "Manrope", sans-serif;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 200ms ease;
+  white-space: nowrap;
+}
+
+.format-tab-btn:hover {
+  color: var(--sheet-text-primary);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.format-tab-btn.active {
+  background: linear-gradient(135deg, rgba(216, 168, 93, 0.22), rgba(216, 168, 93, 0.08));
+  border-color: var(--sheet-gold-border);
+  color: var(--sheet-gold-bright);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+}
+
+/* ── Song Document Viewer (Vertical Section List) ────────────────────── */
+.sheet-document {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  position: relative;
+}
+
+.sheet-section-block {
+  background: rgba(11, 20, 27, 0.6);
+  border: 1px solid var(--sheet-border-subtle);
+  border-radius: 16px;
+  padding: 1.75rem 2rem;
+  position: relative;
+  transition: all 280ms cubic-bezier(0.16, 1, 0.3, 1);
+  scroll-margin-top: 10rem;
+}
+
+.sheet-section-block:hover {
+  border-color: rgba(255, 255, 255, 0.18);
+}
+
+/* Active Section Highlight */
+.sheet-section-block.is-active {
+  background: linear-gradient(145deg, rgba(216, 168, 93, 0.12), rgba(11, 20, 27, 0.9));
+  border-color: var(--sheet-gold);
+  box-shadow: 0 0 28px rgba(216, 168, 93, 0.2), inset 0 0 16px rgba(216, 168, 93, 0.06);
+  transform: scale(1.008);
+}
+
+.section-active-indicator {
+  position: absolute;
+  top: 1rem;
+  right: 1.25rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--sheet-gold-bright);
+  background: rgba(216, 168, 93, 0.18);
+  padding: 0.25rem 0.6rem;
+  border-radius: 999px;
+  border: 1px solid var(--sheet-gold-border);
+}
+
+.section-header-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  padding-bottom: 0.75rem;
+}
+
+.section-title {
+  font-family: "Cormorant Garamond", Georgia, serif;
+  font-size: 1.85rem;
+  font-weight: 600;
+  color: var(--sheet-text-primary);
+  margin: 0;
+  letter-spacing: -0.015em;
+  display: flex;
+  align-items: baseline;
+  gap: 0.65rem;
+}
+
+.section-repeat-tag {
+  font-family: "Manrope", sans-serif;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--sheet-gold);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0.15rem 0.5rem;
+  border-radius: 4px;
+  background: rgba(216, 168, 93, 0.14);
+}
+
+.section-meta-pills {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 0.78rem;
+  color: var(--sheet-text-muted);
+}
+
+.section-meta-pill {
+  padding: 0.2rem 0.55rem;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+/* ── Musician Format Specific Rendering ──────────────────────────────── */
+
+/* Guitar View */
+.view-guitar-chords {
+  font-size: 1.55rem;
+  font-weight: 700;
+  color: var(--sheet-gold-bright);
+  letter-spacing: 0.08em;
+  margin: 0.75rem 0 0.5rem 0;
+  line-height: 1.4;
+  word-spacing: 0.3em;
+}
+
+.view-guitar-notes {
+  color: var(--sheet-text-secondary);
+  font-size: 0.9rem;
+  line-height: 1.5;
+  margin-top: 0.5rem;
+}
+
+/* Bass View */
+.view-bass-roots {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #93c5fd;
+  letter-spacing: 0.06em;
+  margin: 0.75rem 0 0.35rem 0;
+}
+
+.view-bass-progression {
+  font-size: 1.15rem;
+  color: var(--sheet-text-secondary);
+  margin-bottom: 0.5rem;
+}
+
+.view-bass-rhythm {
+  color: var(--sheet-gold);
+  font-size: 0.88rem;
+  font-weight: 600;
+  margin-top: 0.4rem;
+}
+
+.view-bass-notes {
+  color: var(--sheet-text-muted);
+  font-size: 0.86rem;
+  margin-top: 0.25rem;
+}
+
+/* Drums View */
+.view-drums-notes {
+  color: var(--sheet-text-primary);
+  font-size: 1.05rem;
+  line-height: 1.6;
+  margin-top: 0.5rem;
+}
+
+.view-drums-cues {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.85rem;
+}
+
+.drum-cue-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.65rem;
+  border-radius: 6px;
+  background: rgba(244, 217, 169, 0.12);
+  border: 1px solid var(--sheet-gold-border);
+  color: var(--sheet-gold-bright);
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* Main Artist (Vocalist) View */
+.view-artist-lyrics {
+  font-family: "Cormorant Garamond", Georgia, serif;
+  font-size: 1.45rem;
+  line-height: 1.7;
+  color: var(--sheet-text-primary);
+  white-space: pre-line;
+  margin: 0.75rem 0;
+}
+
+.view-artist-instrumental {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem 1.25rem;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px dashed rgba(255, 255, 255, 0.12);
+  color: var(--sheet-text-muted);
+  font-style: italic;
+  font-size: 0.95rem;
+}
+
+.view-artist-cue {
+  font-size: 0.84rem;
+  color: var(--sheet-gold);
+  margin-top: 0.6rem;
+  font-weight: 500;
+}
+
+/* ── VISUAL-ONLY FLOATING BEAT COUNTER (STRICT NO AUDIO) ──────────────── */
+.floating-beat-counter {
+  position: fixed;
+  top: 5.8rem;
+  right: 1.75rem;
+  z-index: 90;
+  width: 175px;
+  background: rgba(8, 18, 24, 0.94);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border: 1px solid var(--sheet-gold-border);
+  border-radius: 14px;
+  padding: 0.85rem;
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.6);
+  user-select: none;
+  pointer-events: none;
+  transition: transform 180ms ease, opacity 180ms ease;
+}
+
+.counter-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding-bottom: 0.4rem;
+  margin-bottom: 0.5rem;
+}
+
+.counter-bpm-label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--sheet-gold);
+  letter-spacing: 0.04em;
+}
+
+.counter-meter-label {
+  font-size: 0.74rem;
+  color: var(--sheet-text-muted);
+}
+
+.counter-beat-display {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 0.4rem 0;
+}
+
+.counter-beat-number {
+  font-family: "Cormorant Garamond", Georgia, serif;
+  font-size: 2.8rem;
+  line-height: 1;
+  font-weight: 700;
+  color: var(--sheet-gold-bright);
+  transition: transform 100ms cubic-bezier(0.16, 1, 0.3, 1), text-shadow 100ms ease;
+}
+
+.counter-beat-number.pulse-beat {
+  transform: scale(1.12);
+  text-shadow: 0 0 16px rgba(216, 168, 93, 0.8);
+}
+
+.counter-sub-label {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--sheet-text-muted);
+  margin-top: 0.2rem;
+}
+
+.counter-footer-row {
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding-top: 0.4rem;
+  margin-top: 0.45rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.74rem;
+  color: var(--sheet-text-secondary);
+}
+
+.counter-countin-badge {
+  color: #fbbf24;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 0.7rem;
+  text-align: center;
+  padding: 0.2rem 0;
+}
+
+/* ── Return To Live Floating Pill ─────────────────────────────────────── */
+.floating-return-live {
+  position: fixed;
+  bottom: 2rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 95;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  background: rgba(11, 22, 30, 0.96);
+  border: 1px solid var(--sheet-gold);
+  border-radius: 999px;
+  padding: 0.65rem 1.25rem;
+  color: var(--sheet-gold-bright);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.6), 0 0 14px rgba(216, 168, 93, 0.3);
+  transition: transform 200ms ease, background 200ms ease;
+  animation: float-rise 300ms ease both;
+}
+
+.floating-return-live:hover {
+  transform: translateX(-50%) translateY(-2px);
+  background: rgba(216, 168, 93, 0.2);
+}
+
+.live-indicator-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #34d399;
+  box-shadow: 0 0 10px #34d399;
+  animation: pulse-dot 1.2s infinite ease-in-out;
+}
+
+@keyframes float-rise {
+  from { opacity: 0; transform: translate(-50%, 15px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
+}
+
+/* ── Performance Mode (Distraction-Free) ──────────────────────────────── */
+body.performance-mode-active .portfolio-header,
+body.performance-mode-active .sheet-top-bar,
+body.performance-mode-active .sheet-sidebar {
+  display: none !important;
+}
+
+body.performance-mode-active .sheet-workspace {
+  padding-top: 1rem;
+}
+
+body.performance-mode-active .sheet-layout {
+  grid-template-columns: 1fr;
+}
+
+.performance-exit-bar {
+  position: fixed;
+  bottom: 1.5rem;
+  right: 1.75rem;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.performance-exit-btn {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: var(--sheet-text-primary);
+  border-radius: 999px;
+  padding: 0.55rem 1.1rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  backdrop-filter: blur(12px);
+  transition: all 180ms ease;
+}
+
+.performance-exit-btn:hover {
+  background: rgba(216, 168, 93, 0.2);
+  border-color: var(--sheet-gold);
+  color: var(--sheet-gold-bright);
+}
+
+/* ── Mobile Layout (< 980px) ─────────────────────────────────────────── */
+@media (max-width: 980px) {
+  .sheet-layout {
+    grid-template-columns: 1fr;
+    gap: 1.25rem;
+  }
+
+  .sheet-sidebar {
+    position: static;
+    order: 2;
+  }
+
+  .sheet-main-content {
+    order: 1;
+  }
+
+  .sheet-format-selector {
+    overflow-x: auto;
+    justify-content: flex-start;
+    top: 4.8rem;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .format-tab-btn {
+    flex: 0 0 auto;
+    padding: 0.55rem 0.85rem;
+    font-size: 0.82rem;
+  }
+
+  .sheet-section-block {
+    padding: 1.25rem 1.25rem;
+  }
+
+  .section-title {
+    font-size: 1.5rem;
+  }
+
+  .view-guitar-chords {
+    font-size: 1.3rem;
+  }
+
+  .view-artist-lyrics {
+    font-size: 1.25rem;
+  }
+
+  .floating-beat-counter {
+    top: auto;
+    bottom: 1.25rem;
+    right: 1rem;
+    width: 145px;
+    padding: 0.65rem;
+  }
+
+  .counter-beat-number {
+    font-size: 2.2rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .sheet-workspace {
+    padding: 1rem 0.75rem 5rem 0.75rem;
+  }
+
+  .sheet-top-bar {
+    margin-bottom: 1rem;
+  }
+
+  .floating-beat-counter {
+    bottom: 4.5rem;
+    right: 0.75rem;
+    width: 130px;
+  }
+}

@@ -1,0 +1,436 @@
+{
+  "$schema": "musician-sheet-schema-v1",
+  "version": 1,
+  "description": "Master song data repository for Tanmoy Flute Musician's Sheet. One master structure generates all musician formats.",
+  "songs": [
+    {
+      "id": "great-are-you-lord",
+      "metadata": {
+        "title": "Great Are You Lord",
+        "artist": "Demonstration Artist",
+        "key": "C Major",
+        "bpm": 120,
+        "timeSignature": {
+          "numerator": 4,
+          "denominator": 4,
+          "pulseUnit": "quarter"
+        },
+        "duration": "04:16",
+        "notes": "Demonstration arrangement. Placeholder musical content for live sync testing."
+      },
+      "canonicalSections": {
+        "prelude": {
+          "id": "prelude",
+          "name": "Prelude",
+          "type": "instrumental",
+          "musicianData": {
+            "drums": {
+              "notes": "Light hi-hat 8ths, soft kick on 1 and 3. Gentle cymbal wash.",
+              "cues": ["Soft entrance", "Quarter pulse", "Cymbal swell on bar 4"]
+            },
+            "guitar": {
+              "chords": "C — G — Am — F",
+              "notes": "Gentle fingerpicked acoustic chords. Let notes ring."
+            },
+            "bass": {
+              "rootNotes": "C — G — A — F",
+              "progression": "C — G — Am — F",
+              "rhythm": "Whole notes on downbeats, deep warm fundamental.",
+              "notes": "Warm sub-bass feel, sustain roots."
+            },
+            "mainArtist": {
+              "isInstrumental": true,
+              "lyrics": "",
+              "cue": "Instrumental Introduction — Bansuri flute melody enters with acoustic guitar."
+            }
+          }
+        },
+        "verse-1": {
+          "id": "verse-1",
+          "name": "Verse 1",
+          "type": "vocal",
+          "musicianData": {
+            "drums": {
+              "notes": "Kick on 1 & 3, cross-stick on beat 4. Subtle shaker feel.",
+              "cues": ["Cross-stick on 4", "Keep dynamics low"]
+            },
+            "guitar": {
+              "chords": "C — G — Am — F",
+              "notes": "Steady acoustic 8th-note strumming, intimate dynamics."
+            },
+            "bass": {
+              "rootNotes": "C — G — A — F",
+              "progression": "C — G — Am — F",
+              "rhythm": "Root notes on downbeats, gentle walking transition into Am.",
+              "notes": "Subtle low end support, soft attack."
+            },
+            "mainArtist": {
+              "isInstrumental": false,
+              "lyrics": "You give life, You are love\nYou bring light to the darkness\nYou give hope, You restore every heart that is broken\nGreat are You, Lord",
+              "cue": "Vocal enters — intimate, heartfelt delivery."
+            }
+          }
+        },
+        "interlude": {
+          "id": "interlude",
+          "name": "Interlude",
+          "type": "instrumental",
+          "musicianData": {
+            "drums": {
+              "notes": "Tom groove build into next section. Swell crash on last bar.",
+              "cues": ["Crescendo", "Tom groove", "Crash on bar 4"]
+            },
+            "guitar": {
+              "chords": "C — F — G",
+              "notes": "Open suspended voicings, sustained ringing chords."
+            },
+            "bass": {
+              "rootNotes": "C — F — G",
+              "progression": "C — F — G",
+              "rhythm": "Dotted quarter accents with octave pulse.",
+              "notes": "Drive motion forward into the verse."
+            },
+            "mainArtist": {
+              "isInstrumental": true,
+              "lyrics": "",
+              "cue": "Instrumental Interlude — Classical Bansuri flute improvisation."
+            }
+          }
+        },
+        "verse-2": {
+          "id": "verse-2",
+          "name": "Verse 2",
+          "type": "vocal",
+          "musicianData": {
+            "drums": {
+              "notes": "Full snare on 2 & 4, open hi-hat accents on upbeat.",
+              "cues": ["Snare 2 & 4", "Build energy", "Kick 8th pulse"]
+            },
+            "guitar": {
+              "chords": "C — G — Am — F",
+              "notes": "Full dynamic strumming pattern with accents on 2 and 4."
+            },
+            "bass": {
+              "rootNotes": "C — G — A — F",
+              "progression": "C — G — Am — F",
+              "rhythm": "Pumping 8th notes locking tightly with the kick drum.",
+              "notes": "Solid mid-register groove, active pulse."
+            },
+            "mainArtist": {
+              "isInstrumental": false,
+              "lyrics": "It’s Your breath in our lungs\nSo we pour out our praise, we pour out our praise\nIt’s Your breath in our lungs\nSo we pour out our praise to You only",
+              "cue": "Strong, passionate vocal projection. Full energy."
+            }
+          }
+        },
+        "verse-3": {
+          "id": "verse-3",
+          "name": "Verse 3",
+          "type": "vocal",
+          "musicianData": {
+            "drums": {
+              "notes": "Driving four-on-the-floor kick, ride cymbal bell accents.",
+              "cues": ["Ride cymbal", "Four-on-the-floor", "Full band climax"]
+            },
+            "guitar": {
+              "chords": "F — G — Am — Em",
+              "notes": "Overdriven electric arpeggios & wide acoustic chords."
+            },
+            "bass": {
+              "rootNotes": "F — G — A — E",
+              "progression": "F — G — Am — Em",
+              "rhythm": "Driving syncopated roots with fifths, energetic push.",
+              "notes": "Dynamic peak, rich sustain and harmonics."
+            },
+            "mainArtist": {
+              "isInstrumental": false,
+              "lyrics": "All the earth will shout Your praise\nOur hearts will cry, these bones will sing\nGreat are You, Lord\nGreat are You, Lord",
+              "cue": "Full vocal power, wide dynamic peak."
+            }
+          }
+        },
+        "outro": {
+          "id": "outro",
+          "name": "Outro",
+          "type": "instrumental",
+          "musicianData": {
+            "drums": {
+              "notes": "Decrescendo into soft cymbal swells. Final hit on beat 1.",
+              "cues": ["Decrescendo", "Soft cymbal wash", "Final hit on 1"]
+            },
+            "guitar": {
+              "chords": "C — G — Am — F — C",
+              "notes": "Slowing arpeggio pattern, let final C major chord ring out."
+            },
+            "bass": {
+              "rootNotes": "C — G — A — F — C",
+              "progression": "C — G — Am — F — C",
+              "rhythm": "Long sustained fundamental tones fading naturally.",
+              "notes": "Final deep low C resolution."
+            },
+            "mainArtist": {
+              "isInstrumental": true,
+              "lyrics": "",
+              "cue": "Instrumental Outro — Bansuri final melodic resolve, gentle fade."
+            }
+          }
+        }
+      },
+      "occurrences": [
+        {
+          "occurrenceId": "occ-1-prelude",
+          "sectionId": "prelude",
+          "displayName": "Prelude",
+          "isRepeat": false,
+          "bars": 4,
+          "bpm": 120,
+          "performanceNotes": "Soft opening, establish groove."
+        },
+        {
+          "occurrenceId": "occ-2-verse-1",
+          "sectionId": "verse-1",
+          "displayName": "Verse 1",
+          "isRepeat": false,
+          "bars": 8,
+          "bpm": 120,
+          "performanceNotes": "Vocal enters, intimate feel."
+        },
+        {
+          "occurrenceId": "occ-3-interlude-1",
+          "sectionId": "interlude",
+          "displayName": "Interlude",
+          "isRepeat": false,
+          "bars": 4,
+          "bpm": 120,
+          "performanceNotes": "Flute lead transition."
+        },
+        {
+          "occurrenceId": "occ-4-verse-2",
+          "sectionId": "verse-2",
+          "displayName": "Verse 2",
+          "isRepeat": false,
+          "bars": 8,
+          "bpm": 120,
+          "performanceNotes": "Band expands dynamics, full groove."
+        },
+        {
+          "occurrenceId": "occ-5-verse-1-rep-1",
+          "sectionId": "verse-1",
+          "displayName": "Verse 1 Repeat",
+          "isRepeat": true,
+          "repeatOf": "verse-1",
+          "bars": 8,
+          "bpm": 120,
+          "performanceNotes": "Expanded repeat, full rhythm support."
+        },
+        {
+          "occurrenceId": "occ-6-interlude-2",
+          "sectionId": "interlude",
+          "displayName": "Interlude",
+          "isRepeat": false,
+          "bars": 4,
+          "bpm": 120,
+          "performanceNotes": "Build towards climax."
+        },
+        {
+          "occurrenceId": "occ-7-verse-3",
+          "sectionId": "verse-3",
+          "displayName": "Verse 3",
+          "isRepeat": false,
+          "bars": 8,
+          "bpm": 120,
+          "performanceNotes": "Peak intensity, full chorus."
+        },
+        {
+          "occurrenceId": "occ-8-verse-1-rep-2",
+          "sectionId": "verse-1",
+          "displayName": "Verse 1 Repeat",
+          "isRepeat": true,
+          "repeatOf": "verse-1",
+          "bars": 8,
+          "bpm": 120,
+          "performanceNotes": "Triumphant return of theme."
+        },
+        {
+          "occurrenceId": "occ-9-outro",
+          "sectionId": "outro",
+          "displayName": "Outro",
+          "isRepeat": false,
+          "bars": 4,
+          "bpm": 120,
+          "performanceNotes": "Gradual ritardando and decay."
+        }
+      ]
+    },
+    {
+      "id": "monsoon-melody-fusion",
+      "metadata": {
+        "title": "Monsoon Melody (Dadra & Fusion)",
+        "artist": "Tanmoy Pramanik Fusion Ensemble",
+        "key": "D Minor",
+        "bpm": 96,
+        "timeSignature": {
+          "numerator": 6,
+          "denominator": 8,
+          "pulseUnit": "dotted-quarter"
+        },
+        "duration": "03:30",
+        "notes": "Compound meter (6/8 Dadra-inspired groove) with dynamic section BPM acceleration."
+      },
+      "canonicalSections": {
+        "alap": {
+          "id": "alap",
+          "name": "Alap (Intro)",
+          "type": "instrumental",
+          "musicianData": {
+            "drums": {
+              "notes": "Subtle tabla/percussion fills, cymbal rolls.",
+              "cues": ["Free pulse", "Cymbal roll"]
+            },
+            "guitar": {
+              "chords": "Dm — Bb — C — Dm",
+              "notes": "Atmospheric acoustic swells with reverb."
+            },
+            "bass": {
+              "rootNotes": "D — Bb — C — D",
+              "progression": "Dm — Bb — C — Dm",
+              "rhythm": "Sustained pedal D, gentle slide to Bb.",
+              "notes": "Low droning foundation."
+            },
+            "mainArtist": {
+              "isInstrumental": true,
+              "lyrics": "",
+              "cue": "Solo Bansuri Flute opening — Megh / Desh ragas mood."
+            }
+          }
+        },
+        "sthai": {
+          "id": "sthai",
+          "name": "Sthai (Theme)",
+          "type": "vocal",
+          "musicianData": {
+            "drums": {
+              "notes": "6/8 groove (Dhin Dha Tin | Dha Dhin Dha) on Cajon/Kit.",
+              "cues": ["6/8 Dadra groove", "Accents on 1 and 4"]
+            },
+            "guitar": {
+              "chords": "Dm — Gm — A7 — Dm",
+              "notes": "Syncopated 6/8 strumming pattern."
+            },
+            "bass": {
+              "rootNotes": "D — G — A — D",
+              "progression": "Dm — Gm — A7 — Dm",
+              "rhythm": "Dotted quarter pulse on 1 and 4 with 8th note walk.",
+              "notes": "Syncopated acoustic bassline."
+            },
+            "mainArtist": {
+              "isInstrumental": false,
+              "lyrics": "Baras baras ghana megha baras re\nPyaasi dharti, behta man re\nSur barsao, ritu suhaani",
+              "cue": "Vocal melody joins in 6/8 meter."
+            }
+          }
+        },
+        "antara": {
+          "id": "antara",
+          "name": "Antara (High Section)",
+          "type": "vocal",
+          "musicianData": {
+            "drums": {
+              "notes": "Accelerated tempo (112 BPM), driving ride pattern.",
+              "cues": ["Tempo push", "Open hi-hat on 4", "Fill into repeat"]
+            },
+            "guitar": {
+              "chords": "F — C — Bb — A7",
+              "notes": "High voicing chord chops and rhythmic accents."
+            },
+            "bass": {
+              "rootNotes": "F — C — Bb — A",
+              "progression": "F — C — Bb — A7",
+              "rhythm": "Fast 8th note arpeggiation locking with percussion.",
+              "notes": "Upper register melodic counterpoint."
+            },
+            "mainArtist": {
+              "isInstrumental": false,
+              "lyrics": "Taaron ki jhilmil jaise baaje sitar\nBansuri ki taan chhoo le ambar apaar\nGaao re, jhoomo re",
+              "cue": "High register vocal, energetic delivery."
+            }
+          }
+        },
+        "drut-jhala": {
+          "id": "drut-jhala",
+          "name": "Drut Jhala (Climax)",
+          "type": "instrumental",
+          "musicianData": {
+            "drums": {
+              "notes": "Fast 6/8 (126 BPM), energetic fills, climax crescendo.",
+              "cues": ["Fast Jhala", "Continuous roll", "Final hit on Sam"]
+            },
+            "guitar": {
+              "chords": "Dm — C — Bb — A — Dm",
+              "notes": "Rapid flamenco-style strumming."
+            },
+            "bass": {
+              "rootNotes": "D — C — Bb — A — D",
+              "progression": "Dm — C — Bb — A — Dm",
+              "rhythm": "Driving roots and octaves at brisk tempo.",
+              "notes": "Fast punchy attack, tight stop."
+            },
+            "mainArtist": {
+              "isInstrumental": true,
+              "lyrics": "",
+              "cue": "Virtuosic rapid flute tans (Jhala) to final resolution."
+            }
+          }
+        }
+      },
+      "occurrences": [
+        {
+          "occurrenceId": "mm-1-alap",
+          "sectionId": "alap",
+          "displayName": "Alap (Intro)",
+          "isRepeat": false,
+          "bars": 4,
+          "bpm": 96,
+          "performanceNotes": "Free meditative meter."
+        },
+        {
+          "occurrenceId": "mm-2-sthai",
+          "sectionId": "sthai",
+          "displayName": "Sthai (Theme)",
+          "isRepeat": false,
+          "bars": 8,
+          "bpm": 96,
+          "performanceNotes": "Dadra 6/8 groove starts."
+        },
+        {
+          "occurrenceId": "mm-3-antara",
+          "sectionId": "antara",
+          "displayName": "Antara (High Section)",
+          "isRepeat": false,
+          "bars": 8,
+          "bpm": 112,
+          "performanceNotes": "Tempo accelerates to 112 BPM."
+        },
+        {
+          "occurrenceId": "mm-4-sthai-rep",
+          "sectionId": "sthai",
+          "displayName": "Sthai Repeat",
+          "isRepeat": true,
+          "repeatOf": "sthai",
+          "bars": 8,
+          "bpm": 112,
+          "performanceNotes": "Theme returns at accelerated tempo."
+        },
+        {
+          "occurrenceId": "mm-5-drut-jhala",
+          "sectionId": "drut-jhala",
+          "displayName": "Drut Jhala (Climax)",
+          "isRepeat": false,
+          "bars": 6,
+          "bpm": 126,
+          "performanceNotes": "Climax at 126 BPM, final resolution."
+        }
+      ]
+    }
+  ]
+}

@@ -4,6 +4,7 @@ import { DropdownMenu } from "radix-ui";
 import { Button } from "./ui/button";
 
 export const tools = [
+  ["singing.html", "Sargam Singing Trainer", "Follow a singer’s pitch and practice each phrase in sargam."],
   ["sheet.html", "Musician's Sheet", "Multi-instrument song reference and live performance sync."],
   ["notes.html", "Palta Generator", "Generate Aroha and Avaroha practice patterns."],
   ["notation.html", "Swaralipi Editor", "Write and export Hindustani classical notation."],

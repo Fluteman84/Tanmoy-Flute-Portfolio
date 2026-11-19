@@ -398,6 +398,8 @@ export function SheetWorkspace() {
                 ))}
               </select>
 
+              <a href={`singing.html?song=${encodeURIComponent(activeSong.metadata.title)}#song-search`}>Study this song in sargam ↗</a>
+
               <div className="sheet-meta-grid">
                 <div className="sheet-meta-item">
                   <span className="meta-label">Artist</span>
